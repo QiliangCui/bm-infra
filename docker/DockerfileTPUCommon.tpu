@@ -1,0 +1,25 @@
+ARG NIGHTLY_DATE="20250124"
+ARG BASE_IMAGE="us-central1-docker.pkg.dev/tpu-pytorch-releases/docker/xla:nightly_3.10_tpuvm_$NIGHTLY_DATE"
+
+FROM $BASE_IMAGE
+WORKDIR /workspace/tpu_commons
+
+# Build tpu_commons
+COPY tpu_commons .
+RUN python3 -m pip install -e .
+
+WORKDIR /workspace/torchax
+
+# Build xla
+COPY xla/torchax .
+
+RUN python3 -m pip install -e . --no-deps
+
+# go back to vllm folder
+WORKDIR /workspace/vllm
+
+# setting the extra env
+ENV VLLM_TORCHAX_ENABLED=1
+ENV TPU_BACKEND_TYPE=torchax
+
+CMD ["/bin/bash"]
