@@ -2,9 +2,9 @@
 
 ## As a user to submit job to run on the agents
 
-### Prepair enviornment
+### Prepare enviornment
 
-#### Insert following variables into /etc/environment. 
+#### Insert following variables into /etc/environment.
 
 ```
 echo 'GCP_PROJECT_ID=cloud-tpu-inference-test
@@ -32,16 +32,17 @@ sudo apt-get update && sudo apt-get install -y jq
 
 ### Submit a job to run.
 
-1. login to gcp: `gcloud auth login`.  
+1. login to gcp: `gcloud auth login`.
 1. create a test case file like ./cases/case1.csv. Save it to a file like ~/my_test.csv
-1. go to this source code folder. 
+1. go to this source code folder.
 1. Run `./scripts/scheduler/create_job.sh <INPUT_CSV> [CODE_HASH] [JOB_REFERENCE] [RUN_TYPE]`
    - INPUT_CSV: the test case file
-   - CODE_HASH: the [vllm](https://github.com/vllm-project/vllm) code hash you want to run. use "" to indicate latest. 
-   - JOB_REFERENCE: A string that you can use later to find the job in database. 
-   - RUN_TYPE: default is "MANUAL". No need to set this usually. 
+   - CODE_HASH: the [vllm](https://github.com/vllm-project/vllm) code hash you want to run. use "" to indicate latest.
+   - JOB_REFERENCE: A string that you can use later to find the job in database.
+   - RUN_TYPE: default is "MANUAL". No need to set this usually.
+   - REPO: which backend framework to use, default is using vLLM ("DEFAULT") but can also be "TPU_COMMONS"
 
-Example: 
+Example:
 
 ```
 ./scripts/scheduler/create_job.sh ./configs/case1.csv
@@ -49,23 +50,23 @@ Example:
 ./scripts/scheduler/create_job.sh ~/my_test.csv da9b523ce1fd5c27bfd18921ba0388bf2e8e4618 my_first_test
 ```
 
-To see job status 
+To see job status
 
 ```
 ./scripts/manager/get_status.sh [JOB_REFERENCE]
 
-For example 
+For example
 ./scripts/manager/get_status.sh my_first_test
 
 ```
 
-Write some script to query the database as `./scripts/manager/get_status.sh` or go to the spanner to query and see more result. 
+Write some script to query the database as `./scripts/manager/get_status.sh` or go to the spanner to query and see more result.
 
 ### Scan a range of vllm commits
 
 
 Run `./scripts/manager/scan_commits.sh <INPUT_CSV> <START_HASH[-END_HASH]> [JOB_REFERENCE] [RUN_TYPE]`
-- INPUT_CSV: test case csv. 
+- INPUT_CSV: test case csv.
 - START_HASH: scan starting from this commits.
 - END_HASH: scan till this commits(inclusive). If not provided, scan to latests.
 - JOB_REFERENCE: job reference for searching the job later. The script will append a number after your JOB_REFERENCE. See example below
@@ -84,7 +85,7 @@ The job reference will be like `find_regression_1`, `find_regression_2`... in th
 
 Not that the job will be run as a user "bm-agent" instead of yourself.
 
-### Prepair enviornment
+### Prepare enviornment
 
 ```
 echo 'GCP_PROJECT_ID=cloud-tpu-inference-test
@@ -111,13 +112,13 @@ mountpoint /mnt/disks/persist
 ```
 
 ### Install BM-Agent Service
-If it is not a mounted disk, don't do following step. 
+If it is not a mounted disk, don't do following step.
 Jobs will fail without a mounted disk.
 
 Install the bm-agent service.
 
 ```
-./service/bm-agent/install.sh 
+./service/bm-agent/install.sh
 ```
 
 it installs a service bm-agent. It starts automatically to query the job queue and start to work on it.
@@ -129,7 +130,7 @@ Use the command below to control them.
 # check status
 sudo systemctl status bm-agent.service
 
-# stop 
+# stop
 sudo systemctl stop bm-agent.service
 
 # disable so that it won't auto start.

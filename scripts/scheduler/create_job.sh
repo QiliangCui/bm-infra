@@ -12,6 +12,7 @@ CODE_HASH="${2:-}"  # optional
 JOB_REFERENCE="${3:-}"
 RUN_TYPE="${4:-"MANUAL"}"
 REPO="${5:-"DEFAULT"}"
+TPU_COMMONS_TPU_BACKEND_TYPE="${6:-"torchax"}"
 
 if [[ "$REPO" != "DEFAULT" && "$REPO" != "TPU_COMMONS" ]]; then
   echo "Error: REPO must be either DEFAULT or TPU_COMMONS, but got '$REPO'"
@@ -52,26 +53,26 @@ if [[ "${SKIP_BUILD_IMAGE:-0}" != "1" ]]; then
   # Clone and get hash
   VLLM_HASH=$(clone_and_get_hash "https://github.com/vllm-project/vllm.git" "artifacts/vllm" "$VLLM_HASH")
   echo "resolved VLLM_HASH: $VLLM_HASH"
-  
+
   echo "./scripts/scheduler/build_image.sh $VLLM_HASH"
   ./scripts/scheduler/build_image.sh "$VLLM_HASH"
 
   CODE_HASH=$VLLM_HASH
 
   # If additional image is needed
-  if [ "$REPO" = "TPU_COMMONS" ]; then    
+  if [ "$REPO" = "TPU_COMMONS" ]; then
     echo "build image for TPU_COMMON"
-    
+
     TPU_COMMONS_HASH=$(clone_and_get_hash "https://github.com/vllm-project/tpu_commons.git" "artifacts/tpu_commons" "$TPU_COMMONS_HASH")
     echo "resolved TPU_COMMONS_HASH: $TPU_COMMONS_HASH"
 
     TORCHAX_HASH=$(clone_and_get_hash "https://github.com/pytorch/xla.git" "artifacts/xla" "$TORCHAX_HASH")
     echo "resolved TORCHAX_HASH: $TORCHAX_HASH"
 
-    ./scripts/scheduler/build_tpu_commons_image.sh "$VLLM_HASH" "$TPU_COMMONS_HASH" "$TORCHAX_HASH"
-    CODE_HASH="${VLLM_HASH}-${TPU_COMMONS_HASH}-${TORCHAX_HASH}"
+    ./scripts/scheduler/build_tpu_commons_image.sh "$VLLM_HASH" "$TPU_COMMONS_HASH" "$TORCHAX_HASH" "$TPU_COMMONS_TPU_BACKEND_TYPE"
+    CODE_HASH="${VLLM_HASH}-${TPU_COMMONS_HASH}-${TORCHAX_HASH}-${TPU_COMMONS_TPU_BACKEND_TYPE}"
   fi
-  
+
 else
   echo "Skipping build image"
 fi

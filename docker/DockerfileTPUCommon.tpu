@@ -2,6 +2,10 @@ ARG NIGHTLY_DATE="20250124"
 ARG BASE_IMAGE="us-central1-docker.pkg.dev/tpu-pytorch-releases/docker/xla:nightly_3.10_tpuvm_$NIGHTLY_DATE"
 
 FROM $BASE_IMAGE
+
+ARG VLLM_TORCHAX_ENABLED=1
+ARG TPU_BACKEND_TYPE=torchax
+
 WORKDIR /workspace/tpu_commons
 
 # Build tpu_commons
@@ -19,7 +23,7 @@ RUN python3 -m pip install -e . --no-deps
 WORKDIR /workspace/vllm
 
 # setting the extra env
-ENV VLLM_TORCHAX_ENABLED=1
-ENV TPU_BACKEND_TYPE=torchax
+ENV VLLM_TORCHAX_ENABLED=$VLLM_TORCHAX_ENABLED
+ENV TPU_BACKEND_TYPE=$TPU_BACKEND_TYPE
 
 CMD ["/bin/bash"]
