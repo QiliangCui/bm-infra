@@ -19,6 +19,11 @@ if [[ "$REPO" != "DEFAULT" && "$REPO" != "TPU_COMMONS" ]]; then
   exit 1
 fi
 
+if [[ "$TPU_COMMONS_TPU_BACKEND_TYPE" != "torchax" && "$TPU_COMMONS_TPU_BACKEND_TYPE" != "jax" ]]; then
+  echo "Error: TPU_COMMONS_TPU_BACKEND_TYPE must be either torchax or jax, but got '$TPU_COMMONS_TPU_BACKEND_TYPE'"
+  exit 1
+fi
+
 IFS='-' read -r VLLM_HASH TPU_COMMONS_HASH TORCHAX_HASH _ <<< "$CODE_HASH"
 
 echo "Recreating artifacts directory"

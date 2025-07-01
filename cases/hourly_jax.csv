@@ -1,0 +1,3 @@
+Device,Model,MaxNumSeqs,MaxNumBatchedTokens,TensorParallelSize,MaxModelLen,Dataset,InputLen,OutputLen
+v6e-1,Qwen/Qwen2.5-1.5B-Instruct,256,4096,1,2048,sonnet,1800,128
+v6e-1,meta-llama/Llama-3.1-8B-Instruct,256,1024,1,2048,sonnet,1800,128
