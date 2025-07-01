@@ -41,6 +41,7 @@ sudo apt-get update && sudo apt-get install -y jq
    - JOB_REFERENCE: A string that you can use later to find the job in database.
    - RUN_TYPE: default is "MANUAL". No need to set this usually.
    - REPO: which backend framework to use, default is using vLLM ("DEFAULT") but can also be "TPU_COMMONS"
+   - TPU_COMMONS_TPU_BACKEND_TYPE: whhich TPU Commons TPU_BACKEND_TYPE to use -- can be "torchax" (default) or "jax"
 
 Example:
 

@@ -25,8 +25,8 @@ echo "./scripts/scheduler/create_job.sh ./cases/hourly_torchax.csv \"\" $TAG HOU
 # Run TPU Commons + JAX test.
 # Eventually, JAX and vLLM should run the same test case.
 # for now, we start from v6e-1.
-echo "./scripts/scheduler/create_job.sh ./cases/hourly_jax.csv \"\" $TAG HOURLY_TORCHAX TPU_COMMONS jax"
-./scripts/scheduler/create_job.sh ./cases/hourly_jax.csv "" $TAG HOURLY_TORCHAX TPU_COMMONS jax
+echo "./scripts/scheduler/create_job.sh ./cases/hourly_jax.csv \"\" $TAG HOURLY_JAX TPU_COMMONS jax"
+./scripts/scheduler/create_job.sh ./cases/hourly_jax.csv "" $TAG HOURLY_JAX TPU_COMMONS jax
 
 
 if [[ "$HOUR_NOW" == "00" || "$HOUR_NOW" == "12" ]]; then
