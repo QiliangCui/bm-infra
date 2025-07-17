@@ -85,6 +85,7 @@ for i in {1..120}; do
 done
 
 EXPECTED_ETEL=${EXPECTED_ETEL:-3600000}
+NUM_PROMTES=${NUM_PROMPTS:-1000}
 
 run_benchmark(){  
   #
@@ -104,6 +105,7 @@ run_benchmark(){
       --dataset-path benchmarks/sonnet_4x.txt \
       --sonnet-input-len $INPUT_LEN \
       --sonnet-output-len $OUTPUT_LEN \
+      --num-prompts $NUM_PROMTES \
       --percentile-metrics ttft,tpot,itl,e2el \
       --ignore-eos > "$BM_LOG" 2>&1
 
@@ -115,6 +117,7 @@ run_benchmark(){
       --dataset-name random \
       --random-input-len $INPUT_LEN \
       --random-output-len $OUTPUT_LEN \
+      --num-prompts $NUM_PROMTES \
       --percentile-metrics ttft,tpot,itl,e2el \
       --ignore-eos > "$BM_LOG" 2>&1
   elif [ "$DATASET" = "custom-token" ]; then
@@ -125,6 +128,7 @@ run_benchmark(){
       --request-rate $request_rate \
       --dataset-name custom-token \
       --dataset-path $dataset_path \
+      --num-prompts $NUM_PROMTES \
       --percentile-metrics ttft,tpot,itl,e2el \
       --ignore-eos > "$BM_LOG" 2>&1
   else

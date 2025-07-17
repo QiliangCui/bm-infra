@@ -1,3 +1,3 @@
-Device,Model,MaxNumSeqs,MaxNumBatchedTokens,TensorParallelSize,MaxModelLen,Dataset,InputLen,OutputLen,ExpectedETEL
-v6e-1,Qwen/Qwen2.5-1.5B-Instruct,128,2048,1,2048,sonnet,1800,128
-v6e-8,Qwen/Qwen3-32B,256,2048,8,2048,sonnet,1800,128
+Device,Model,MaxNumSeqs,MaxNumBatchedTokens,TensorParallelSize,MaxModelLen,Dataset,InputLen,OutputLen,ExpectedETEL,NumPrompts
+v6e-1,Qwen/Qwen2.5-1.5B-Instruct,256,4096,1,2048,sonnet,1800,128,,
+v6e-1,Qwen/Qwen2.5-1.5B-Instruct,256,4096,1,2048,sonnet,1800,128,,3000
