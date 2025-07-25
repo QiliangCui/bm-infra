@@ -72,6 +72,7 @@ from benchmark_dataset import (
     ShareGPTDataset,
     SonnetDataset,
     VisionArenaDataset,
+    MMLUDataset,
 )
 from benchmark_utils import convert_to_pytorch_benchmark_format, write_to_json
 
@@ -106,6 +107,7 @@ class BenchmarkMetrics:
     median_e2el_ms: float
     std_e2el_ms: float
     percentiles_e2el_ms: list[tuple[float, float]]
+    accuracy: float
 
 
 def _get_current_request_rate(
@@ -221,9 +223,15 @@ def calculate_metrics(
     all_tpots: list[float] = []
     ttfts: list[float] = []
     e2els: list[float] = []
+    correct_predictions = 0
     for i in range(len(outputs)):
         if outputs[i].success:
             output_len = outputs[i].output_tokens
+
+            # Accuracy check
+            if input_requests[i].completion is not None:
+                if input_requests[i].completion in outputs[i].generated_text:
+                    correct_predictions += 1
 
             if not output_len:
                 # We use the tokenizer to count the number of output tokens
@@ -316,6 +324,7 @@ def calculate_metrics(
         percentiles_e2el_ms=[
             (p, np.percentile(e2els or 0, p) * 1000) for p in selected_percentiles
         ],
+        accuracy=correct_predictions / completed if completed > 0 else 0,
     )
 
     return metrics, actual_output_lens
@@ -545,6 +554,12 @@ async def benchmark(
             "Total Token throughput (tok/s):", metrics.total_token_throughput
         )
     )
+    
+    accuracy_metrics = {
+        "exact_match": metrics.accuracy
+    }
+    print(f"AccuracyMetrics: {json.dumps(accuracy_metrics)}")
+
 
     result = {
         "duration": benchmark_duration,
@@ -555,6 +570,7 @@ async def benchmark(
         "request_goodput": metrics.request_goodput if goodput_config_dict else None,
         "output_throughput": metrics.output_throughput,
         "total_token_throughput": metrics.total_token_throughput,
+        "accuracy_metrics": accuracy_metrics,
         "input_lens": [output.prompt_len for output in outputs],
         "output_lens": actual_output_lens,
         "ttfts": [output.ttft for output in outputs],
@@ -751,6 +767,17 @@ def main(args: argparse.Namespace):
         dataset = CustomTokenDataset(dataset_path=args.dataset_path)
         input_requests = dataset.sample(
             tokenizer=tokenizer, num_requests=args.num_prompts
+        )
+
+    elif args.dataset_name == "mmlu":
+        dataset = MMLUDataset(
+            dataset_path=args.dataset_path,
+            num_shots=args.mmlu_num_shots,
+            mmlu_method=args.mmlu_method,
+        )
+        input_requests = dataset.sample(
+            tokenizer=tokenizer,
+            num_requests=args.num_prompts,
         )
 
     elif args.dataset_name == "sonnet":
@@ -1039,6 +1066,7 @@ def create_argument_parser():
             "hf",
             "custom",
             "custom-token",
+            "mmlu",
         ],
         help="Name of the dataset to benchmark on.",
     )
@@ -1225,6 +1253,21 @@ def create_argument_parser():
         "--custom-skip-chat-template",
         action="store_true",
         help="Skip applying chat template to prompt, used only for custom dataset.",
+    )
+
+    mmlu_group = parser.add_argument_group("mmlu dataset options")
+    mmlu_group.add_argument(
+        "--mmlu-num-shots",
+        type=int,
+        default=5,
+        help="Number of shots for MMLU few-shot examples.",
+    )
+    mmlu_group.add_argument(
+        "--mmlu-method",
+        type=str,
+        default="HELM",
+        choices=["HELM", "Harness"],
+        help="Method for MMLU prompt generation.",
     )
 
     sonnet_group = parser.add_argument_group("sonnet dataset options")
