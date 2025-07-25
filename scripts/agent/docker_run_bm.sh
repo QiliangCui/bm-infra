@@ -78,13 +78,20 @@ docker run \
  $image_tag tail -f /dev/null
 
 # =============== temp solution ===============
-if [ "$DATASET" = "custom-token" ]; then
-  echo "use temp solution to hack custom-token dataset"
+if [ "$DATASET" = "custom-token" ] || [ "$DATASET" = "mmlu" ]; then
+  echo "Temp solution: Syncing dataset for $DATASET"
 
   mkdir -p ./artifacts/dataset/
-  gsutil -m cp gs://$GCS_BUCKET/dataset/*.* ./artifacts/dataset/
 
-  echo "copy dataset to container..."
+  if [ "$DATASET" = "custom-token" ]; then
+    # Download flat files for custom-token
+    gsutil -m cp gs://$GCS_BUCKET/dataset/*.* ./artifacts/dataset/
+  elif [ "$DATASET" = "mmlu" ]; then
+    # Download mmlu directory recursively
+    gsutil -m cp -r gs://$GCS_BUCKET/dataset/mmlu/* ./artifacts/dataset/
+  fi
+
+  echo "Copying dataset to container..."
   docker cp artifacts/dataset "$CONTAINER_NAME:/workspace/"
 
   echo docker cp scripts/agent/benchmark_serving.py "$CONTAINER_NAME:/workspace/vllm/benchmarks/benchmark_serving.py"
@@ -105,23 +112,24 @@ docker exec "$CONTAINER_NAME" chmod +x "/workspace/vllm/run_bm.sh"
 
 echo "run script..."
 echo
-docker exec "$CONTAINER_NAME" /bin/bash -c "./run_bm.sh"
+docker exec "$CONTAINER_NAME" /bin/bash -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled && ./run_bm.sh"
 
-echo "copy result back..."
+echo "copy results and logs back..."
 VLLM_LOG="$LOG_ROOT/$TEST_NAME"_vllm_log.txt
 BM_LOG="$LOG_ROOT/$TEST_NAME"_bm_log.txt
 docker cp "$CONTAINER_NAME:/workspace/vllm_log.txt" "$VLLM_LOG" 
 docker cp "$CONTAINER_NAME:/workspace/bm_log.txt" "$BM_LOG"
+
+echo "gsutil cp $LOG_ROOT/* $REMOTE_LOG_ROOT"
+gsutil cp $LOG_ROOT/* $REMOTE_LOG_ROOT
 
 throughput=$(grep "Request throughput (req/s):" "$BM_LOG" | sed 's/[^0-9.]//g')
 echo "throughput for $TEST_NAME at $VLLM_HASH: $throughput"
 
 output_token_throughput=$(grep "Output token throughput (tok/s):" "$BM_LOG" | sed 's/[^0-9.]//g')
 total_token_throughput=$(grep "Total Token throughput (tok/s):" "$BM_LOG" | sed 's/[^0-9.]//g')
-
-
-echo "gsutil cp $LOG_ROOT/* $REMOTE_LOG_ROOT"
-gsutil cp $LOG_ROOT/* $REMOTE_LOG_ROOT
+# Extract the JSON string for accuracy metrics. The sed command removes the 'AccuracyMetrics: ' prefix.
+AccuracyMetricsJSON=$(grep "AccuracyMetrics:" "$BM_LOG" | sed 's/AccuracyMetrics: //')
 
 #
 # compare the throughput with EXPECTED_THROUGHPUT 
@@ -131,7 +139,7 @@ gsutil cp $LOG_ROOT/* $REMOTE_LOG_ROOT
 # 
 if [[ -z "$throughput" || ! "$throughput" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
   echo "Failed to get the throughput"
-  exit 0
+  exit 1
 fi
 
 if (( $(echo "$throughput < $EXPECTED_THROUGHPUT" | bc -l) )); then
@@ -172,4 +180,5 @@ P99TTFT=$P99TTFT
 P99ETEL=$P99ETEL
 OutputTokenThroughput=$output_token_throughput
 TotalTokenThroughput=$total_token_throughput
+AccuracyMetrics='$AccuracyMetricsJSON'
 EOF
