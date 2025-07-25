@@ -10,6 +10,7 @@ generation. Supported dataset types include:
   - BurstGPT
   - HuggingFace
   - VisionArena
+  - MMLU
 """
 
 import base64
@@ -17,6 +18,7 @@ import io
 import json
 import logging
 import random
+import os
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -54,6 +56,7 @@ class SampleRequest:
     expected_output_len: int
     multi_modal_data: Optional[Union[MultiModalDataDict, dict]] = None
     lora_request: Optional[LoRARequest] = None
+    completion: Optional[str] = None
 
 
 # -----------------------------------------------------------------------------
@@ -275,6 +278,131 @@ def process_image(image: Any) -> Mapping[str, Any]:
         f"Invalid image input {image}. Must be a PIL.Image.Image"
         " or str or dictionary with raw image bytes."
     )
+
+class MMLUDataset(BenchmarkDataset):
+    """
+    Implements the MMLUDataset dataset.
+    """
+
+    def __init__(self, num_shots: int, mmlu_method: str, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.mmlu_method = mmlu_method
+        self.num_shots = num_shots
+        self.load_data()
+
+    def load_mmlu_dataset_csv(self,
+                              dataset_path: str) -> tuple[Any, dict[str, str]]:
+        assert dataset_path != ""
+        dataset = []
+        prompts_per_subject = dict()
+        for root, _, files in os.walk(dataset_path):
+            for csv_file in files:
+                if csv_file.endswith(".csv"):
+                    subject = " ".join(csv_file.split("_")[:-1])
+                    if subject not in prompts_per_subject:
+                        prompts_per_subject[subject] = ""
+                    filepath = os.path.join(root, csv_file)
+                    data = pd.read_csv(filepath, header=None)
+                    data["subject"] = subject
+                    dataset.append(data)
+
+        if not dataset:
+            raise FileNotFoundError(f"No CSV files found in {dataset_path}")
+
+        combined_dataset = pd.concat(dataset, ignore_index=True)
+        header_dict = {
+            0: "question",
+            1: "A",
+            2: "B",
+            3: "C",
+            4: "D",
+            5: "answer",
+        }
+        combined_dataset.rename(columns=header_dict, inplace=True)
+        return combined_dataset, prompts_per_subject
+
+    def gen_mmlu_qa(self, data: Any, mmlu_method: str = "") -> str:
+
+        output = ""
+        for _, row in data.iterrows():
+            output += (f"Question: {row['question']}\n"
+                       f"Choices:\n"
+                       f"(A) {row['A']}\n"
+                       f"(B) {row['B']}\n"
+                       f"(C) {row['C']}\n"
+                       f"(D) {row['D']}\n")
+
+            output += "\nCorrect answer:"
+
+            if mmlu_method == "HELM":
+                output += f"({row['answer']})\n\n"
+            elif mmlu_method == "Harness":
+                content = row[row["answer"].upper()]
+                output += f"({row['answer']}) {content}\n\n"
+
+        return output
+
+    def load_data(self) -> None:
+        if self.dataset_path is None:
+            raise ValueError("dataset_path must be provided for loading data.")
+
+        combined_dataset, prompts_per_subject = self.load_mmlu_dataset_csv(
+            self.dataset_path)
+        num_rows, _ = combined_dataset.shape
+        print(f"Loaded {num_rows} data from mmlu dataset")
+
+        for subject in prompts_per_subject:
+            header = (
+                f"The following are multiple choice questions (with answers) "
+                f"about {subject}:\n")
+            shots_data = combined_dataset[combined_dataset["subject"] ==
+                                          subject].head(self.num_shots)
+            prompts_per_subject[subject] = header + self.gen_mmlu_qa(
+                shots_data, mmlu_method=self.mmlu_method)
+
+        mmlu_data = []
+        for _, row in combined_dataset.iloc[self.num_shots:].iterrows():
+            question_prompt = self.gen_mmlu_qa(pd.DataFrame([row]))
+            output = row["answer"]
+            prompt = prompts_per_subject[row["subject"]] + question_prompt
+            mmlu_data.append((prompt, output))
+
+        self.data = mmlu_data
+
+    def sample(
+        self,
+        tokenizer: PreTrainedTokenizerBase,
+        num_requests: int,
+        output_len: Optional[int] = None,
+        enable_multimodal_chat: bool = False,
+        **kwargs,
+    ) -> list:
+        samples: list = []
+        for prompt, completion in self.data:
+            if len(samples) >= num_requests:
+                break
+
+            prompt_ids = tokenizer(prompt).input_ids
+            completion_ids = tokenizer(completion).input_ids
+            prompt_len = len(prompt_ids)
+            new_output_len = len(
+                completion_ids) if output_len is None else output_len
+            # TODO @jacobplatin?
+            # if not is_valid_sequence(
+            #     prompt_len,
+            #     new_output_len,
+            #     skip_min_output_len_check=output_len is not None,
+            # ):
+            #     continue
+            samples.append(
+                SampleRequest(
+                    prompt=prompt,
+                    prompt_len=prompt_len,
+                    expected_output_len=new_output_len,
+                    completion=completion,
+                ))
+        self.maybe_oversample_requests(samples, num_requests)
+        return samples
 
 
 # -----------------------------------------------------------------------------
