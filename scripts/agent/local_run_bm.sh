@@ -10,7 +10,6 @@ ENV_FILE=$1
 PYTHON_VERSION="3.12"
 VLLM_FOLDER="../vllm"
 VLLM_REPO="https://github.com/vllm-project/vllm"
-CONDA="/mnt/disks/persist/bm-agent/miniconda3/bin/conda"
 
 # Load environment
 source /etc/environment
@@ -18,7 +17,10 @@ set -a
 source "$ENV_FILE"
 set +a
 
-ENV_NAME="vllm-bm-$CODE_HASH"
+mkdir -p /mnt/disks/persist/bm-agent/uv
+ENV_BASE="/mnt/disks/persist/bm-agent/uv"
+
+ENV_DIR="$ENV_BASE/venv-$CODE_HASH"
 
 # Clone or update vllm repo
 if [ ! -d "$VLLM_FOLDER" ] || [ -z "$(ls -A "$VLLM_FOLDER")" ]; then
@@ -34,14 +36,17 @@ git reset --hard "$VLLM_HASH"
 popd
 
 # Check and create conda env
-if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
-  echo "Creating conda environment '$ENV_NAME'..."
-  $CONDA create -y -n "$ENV_NAME" python="$PYTHON_VERSION"
+if [ ! -d "$ENV_DIR" ]; then
+  echo "Creating uv virtualenv at $ENV_DIR"
+  uv venv "$ENV_DIR" --python="3.12"
   
-  echo "Installing vllm and dependencies..."
-  $CONDA run -n "$ENV_NAME" pip install --upgrade pip
-  $CONDA run -n "$ENV_NAME" pip install pandas datasets
-  $CONDA run -n "$ENV_NAME" bash -c "cd '$VLLM_FOLDER' && VLLM_USE_PRECOMPILED=1 pip install --editable ."
+  echo "Installing dependencies..."
+  "$ENV_DIR/bin/uv" pip install --upgrade pip
+  "$ENV_DIR/bin/uv" pip install pandas datasets
+  (
+    cd "$VLLM_FOLDER"
+    VLLM_USE_PRECOMPILED=1 "$ENV_DIR/bin/uv" pip install --editable .
+  )
 fi
 
 # Safety cleanup on exit
@@ -84,7 +89,7 @@ chmod +x "$VLLM_FOLDER/run_bm.sh"
 
 # Run benchmark
 echo "Running model benchmark..."
-$CONDA run -n "$ENV_NAME" bash -c "
+"$ENV_DIR/bin/bash" -c "
   set -e
   cd '$VLLM_FOLDER'
   WORKSPACE='$TMP_WORKSPACE' \
