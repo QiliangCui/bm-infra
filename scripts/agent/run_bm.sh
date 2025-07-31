@@ -29,8 +29,8 @@ echo
 mkdir "$WORKSPACE/log"
 
 # TODO: Move to image building.
-pip install pandas
-pip install datasets
+uv pip install pandas
+uv pip install datasets
 
 if [ "$DATASET" = "sonnet" ]; then
   echo "Create sonnet_4x.txt"
