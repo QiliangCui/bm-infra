@@ -59,7 +59,7 @@ chmod +x "$VLLM_FOLDER/run_bm.sh"
 echo "Running model benchmark..."
 
 # not ideal
-ENV_DIR="~/vllm-207b750e1"
+ENV_DIR="../vllm-207b750e1"
 pushd "$VLLM_FOLDER"
 # WORKSPACE="$TMP_WORKSPACE" \
 #   HF_TOKEN="$HF_TOKEN" \
