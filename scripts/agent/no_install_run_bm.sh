@@ -59,11 +59,11 @@ chmod +x "$VLLM_FOLDER/run_bm.sh"
 echo "Running model benchmark..."
 
 pushd "$VLLM_FOLDER"
-WORKSPACE='$TMP_WORKSPACE' \
-HF_TOKEN='$HF_TOKEN' \
-TARGET_COMMIT='$VLLM_HASH' \
-MODEL='$MODEL' \
-./run_bm.sh
+WORKSPACE="$TMP_WORKSPACE" \
+  HF_TOKEN="$HF_TOKEN" \
+  TARGET_COMMIT="$VLLM_HASH" \
+  MODEL="$MODEL" \
+  ./run_bm.sh
 popd
 
 # Copy results
