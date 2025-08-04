@@ -10,6 +10,7 @@ v6e-8,Qwen/Qwen2.5-14B-Instruct,128,1024,8,2048,sonnet,1800,128
 v6e-8,Qwen/Qwen2.5-32B,128,1024,8,2048,sonnet,1800,128
 v6e-8,Qwen/Qwen3-32B,256,2048,8,2048,sonnet,1800,128
 v6e-8,RedHatAI/Meta-Llama-3.1-70B-Instruct-quantized.w8a8,128,1024,8,2048,sonnet,1800,128
+v6e-4,google/gemma-3-12b-it,512,2048,8,1280,sonnet,1000,100
 v6e-8,google/gemma-3-27b-it,512,2048,8,1280,sonnet,1000,100
 v6e-8,meta-llama/Llama-3.1-70B-Instruct,128,1024,8,2048,sonnet,1800,128
 v6e-8,meta-llama/Llama-3.3-70B-Instruct,128,1024,8,2048,sonnet,1800,128
