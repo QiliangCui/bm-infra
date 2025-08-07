@@ -1,0 +1,11 @@
+v6e-8,google/gemma-3-27b-it,128,512,8,1152,sonnet,1000,100
+v6e-8,google/gemma-3-27b-it,128,1024,8,1152,sonnet,1000,100
+v6e-8,google/gemma-3-27b-it,128,2048,8,1152,sonnet,1000,100
+v6e-8,google/gemma-3-27b-it,128,4096,8,1152,sonnet,1000,100
+v6e-8,google/gemma-3-27b-it,256,512,8,1152,sonnet,1000,100
+v6e-8,google/gemma-3-27b-it,256,1024,8,1152,sonnet,1000,100
+v6e-8,google/gemma-3-27b-it,256,2048,8,1152,sonnet,1000,100
+v6e-8,google/gemma-3-27b-it,256,4096,8,1152,sonnet,1000,100
+v6e-8,google/gemma-3-27b-it,512,4096,8,1152,sonnet,1000,100
+v6e-8,google/gemma-3-27b-it,256,8192,8,1152,sonnet,1000,100
+v6e-8,google/gemma-3-27b-it,512,8192,8,1152,sonnet,1000,100
