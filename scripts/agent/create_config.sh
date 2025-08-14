@@ -25,7 +25,7 @@ ENV_FILE_TMP="$ENV_FILE.tmp"
 gcloud spanner databases execute-sql "$GCP_DATABASE_ID" \
   --instance="$GCP_INSTANCE_ID" \
   --project="$GCP_PROJECT_ID" \
-  --sql="SELECT RecordId, Model, CodeHash, MaxNumSeqs, MaxNumBatchedTokens, TensorParallelSize, MaxModelLen, Dataset, InputLen, OutputLen, NumPrompts, PrefixLen, ExpectedETEL, ExtraEnvs FROM RunRecord WHERE RecordId = '$RECORD_ID';" | \
+  --sql="SELECT RecordId, Model, CodeHash, MaxNumSeqs, MaxNumBatchedTokens, TensorParallelSize, MaxModelLen, Dataset, InputLen, OutputLen, NumPrompts, PrefixLen, ExpectedETEL, ExtraEnvs, AdditionalConfig FROM RunRecord WHERE RecordId = '$RECORD_ID';" | \
   gawk 'NR==1 {
     for (i=1; i<=NF; i++) {
       # Insert underscore before uppercase letters preceded by a lowercase letter

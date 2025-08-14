@@ -58,7 +58,8 @@ tail -n +2 "$CSV_FILE" | while read -r line || [ -n "${line}" ]; do
     EXPECTED_ETEL \
     NUM_PROMPTS \
     MODELTAG \
-    PREFIX_LEN <<< "$line"
+    PREFIX_LEN \
+    ADDITIONAL_CONFIG <<< "$line"
 
   RECORD_ID=$(uuidgen | tr 'A-Z' 'a-z')
 
@@ -71,7 +72,7 @@ tail -n +2 "$CSV_FILE" | while read -r line || [ -n "${line}" ]; do
     echo "Skip creating record in RunRecord table."
     continue
   fi
-  
+
   echo "Inserting Run: $RECORD_ID"
   gcloud spanner databases execute-sql "$GCP_DATABASE_ID" \
     --instance="$GCP_INSTANCE_ID" \
@@ -96,9 +97,10 @@ tail -n +2 "$CSV_FILE" | while read -r line || [ -n "${line}" ]; do
       ${NUM_PROMPTS:-1000},
       '${MODELTAG:-PROD}',
       ${PREFIX_LEN:-0},
+      ${ADDITIONAL_CONFIG:-''},
       '$EXTRA_ENVS'
     );"
-  
+
   # If insert failed, just continue without publishing
   if [ $? -ne 0 ]; then
     echo "Insert failed for $RECORD_ID — skipping publish." >&2

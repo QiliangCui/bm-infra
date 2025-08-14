@@ -68,6 +68,7 @@ VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR="$PROFILE_FOLDER" vllm serve $MODEL \
  --tensor-parallel-size $TENSOR_PARALLEL_SIZE \
  --no-enable-prefix-caching \
  --download_dir $DOWNLOAD_DIR \
+ --additional-config "$ADDITIONAL_CONFIG" \
  --max-model-len $MAX_MODEL_LEN $EXTRA_ARGS> "$VLLM_LOG" 2>&1 &
 
 
@@ -92,6 +93,7 @@ done
 EXPECTED_ETEL=${EXPECTED_ETEL:-3600000}
 NUM_PROMPTS=${NUM_PROMPTS:-1000}
 PREFIX_LEN=${PREFIX_LEN:-0}
+ADDITIONAL_CONFIG=${ADDITIONAL_CONFIG:-""}
 
 PROFILE_FLAG=""
 
@@ -100,14 +102,14 @@ if [[ "${PROFILE:-0}" -eq 1 ]]; then
   PROFILE_FLAG="--profile"
 fi
 
-run_benchmark(){  
+run_benchmark(){
   #
   # run test
   #
   echo "run benchmark test..."
   echo "logging to $BM_LOG"
   echo
-  
+
   request_rate="$1"
   if [ "$DATASET" = "sonnet" ]; then
     python benchmarks/benchmark_serving.py \
@@ -191,10 +193,10 @@ run_benchmark(){
     dataset_path="$WORKSPACE/dataset/ShareGPT_V3_unfiltered_cleaned_split.json"
 
     if [ "$INPUT_LEN" -gt 0 ]; then
-      echo "Please set INPUT_LEN to 0 for sharegpt dataset because it is not used." > "$BM_LOG" 2>&1      
+      echo "Please set INPUT_LEN to 0 for sharegpt dataset because it is not used." > "$BM_LOG" 2>&1
       exit 1
     fi
-    
+
     ARGS=(
       --backend vllm
       --model "$MODEL"
@@ -209,10 +211,10 @@ run_benchmark(){
 
     if [ "$OUTPUT_LEN" -ne 0 ]; then
       ARGS+=(--sharegpt-output-len "$OUTPUT_LEN")
-    fi    
+    fi
 
     python benchmarks/benchmark_serving.py "${ARGS[@]}" > "$BM_LOG" 2>&1
-    
+
   else
     echo "Error: unsupported dataset '$DATASET'" > "$BM_LOG" 2>&1
     exit 1
@@ -226,9 +228,9 @@ run_benchmark(){
   echo "throughput: $throughput, P99 E2EL:$p99_e2el"
   echo
   echo "$throughput $p99_e2el"
-  
+
 }
-read throughput p99_e2el < <(run_benchmark "inf" | tail -n 1) 
+read throughput p99_e2el < <(run_benchmark "inf" | tail -n 1)
 
 echo "throughput:$throughput"
 echo "p99_e2el:$p99_e2el"
