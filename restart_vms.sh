@@ -4,13 +4,18 @@
 # It checks the initial state of each VM and only issues a 'stop'
 # command if the VM is currently RUNNING.
 
-# --- Default Configuration ---
-DRY_RUN=false
+# --- Config ---
 VM_NAME_FILTER=""
 ZONE_FILTER=""
 PROJECT_ID="cloud-tpu-inference-test" # Set your project ID here
 
-# --- Argument Parsing ---
+DRY_RUN=false
+MAX_START_RETRIES=4
+START_RETRY_DELAY=30
+STATUS_CHECK_DELAY=15
+MAX_STATUS_CHECKS=20
+
+# --- Arguments ---
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         -d|--dry-run)
@@ -41,7 +46,6 @@ while [[ "$#" -gt 0 ]]; do
     esac
 done
 
-# --- Usage Validation ---
 if [ -z "$VM_NAME_FILTER" ] || [ -z "$ZONE_FILTER" ]; then
   echo "Error: Both a VM name filter and a zone are required."
   echo ""
@@ -49,13 +53,7 @@ if [ -z "$VM_NAME_FILTER" ] || [ -z "$ZONE_FILTER" ]; then
   exit 1
 fi
 
-# --- Configuration ---
-MAX_START_RETRIES=4
-START_RETRY_DELAY=30
-STATUS_CHECK_DELAY=15
-MAX_STATUS_CHECKS=20
 
-# --- Helper Functions (retry_command, wait_for_status) ---
 function retry_command() {
   local attempt=1
   local exit_code
@@ -71,6 +69,7 @@ function retry_command() {
   echo "--> Command failed after $MAX_START_RETRIES attempts."
   return 1
 }
+
 function wait_for_status() {
   local tpu_name="$1"; local zone="$2"; local target_status="$3"; local checks=0
   if [ "$DRY_RUN" = true ]; then echo "[DRY RUN] Would wait for '$tpu_name' to reach status '$target_status'."; return 0; fi
@@ -86,7 +85,8 @@ function wait_for_status() {
   return 1
 }
 
-# --- Main Script Logic ---
+
+# --- Main Script ---
 success_count=0
 
 if [ "$DRY_RUN" = true ]; then
@@ -95,12 +95,11 @@ fi
 echo "Fetching TPU VMs in project '$PROJECT_ID'..."
 echo ""
 
-# 💡 CORRECTED: Reverted to your original, working filter syntax
 GCLOUD_ARGS=(
     "gcloud" "compute" "tpus" "tpu-vm" "list"
     "--project=$PROJECT_ID"
     "--zone=$ZONE_FILTER"
-    "--filter=name:'${VM_NAME_FILTER}'" # Use colon (:) for prefix match
+    "--filter=name:'${VM_NAME_FILTER}'"
     "--format=value(name)"
 )
 VM_LIST=$("${GCLOUD_ARGS[@]}")
@@ -173,4 +172,4 @@ if [ "$DRY_RUN" = true ]; then
 fi
 
 echo "All VMs have been processed${DRY_RUN_MSG}."
-echo "Final Summary: Succeeded: $success_count"
+echo "Succeeded: $success_count"
