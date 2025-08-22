@@ -1,26 +1,26 @@
 #!/bin/bash
 
 # This script dynamically fetches and restarts a series of TPU VMs.
-# It requires both a name pattern and a specific zone to be provided
-# to ensure operations are targeted and safe.
+# It checks the initial state of each VM and only issues a 'stop'
+# command if the VM is currently RUNNING.
 
 # --- Default Configuration ---
 DRY_RUN=false
 VM_NAME_FILTER=""
 ZONE_FILTER=""
+PROJECT_ID="cloud-tpu-inference-test" # Set your project ID here
 
 # --- Argument Parsing ---
-# Robust loop to handle flags and arguments in any order.
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         -d|--dry-run)
             DRY_RUN=true
-            shift # consume flag
+            shift
             ;;
         -z|--zone)
             if [[ -n "$2" && "$2" != -* ]]; then
                 ZONE_FILTER="$2"
-                shift 2 # consume flag and its value
+                shift 2
             else
                 echo "Error: The --zone option requires a value." >&2
                 exit 1
@@ -32,124 +32,140 @@ while [[ "$#" -gt 0 ]]; do
             ;;
         *)
             if [ -n "$VM_NAME_FILTER" ]; then
-                echo "Error: Multiple name filters provided ('$VM_NAME_FILTER' and '$1'). Please provide only one." >&2
+                echo "Error: Multiple name filters provided ('$VM_NAME_FILTER' and '$1')." >&2
                 exit 1
             fi
             VM_NAME_FILTER="$1"
-            shift # consume the filter
+            shift
             ;;
     esac
 done
 
 # --- Usage Validation ---
-# Exit if either the name filter or the zone is missing.
 if [ -z "$VM_NAME_FILTER" ] || [ -z "$ZONE_FILTER" ]; then
   echo "Error: Both a VM name filter and a zone are required."
   echo ""
   echo "Usage: $0 -z <ZONE> <VM_NAME_FILTER> [-d|--dry-run]"
-  echo ""
-  echo "Arguments:"
-  echo "  <VM_NAME_FILTER>    (Required) The name pattern of the VMs to target."
-  echo "  -z, --zone <ZONE>   (Required) The specific zone to operate in."
-  echo "  -d, --dry-run       (Optional) Show what would be done without making changes."
-  echo ""
-  echo "Example:"
-  echo "  ./restart_vms.sh --zone us-east5-b vllm-tpu-v6e-8"
   exit 1
 fi
 
 # --- Configuration ---
-MAX_RETRIES=3
-RETRY_DELAY=15
+MAX_START_RETRIES=4
+START_RETRY_DELAY=30
+STATUS_CHECK_DELAY=15
+MAX_STATUS_CHECKS=20
 
-# --- Function to execute a command with retries ---
+# --- Helper Functions (retry_command, wait_for_status) ---
 function retry_command() {
   local attempt=1
-  while [ $attempt -le $MAX_RETRIES ]; do
-    echo "Attempt $attempt of $MAX_RETRIES..."
+  local exit_code
+  while [ $attempt -le $MAX_START_RETRIES ]; do
+    echo "--> Attempt $attempt of $MAX_START_RETRIES to issue command: ${@}"
     "$@"
-    local exit_code=$?
-    if [ $exit_code -eq 0 ]; then
-      return 0 # Success
-    fi
-    echo "Command failed with exit code $exit_code."
-    if [ $attempt -lt $MAX_RETRIES ]; then
-      echo "Waiting ${RETRY_DELAY}s before retrying..."
-      sleep $RETRY_DELAY
-    fi
+    exit_code=$?
+    if [ $exit_code -eq 0 ]; then echo "--> Command submitted successfully."; return 0; fi
+    echo "--> Command failed with exit code $exit_code."
+    if [ $attempt -lt $MAX_START_RETRIES ]; then echo "    Waiting ${START_RETRY_DELAY}s before retrying..."; sleep $START_RETRY_DELAY; fi
     ((attempt++))
   done
-  echo "Command failed after $MAX_RETRIES attempts."
-  return 1 # Failure
+  echo "--> Command failed after $MAX_START_RETRIES attempts."
+  return 1
+}
+function wait_for_status() {
+  local tpu_name="$1"; local zone="$2"; local target_status="$3"; local checks=0
+  if [ "$DRY_RUN" = true ]; then echo "[DRY RUN] Would wait for '$tpu_name' to reach status '$target_status'."; return 0; fi
+  echo "Waiting for '$tpu_name' to enter '$target_status' state..."
+  while [ $checks -lt $MAX_STATUS_CHECKS ]; do
+    local current_status=$(gcloud compute tpus tpu-vm describe "$tpu_name" --zone="$zone" --project="$PROJECT_ID" --format="value(state)" 2>/dev/null)
+    if [[ "$current_status" == "$target_status" ]]; then echo "Success: '$tpu_name' is now $target_status."; return 0; fi
+    echo "  - Current status is '$current_status', checking again in ${STATUS_CHECK_DELAY}s..."
+    sleep $STATUS_CHECK_DELAY
+    ((checks++))
+  done
+  echo "ERROR: Timed out waiting for '$tpu_name' to reach '$target_status' state."
+  return 1
 }
 
 # --- Main Script Logic ---
 success_count=0
-failure_count=0
-vms_found=0
 
 if [ "$DRY_RUN" = true ]; then
   echo "*** DRY RUN MODE ENABLED ***"
-  echo "The script will list actions but will not execute them."
-  echo ""
 fi
-
-echo "Fetching list of TPU VMs..."
-echo "   - Name Filter: '$VM_NAME_FILTER'"
-echo "   - Zone Filter: '$ZONE_FILTER'"
+echo "Fetching TPU VMs in project '$PROJECT_ID'..."
 echo ""
 
-# Build the gcloud command and its arguments using a bash array for safety.
-GCLOUD_ARGS=("gcloud" "compute" "tpus" "tpu-vm" "list")
-GCLOUD_ARGS+=("--zone" "$ZONE_FILTER")
-GCLOUD_ARGS+=("--filter" "name:'${VM_NAME_FILTER}'")
-# We only need the name from the output now.
-GCLOUD_ARGS+=("--format" "value(name)")
+# 💡 CORRECTED: Reverted to your original, working filter syntax
+GCLOUD_ARGS=(
+    "gcloud" "compute" "tpus" "tpu-vm" "list"
+    "--project=$PROJECT_ID"
+    "--zone=$ZONE_FILTER"
+    "--filter=name:'${VM_NAME_FILTER}'" # Use colon (:) for prefix match
+    "--format=value(name)"
+)
+VM_LIST=$("${GCLOUD_ARGS[@]}")
 
 
-# Execute the command, reading only the TPU name from the output.
-"${GCLOUD_ARGS[@]}" | while read -r tpu_name || [ -n "${tpu_name}" ]; do
-  if [ -z "$tpu_name" ]; then
-    continue
+if [ -z "$VM_LIST" ]; then
+  echo "Warning: No VMs found matching the specified filters."
+  exit 0
+fi
+
+for tpu_name in $VM_LIST; do
+  echo "--- Processing: $tpu_name ---"
+
+  current_status=$(gcloud compute tpus tpu-vm describe "$tpu_name" --zone="$ZONE_FILTER" --project="$PROJECT_ID" --format="value(state)" 2>/dev/null)
+  echo "Initial status of '$tpu_name' is '$current_status'."
+
+  stop_needed=false
+  if [[ "$current_status" == "RUNNING" ]]; then
+      stop_needed=true
+  elif [[ "$current_status" == "STOPPED" ]]; then
+      echo "VM is already stopped. Proceeding directly to start."
+  else
+      echo "Warning: VM is in an unexpected state ('$current_status'). Skipping this VM."
+      echo "-----------------------------------------------------" && echo ""
+      continue
   fi
 
-  ((vms_found++))
-  # Use the ZONE_FILTER variable since we already know the zone.
-  echo "--- Processing: $tpu_name in $ZONE_FILTER ---"
-
   if [ "$DRY_RUN" = true ]; then
-    echo "[DRY RUN] Would attempt to STOP $tpu_name."
-    echo "[DRY RUN] Would attempt to START $tpu_name."
-    echo "[DRY RUN] Simulated restart for '$tpu_name'."
+    if [ "$stop_needed" = true ]; then
+        echo "[DRY RUN] Would STOP $tpu_name."
+        wait_for_status "$tpu_name" "$ZONE_FILTER" "STOPPED"
+    fi
+    echo "[DRY RUN] Would START $tpu_name with $MAX_START_RETRIES retries."
+    wait_for_status "$tpu_name" "$ZONE_FILTER" "RUNNING"
     ((success_count++))
   else
-    # Use the ZONE_FILTER variable for the stop and start commands.
-    echo "Attempting to STOP $tpu_name..."
-    if ! retry_command gcloud compute tpus tpu-vm stop "$tpu_name" --zone="$ZONE_FILTER"; then
-      echo "ERROR: Failed to stop '$tpu_name'. Skipping this VM."
-      ((failure_count++))
-      echo "-----------------------------------------------------" && echo ""
-      continue
+    if [ "$stop_needed" = true ]; then
+        echo "Attempting to STOP $tpu_name..."
+        gcloud compute tpus tpu-vm stop "$tpu_name" --zone="$ZONE_FILTER" --project="$PROJECT_ID" --quiet
+        if ! wait_for_status "$tpu_name" "$ZONE_FILTER" "STOPPED"; then
+            echo "ERROR: Failed to confirm stop for '$tpu_name'. Skipping this VM."
+            echo "-----------------------------------------------------" && echo ""
+            continue
+        fi
     fi
-    echo "Successfully stopped '$tpu_name'."
 
     echo "Attempting to START $tpu_name..."
-    if ! retry_command gcloud compute tpus tpu-vm start "$tpu_name" --zone="$ZONE_FILTER"; then
-      echo "ERROR: Failed to start '$tpu_name'. This VM may require manual intervention."
-      ((failure_count++))
-      echo "-----------------------------------------------------" && echo ""
-      continue
+    if retry_command gcloud compute tpus tpu-vm start "$tpu_name" --zone="$ZONE_FILTER" --project="$PROJECT_ID" --quiet; then
+      if ! wait_for_status "$tpu_name" "$ZONE_FILTER" "RUNNING"; then
+        echo "FATAL: 'start' command was sent, but '$tpu_name' FAILED TO REACH RUNNING STATE."
+        echo "ABORTING SCRIPT to prevent further potential VM downtime."
+        exit 1
+      fi
+    else
+      echo "FATAL: FAILED TO SEND 'start' command for '$tpu_name' after $MAX_START_RETRIES attempts."
+      echo "ABORTING SCRIPT due to persistent command failure."
+      exit 1
     fi
-    echo "Successfully restarted '$tpu_name'."
+
+    echo "Successfully started '$tpu_name'."
     ((success_count++))
   fi
   echo "-----------------------------------------------------"
   echo ""
 done
-
-if [ "$vms_found" -eq 0 ]; then
-  echo "Warning: No VMs found matching the specified filters."
-fi
 
 DRY_RUN_MSG=""
 if [ "$DRY_RUN" = true ]; then
@@ -157,4 +173,4 @@ if [ "$DRY_RUN" = true ]; then
 fi
 
 echo "All VMs have been processed${DRY_RUN_MSG}."
-echo "Final Summary: Successes: $success_count, Failures: $failure_count"
+echo "Final Summary: Succeeded: $success_count"
