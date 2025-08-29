@@ -25,7 +25,12 @@ login $GITHUB_USERNAME
 password $GITHUB_PERSONAL_ACCESS_TOKEN" | tee -a /home/bm-scheduler/.netrc
 
 echo "git clone https://github.com/QiliangCui/bm-infra.git"
-git clone https://github.com/QiliangCui/bm-infra.git
+
+if [[ -z "${BRANCH_NAME}" ]]; then
+  export BRANCH_NAME=main
+fi
+
+git clone --branch "${branch_name}" https://github.com/QiliangCui/bm-infra.git
 
 EOF
 
