@@ -10,6 +10,8 @@ ENV_FILE=$1
 PYTHON_VERSION="3.12"
 VLLM_FOLDER="../vllm"
 VLLM_REPO="https://github.com/vllm-project/vllm"
+TPU_COMMONS_FOLDER="../tpu_commons"
+TPU_COMMONS_REPO="https://github.com/vllm-project/vllm-project/tpu_commons.git"
 CONDA="/mnt/disks/persist/bm-agent/miniconda3/bin/conda"
 
 # Load environment
@@ -42,6 +44,38 @@ if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
   $CONDA run -n "$ENV_NAME" pip install --upgrade pip
   $CONDA run -n "$ENV_NAME" pip install pandas datasets
   $CONDA run -n "$ENV_NAME" bash -c "cd '$VLLM_FOLDER' && VLLM_USE_PRECOMPILED=1 pip install --editable ."
+
+  # Check if TPU_COMMON_HASH is set and not empty
+  if [[ -n "$TPU_COMMON_HASH" ]]; then
+    echo "TPU_COMMON_HASH is set to '$TPU_COMMON_HASH'. Cloning and installing tpu_commons..."
+
+    # Clone or update tpu_commons repo
+    if [ ! -d "$TPU_COMMONS_FOLDER" ]; then
+        git clone "$TPU_COMMONS_REPO" "$TPU_COMMONS_FOLDER"
+    fi
+
+    echo "Checking out correct tpu_commons commit..."
+    pushd "$TPU_COMMONS_FOLDER"
+    git fetch origin
+    git reset --hard "$TPU_COMMON_HASH"
+    popd
+
+    # Install tpu_commons in the new conda environment
+    echo "Installing tpu_commons package into '$ENV_NAME'..."
+    $CONDA run -n "$ENV_NAME" bash -c "sed -i.bak 's#jax==0.7.1.dev20250813#jax==0.7.2.dev20250821#g' '$TPU_COMMONS_FOLDER/requirements.txt'"
+    $CONDA run -n "$ENV_NAME" bash -c "sed -i.bak 's#jaxlib==0.7.1.dev20250813#jaxlib==0.7.2.dev20250821#g' '$TPU_COMMONS_FOLDER/requirements.txt'"
+    $CONDA run -n "$ENV_NAME" bash -c "cd '$TPU_COMMONS_FOLDER' && pip install -r requirements.txt && pip install -e ."
+    $CONDA run -n "$ENV_NAME" bash -c "cd '$TPU_COMMONS_FOLDER' && pip install -r requirements_benchmarking.txt"
+    $CONDA run -n "$ENV_NAME" bash -c "pip install numba"
+    $CONDA run -n "$ENV_NAME" bash -c "mkdir -p shared-wheels && gsutil cp gs://libtpu-tpu7x-releases/wheels/libtpu/libtpu-0.0.22.dev20250821+tpu7x-cp312-cp312-manylinux_2_31_x86_64.whl shared-wheels/"
+    $CONDA run -n "$ENV_NAME" bash -c "pip install shared-wheels/libtpu-0.0.22.dev20250821+tpu7x-cp312-cp312-manylinux_2_31_x86_64.whl"
+    echo "tpu_commons installation complete."
+
+    $CONDA run -n "$ENV_NAME" bash -c "gsutil cp gs://amangu-multipods/code/device.py /mnt/disks/persist/bm-agent/miniconda3/envs/$ENV_NAME/lib/python3.12/site-packages/tpu_info/device.py"
+    $CONDA run -n "$ENV_NAME" bash -c "gsutil cp gs://amangu-multipods/code/tuned_block_sizes.py $TPU_COMMONS_FOLDER/tpu_commons/kernels/ragged_paged_attention/v3/tuned_block_sizes.py"
+    echo "Local v7x changes complete."
+
+  fi
 fi
 
 # Safety cleanup on exit
@@ -86,6 +120,13 @@ if [ "$DATASET" = "sharegpt" ]; then
   echo "Copying dataset to container..."
   mkdir -p ./artifacts/dataset/
   gsutil cp gs://$GCS_BUCKET/dataset/sharegpt/*.* ./artifacts/dataset/
+  cp -r artifacts/dataset "$TMP_WORKSPACE/"
+fi
+
+if [ "$DATASET" = "bench-custom-token" ]; then  
+  echo "Copying dataset to container..."
+  mkdir -p ./artifacts/dataset/
+  gsutil cp gs://$GCS_BUCKET/bench-dataset-copy/${MODEL##*/} ./artifacts/dataset/
   cp -r artifacts/dataset "$TMP_WORKSPACE/"
 fi
 
