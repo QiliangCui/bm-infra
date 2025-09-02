@@ -36,7 +36,7 @@ if ! blkid /dev/${persistent_device_name}; then
 fi
 
 # Add to /etc/fstab using UUID
-disk_uuid=$(blkid -s UUID -o value /dev/${persistent_device_name}
+disk_uuid=$(blkid -s UUID -o value /dev/${persistent_device_name})
 if ! grep -q "/mnt/disks/persist" /etc/fstab; then
   echo "UUID=$disk_uuid /mnt/disks/persist ext4 defaults,discard 0 2" | sudo tee -a /etc/fstab
 fi

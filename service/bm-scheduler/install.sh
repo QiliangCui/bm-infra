@@ -1,6 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
+set -a
+source /etc/environment
+set +a
+
 if ! id -u bm-scheduler >/dev/null 2>&1; then
     echo "sudo useradd -m -s /bin/bash bm-scheduler"
     sudo useradd -m -s /bin/bash bm-scheduler
