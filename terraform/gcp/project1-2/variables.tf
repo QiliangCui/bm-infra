@@ -35,7 +35,7 @@ variable "v6e_4_count" {
 }
 
 variable "v6e_8_count" {
-  default     = 12
+  default     = 11
 }
 
 variable "instance_name_offset" {
