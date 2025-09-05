@@ -44,6 +44,8 @@ if ! mountpoint -q /mnt/disks/persist; then
   sudo mount /mnt/disks/persist  
 fi
 
+sudo chmod 777 /mnt/disks/persist
+
 jq ". + {\"data-root\": \"/mnt/disks/persist\"}" /etc/docker/daemon.json > /tmp/daemon.json.tmp && mv /tmp/daemon.json.tmp /etc/docker/daemon.json
 systemctl stop docker
 systemctl daemon-reload
