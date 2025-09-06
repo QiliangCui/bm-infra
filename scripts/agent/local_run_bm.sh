@@ -11,7 +11,7 @@ PYTHON_VERSION="3.12"
 VLLM_FOLDER="../vllm"
 VLLM_REPO="https://github.com/vllm-project/vllm"
 TPU_COMMONS_FOLDER="../tpu_commons"
-TPU_COMMONS_REPO="https://github.com/vllm-project/vllm-project/tpu_commons.git"
+TPU_COMMONS_REPO="https://github.com/vllm-project/tpu_commons.git"
 CONDA="/mnt/disks/persist/bm-agent/miniconda3/bin/conda"
 
 # Load environment
@@ -34,6 +34,13 @@ pushd "$VLLM_FOLDER"
 git fetch origin
 git reset --hard "$VLLM_HASH"
 popd
+
+# Delete the conda environment. This is during development where the
+# creation of conda environment from last session failed. And now,
+# there exists an inconsistent conda environment.
+if $CONDA env list | grep -Fq "$ENV_NAME"; then
+  $CONDA remove --name "$ENV_NAME" --all --yes
+fi
 
 # Check and create conda env
 if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
@@ -126,7 +133,7 @@ fi
 if [ "$DATASET" = "bench-custom-token" ]; then  
   echo "Copying dataset to container..."
   mkdir -p ./artifacts/dataset/
-  gsutil cp gs://$GCS_BUCKET/bench-dataset-copy/${MODEL##*/} ./artifacts/dataset/
+  gsutil cp -r gs://$GCS_BUCKET/bench-dataset-copy/${MODEL##*/} ./artifacts/dataset/
   cp -r artifacts/dataset "$TMP_WORKSPACE/"
 fi
 

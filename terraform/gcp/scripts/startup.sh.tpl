@@ -47,8 +47,12 @@ if ! mountpoint -q /mnt/disks/persist; then
 fi
 
 
+if [[ -z "${USERNAME}" ]]; then
+  DOCKER_IMAGE_TAG="bm-agent"
+fi
+
 # Install miniconda for local bm run.
-sudo -u bm-agent -i bash <<'EOF'
+sudo -u ${USERNAME} -i bash <<'EOF'
 set -euo pipefail
 
 # Miniconda version and install directory
@@ -93,11 +97,18 @@ systemctl stop docker
 systemctl daemon-reload
 systemctl start docker
 
-useradd -m -s /bin/bash bm-agent
-sudo usermod -aG docker bm-agent
+# Docker change the permissions. So resetting it again.
+sudo chmod 777 /mnt/disks/persist
+
+if ! id -u ${USERNAME} >/dev/null 2>&1; then
+    echo "sudo useradd -m -s /bin/bash ${USERNAME}"
+    sudo useradd -m -s /bin/bash ${USERNAME}
+fi
+
+sudo usermod -aG docker ${USERNAME}
 
 # Run the commands below as bm-agent user:
-sudo -u bm-agent -i bash << EOBM
+sudo -u ${USERNAME} -i bash << EOBM
 gcloud auth configure-docker ${region}-docker.pkg.dev --quiet
 rm -rf bm-infra
 git clone https://github.com/QiliangCui/bm-infra.git
@@ -105,8 +116,13 @@ pushd bm-infra
 git pull
 git reset --hard ${branch_hash}
 popd
+
+echo "machine github.com" | tee -a /home/${USERNAME}/.netrc
+echo "login ${github_username}" | tee -a /home/${USERNAME}/.netrc
+echo "password ${github_personal_access_token}" | tee -a /home/${USERNAME}/.netrc
+
 EOBM
-cp /home/bm-agent/bm-infra/service/bm-agent/bm-agent.service /etc/systemd/system/bm-agent.service
+cp /home/${USERNAME}/bm-infra/service/bm-agent/bm-agent.service /etc/systemd/system/bm-agent.service
 systemctl stop bm-agent.service
 systemctl daemon-reload
 systemctl enable bm-agent.service
