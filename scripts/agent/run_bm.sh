@@ -2,10 +2,21 @@
 
 set -euo pipefail
 
+# TODO: Move to image building.
+# Ingore the error because in case of using uv, the packages are installed outside this script.
+pip install pandas || true
+pip install datasets || true
+pip install evaluate==0.4.5 || true
+pip install rouge-score==0.1.2 || true
+# Install lm_eval with math dependencies, commit is same as https://github.com/vllm-project/vllm/blob/main/.buildkite/scripts/hardware_ci/run-tpu-v1-test.sh#L64
+pip install "lm-eval[math] @ git+https://github.com/EleutherAI/lm-evaluation-harness.git@206b7722158f58c35b7ffcd53b035fdbdda5126d" || true
+
+
 VLLM_LOG="$WORKSPACE/vllm_log.txt"
 BM_LOG="$WORKSPACE/bm_log.txt"
 BEST_BM_LOG="$WORKSPACE/best_bm_log.txt"
 PROFILE_FOLDER="$WORKSPACE/profile"
+
 
 if [ -n "$TARGET_COMMIT" ]; then
   head_hash=$(git rev-parse HEAD)
@@ -31,13 +42,6 @@ echo
 mkdir "$WORKSPACE/log"
 mkdir -p "$PROFILE_FOLDER"
 
-# TODO: Move to image building.
-# Ingore the error because in case of using uv, the packages are installed outside this script.
-pip install pandas || true
-pip install datasets || true
-pip install evaluate==0.4.5 || true
-pip install rouge-score==0.1.2 || true
-
 if [ "$DATASET" = "sonnet" ]; then
   echo "Create sonnet_4x.txt"
   echo "" > benchmarks/sonnet_4x.txt
@@ -45,6 +49,17 @@ if [ "$DATASET" = "sonnet" ]; then
    do
     cat benchmarks/sonnet.txt >> benchmarks/sonnet_4x.txt
   done
+fi
+
+# TODO(patemotter): Make this more generalizable for other lm_Eval cases
+# We run lm_evals w/ vllm but outside the tpu_commons benchmarking methods
+
+if [[ "${DATASET:-}" == "math500" ]]; then
+  echo "DATASET is math500, running math500 accuracy benchmark."
+  /workspace/lm_eval/run_math500_lm_eval.sh
+  echo "AccuracyMetrics: $(cat /workspace/math500_accuracy.json)" > /workspace/bm_log.txt
+  echo "Finished running math500 benchmark."
+  exit 0
 fi
 
 #

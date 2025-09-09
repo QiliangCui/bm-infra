@@ -1189,6 +1189,7 @@ def create_argument_parser():
             "custom-token",
             "mmlu",
             "mlperf",
+            "math500",
         ],
         help="Name of the dataset to benchmark on.",
     )
