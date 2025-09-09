@@ -114,9 +114,6 @@ if [[ " ${DATASETS[*]} " == *" $DATASET "* ]]; then
   echo "Copying dataset to container..."
   docker cp artifacts/dataset "$CONTAINER_NAME:/workspace/"
 
-  echo docker cp scripts/agent/benchmark_serving.py "$CONTAINER_NAME:/workspace/vllm/benchmarks/benchmark_serving.py"
-  docker cp scripts/agent/benchmark_serving.py "$CONTAINER_NAME:/workspace/vllm/benchmarks/benchmark_serving.py"
-
   echo docker cp scripts/agent/benchmark_dataset.py "$CONTAINER_NAME:/workspace/vllm/benchmarks/benchmark_dataset.py"
   docker cp scripts/agent/benchmark_dataset.py "$CONTAINER_NAME:/workspace/vllm/benchmarks/benchmark_dataset.py"
 fi

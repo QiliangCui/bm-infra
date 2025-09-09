@@ -125,7 +125,7 @@ run_benchmark(){
   
   request_rate="$1"
   if [ "$DATASET" = "sonnet" ]; then
-    python benchmarks/benchmark_serving.py \
+    vllm bench serve \
       --backend vllm \
       --model $MODEL \
       --request-rate $request_rate \
@@ -139,7 +139,7 @@ run_benchmark(){
       --ignore-eos > "$BM_LOG" 2>&1
 
   elif [ "$DATASET" = "random" ]; then
-    python benchmarks/benchmark_serving.py \
+    vllm bench serve \
       --backend vllm \
       --model $MODEL \
       --request-rate $request_rate \
@@ -151,7 +151,7 @@ run_benchmark(){
       $PROFILE_FLAG \
       --ignore-eos > "$BM_LOG" 2>&1
   elif [ "$DATASET" = "mmlu" ]; then
-    python benchmarks/benchmark_serving.py \
+    vllm bench serve \
       --backend vllm \
       --model $MODEL \
       --request-rate $request_rate \
@@ -164,7 +164,7 @@ run_benchmark(){
       $PROFILE_FLAG \
       --ignore-eos > "$BM_LOG" 2>&1
   elif [ "$DATASET" = "mlperf" ]; then
-    python benchmarks/benchmark_serving.py \
+    vllm bench serve \
       --backend vllm \
       --model $MODEL \
       --request-rate $request_rate \
@@ -178,7 +178,7 @@ run_benchmark(){
       --ignore-eos > "$BM_LOG" 2>&1
   elif [ "$DATASET" = "custom-token" ]; then
     dataset_path="$WORKSPACE/dataset/${MODEL##*/}_${INPUT_LEN}_${OUTPUT_LEN}_tp${TENSOR_PARALLEL_SIZE}.json"
-    python benchmarks/benchmark_serving.py \
+    vllm bench serve \
       --backend vllm \
       --model $MODEL \
       --request-rate $request_rate \
@@ -191,7 +191,7 @@ run_benchmark(){
   elif [ "$DATASET" = "bench-custom-token" ]; then
     dataset_path="$WORKSPACE/dataset/${MODEL##*/}/inlen${INPUT_LEN}_outlen${OUTPUT_LEN}_prefixlen${PREFIX_LEN}.jsonl"
     echo "dataset_path: $dataset_path"
-    python benchmarks/benchmark_serving.py \
+    vllm bench serve \
       --backend vllm \
       --model $MODEL \
       --request-rate $request_rate \
@@ -226,12 +226,12 @@ run_benchmark(){
       ARGS+=(--sharegpt-output-len "$OUTPUT_LEN")
     fi    
 
-    python benchmarks/benchmark_serving.py "${ARGS[@]}" > "$BM_LOG" 2>&1
+    vllm bench serve "${ARGS[@]}" > "$BM_LOG" 2>&1
 
   # only used for VL model
   elif [ "$DATASET" = "hf" ]; then
     dataset_path="lmarena-ai/VisionArena-Chat" 
-    python benchmarks/benchmark_serving.py \
+    vllm bench serve \
       --backend openai-chat \
       --model $MODEL \
       --request-rate $request_rate \
