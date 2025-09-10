@@ -14,6 +14,15 @@ if ! grep -q "^HF_TOKEN=" /etc/environment; then
   sudo tee -a /etc/environment > /dev/null <<< "HF_TOKEN=$(cat)"
 fi
 
+if [[ -z "${USERNAME}" ]]; then
+  USERNAME="bm-agent"
+fi
+
+if ! id -u ${USERNAME} >/dev/null 2>&1; then
+    echo "sudo useradd -m -s /bin/bash ${USERNAME}"
+    sudo useradd -m -s /bin/bash ${USERNAME}
+fi
+
 apt-get update
 apt-get install -y curl build-essential jq
 
@@ -44,11 +53,6 @@ fi
 # Only mount if not already mounted (first boot or recovery)
 if ! mountpoint -q /mnt/disks/persist; then
   sudo mount /dev/${persistent_device_name} /mnt/disks/persist  
-fi
-
-
-if [[ -z "${USERNAME}" ]]; then
-  DOCKER_IMAGE_TAG="bm-agent"
 fi
 
 # Install miniconda for local bm run.
@@ -90,8 +94,6 @@ echo "Miniconda installation complete."
 
 EOF
 
-
-
 jq ". + {\"data-root\": \"/mnt/disks/persist\"}" /etc/docker/daemon.json > /tmp/daemon.json.tmp && mv /tmp/daemon.json.tmp /etc/docker/daemon.json
 systemctl stop docker
 systemctl daemon-reload
@@ -100,22 +102,13 @@ systemctl start docker
 # Docker change the permissions. So resetting it again.
 sudo chmod 777 /mnt/disks/persist
 
-if ! id -u ${USERNAME} >/dev/null 2>&1; then
-    echo "sudo useradd -m -s /bin/bash ${USERNAME}"
-    sudo useradd -m -s /bin/bash ${USERNAME}
-fi
-
 sudo usermod -aG docker ${USERNAME}
 
 # Run the commands below as bm-agent user:
 sudo -u ${USERNAME} -i bash << EOBM
 gcloud auth configure-docker ${region}-docker.pkg.dev --quiet
 rm -rf bm-infra
-git clone https://github.com/QiliangCui/bm-infra.git
-pushd bm-infra
-git pull
-git reset --hard ${branch_hash}
-popd
+git clone -b ${branch_name} https://github.com/QiliangCui/bm-infra.git
 
 echo "machine github.com" | tee -a /home/${USERNAME}/.netrc
 echo "login ${github_username}" | tee -a /home/${USERNAME}/.netrc
