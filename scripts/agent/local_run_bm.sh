@@ -35,13 +35,6 @@ git fetch origin
 git reset --hard "$VLLM_HASH"
 popd
 
-# Delete the conda environment. This is during development where the
-# creation of conda environment from last session failed. And now,
-# there exists an inconsistent conda environment.
-if $CONDA env list | grep -Fq "$ENV_NAME"; then
-  $CONDA remove --name "$ENV_NAME" --all --yes
-fi
-
 # Check and create conda env
 if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
   echo "Creating conda environment '$ENV_NAME'..."
@@ -74,8 +67,8 @@ if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
     $CONDA run -n "$ENV_NAME" bash -c "cd '$TPU_COMMONS_FOLDER' && pip install -r requirements.txt && pip install -e ."
     $CONDA run -n "$ENV_NAME" bash -c "cd '$TPU_COMMONS_FOLDER' && pip install -r requirements_benchmarking.txt"
     $CONDA run -n "$ENV_NAME" bash -c "pip install numba"
-    $CONDA run -n "$ENV_NAME" bash -c "mkdir -p shared-wheels && gsutil cp gs://libtpu-tpu7x-releases/wheels/libtpu/libtpu-0.0.22.dev20250821+tpu7x-cp312-cp312-manylinux_2_31_x86_64.whl shared-wheels/"
-    $CONDA run -n "$ENV_NAME" bash -c "pip install shared-wheels/libtpu-0.0.22.dev20250821+tpu7x-cp312-cp312-manylinux_2_31_x86_64.whl"
+    $CONDA run -n "$ENV_NAME" bash -c "mkdir -p ../shared-wheels && gsutil cp gs://libtpu-tpu7x-releases/wheels/libtpu/libtpu-0.0.22.dev20250821+tpu7x-cp312-cp312-manylinux_2_31_x86_64.whl ../shared-wheels/"
+    $CONDA run -n "$ENV_NAME" bash -c "pip install ../shared-wheels/libtpu-0.0.22.dev20250821+tpu7x-cp312-cp312-manylinux_2_31_x86_64.whl"
     echo "tpu_commons installation complete."
 
     $CONDA run -n "$ENV_NAME" bash -c "gsutil cp gs://amangu-multipods/code/device.py /mnt/disks/persist/bm-agent/miniconda3/envs/$ENV_NAME/lib/python3.12/site-packages/tpu_info/device.py"
@@ -89,9 +82,13 @@ fi
 clean_up() { 
    pkill -f vllm || true
    pkill -f VLLM || true
+   pkill -f "vllm serve" || true
    ./scripts/agent/clean_old_vllm_envs.sh || true
 }
 trap clean_up EXIT
+
+# Do a cleanup before starting
+clean_up
 
 # Prepare working dirs
 TMP_WORKSPACE="/tmp/workspace"
