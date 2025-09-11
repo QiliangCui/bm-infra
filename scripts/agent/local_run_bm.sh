@@ -80,7 +80,6 @@ fi
 
 # Safety cleanup on exit
 clean_up() { 
-   pkill -f vllm || true
    pkill -f VLLM || true
    pkill -f "vllm serve" || true
    ./scripts/agent/clean_old_vllm_envs.sh || true
