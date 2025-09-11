@@ -36,7 +36,27 @@ chmod 777 /usr/bin/minijinja-cli
 # Mount persistent disk
 
 sudo mkdir -p /mnt/disks/persist
-sudo chmod 777 /mnt/disks/persist
+
+# Robustly waiting for the persistent disk to appear.
+# This loop willwiat for up to 2 minutes (120 seconds)
+WAIT_SECONDS=120
+for ((i=0; i<WAIT_SECONDS; i++)); do
+  # The '-b' flag checks if it's a block device
+  if [ -b /dev/nvme1n1 ]; then
+    echo "✅ Disk /dev/nvme1n1 found!"
+    break
+  fi
+  sleep 1
+done
+
+# Check if the loop timed out
+if [ ! -b /dev/nvme1n1 ]; then
+  echo "❌ Error: Timed out waiting for disk /dev/nvme1n1 to appear after $WAIT_SECONDS seconds."
+  # Log the available block devices for debugging
+  echo "Available block devices:"
+  lsblk
+  exit 1
+fi
 
 # Format if not already formatted
 if ! blkid /dev/${persistent_device_name}; then
@@ -44,16 +64,13 @@ if ! blkid /dev/${persistent_device_name}; then
   sudo mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/${persistent_device_name}
 fi
 
-# Add to /etc/fstab using UUID
-disk_uuid=$(blkid -s UUID -o value /dev/${persistent_device_name})
-if ! grep -q "/mnt/disks/persist" /etc/fstab; then
-  echo "UUID=$disk_uuid /mnt/disks/persist ext4 defaults,discard 0 2" | sudo tee -a /etc/fstab
-fi
-
 # Only mount if not already mounted (first boot or recovery)
 if ! mountpoint -q /mnt/disks/persist; then
   sudo mount /dev/${persistent_device_name} /mnt/disks/persist  
 fi
+
+# Add ownership of USERNAME on /mnt/disks/persist
+sudo chown ${USERNAME}:${USERNAME} /mnt/disks/persist
 
 # Install miniconda for local bm run.
 sudo -u ${USERNAME} -i bash <<'EOF'
@@ -100,7 +117,7 @@ systemctl daemon-reload
 systemctl start docker
 
 # Docker change the permissions. So resetting it again.
-sudo chmod 777 /mnt/disks/persist
+sudo chown ${USERNAME}:${USERNAME} /mnt/disks/persist
 
 sudo usermod -aG docker ${USERNAME}
 

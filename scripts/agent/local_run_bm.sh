@@ -155,6 +155,12 @@ cp "$TMP_WORKSPACE/bm_log.txt" "$BM_LOG"
 throughput=$(grep 'Request throughput (req/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
 echo "Throughput: $throughput"
 
+# Parse Token throughput (tok/s)
+output_token_throughput=$(grep 'Output token throughput (tok/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
+echo "OutputTokenThroughput: $output_token_throughput"
+total_token_throughput=$(grep 'Total Token throughput (tok/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
+echo "TotalTokenThroughput: $total_token_throughput"
+
 # Upload to GCS
 gsutil cp "$LOG_ROOT"/* "$REMOTE_LOG_ROOT"
 
@@ -175,6 +181,8 @@ fi
 
 # Write result file
 echo "Throughput=$throughput" > "artifacts/$RECORD_ID.result"
+echo "OutputTokenThroughput=$output_token_throughput" > "artifacts/$RECORD_ID.result"
+echo "TotalTokenThroughput=$total_token_throughput" > "artifacts/$RECORD_ID.result"
 
 extract_value() {
   local section="$1"
