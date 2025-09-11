@@ -1,2 +1,2 @@
 Device,Model,MaxNumSeqs,MaxNumBatchedTokens,TensorParallelSize,MaxModelLen,Dataset,InputLen,OutputLen,ExpectedETEL,NumPrompts
-v6e-8,meta-llama/Llama-3.1-8B-Instruct,256,1024,2,2048,sonnet,1800,128,,1000
+v6e-8,meta-llama/Llama-3.1-8B-Instruct,128,1024,2,2048,sonnet,1800,128,,1000
