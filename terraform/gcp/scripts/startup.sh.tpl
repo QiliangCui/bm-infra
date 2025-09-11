@@ -19,8 +19,8 @@ if [[ -z "${USERNAME}" ]]; then
 fi
 
 if ! id -u ${USERNAME} >/dev/null 2>&1; then
-    echo "sudo useradd -m -s /bin/bash ${USERNAME}"
-    sudo useradd -m -s /bin/bash ${USERNAME}
+  echo "sudo useradd -m -s /bin/bash ${USERNAME}"
+  sudo useradd -m -s /bin/bash ${USERNAME}
 fi
 
 apt-get update
@@ -41,17 +41,17 @@ sudo mkdir -p /mnt/disks/persist
 # This loop willwiat for up to 2 minutes (120 seconds)
 WAIT_SECONDS=120
 for ((i=0; i<WAIT_SECONDS; i++)); do
-  # The '-b' flag checks if it's a block device
-  if [ -b /dev/nvme1n1 ]; then
-    echo "✅ Disk /dev/nvme1n1 found!"
+  # The '-b' flag checks if it is a block device
+  if [ -b /dev/${persistent_device_name} ]; then
+    echo "✅ Disk /dev/${persistent_device_name} found!"
     break
   fi
   sleep 1
 done
 
 # Check if the loop timed out
-if [ ! -b /dev/nvme1n1 ]; then
-  echo "❌ Error: Timed out waiting for disk /dev/nvme1n1 to appear after $WAIT_SECONDS seconds."
+if [ ! -b /dev/${persistent_device_name} ]; then
+  echo "❌ Error: Timed out waiting for disk /dev/${persistent_device_name} to appear after $WAIT_SECONDS seconds."
   # Log the available block devices for debugging
   echo "Available block devices:"
   lsblk
