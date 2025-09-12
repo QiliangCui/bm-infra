@@ -32,8 +32,8 @@ export SKIP_BUILD_IMAGE=1
 # ===================================================================
 
 # Ironwood
-echo "./scripts/scheduler/create_job.sh ./cases/hourly.csv \"\" $TAG HOURLY"
-./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/hourly_ironwood.csv "d328f7894f140fdc643dc1aa5fe80f4596e6f418-5797c31acb0010cf8c54ba9218bacf96d8a1260e-" $TAG HOURLY TPU_COMMONS
+echo "./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/hourly_ironwood.csv \"\" $TAG HOURLY TPU_COMMONS"
+./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/hourly_ironwood.csv "" $TAG HOURLY TPU_COMMONS
 
 echo "./scripts/cleanup_docker.sh"
 ./scripts/cleanup_docker.sh

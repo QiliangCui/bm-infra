@@ -181,8 +181,8 @@ fi
 
 # Write result file
 echo "Throughput=$throughput" > "artifacts/$RECORD_ID.result"
-echo "OutputTokenThroughput=$output_token_throughput" > "artifacts/$RECORD_ID.result"
-echo "TotalTokenThroughput=$total_token_throughput" > "artifacts/$RECORD_ID.result"
+echo "OutputTokenThroughput=$output_token_throughput" >> "artifacts/$RECORD_ID.result"
+echo "TotalTokenThroughput=$total_token_throughput" >> "artifacts/$RECORD_ID.result"
 
 extract_value() {
   local section="$1"

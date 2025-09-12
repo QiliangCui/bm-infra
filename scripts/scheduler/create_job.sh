@@ -176,6 +176,45 @@ if [[ "${SKIP_BUILD_IMAGE:-0}" != "1" ]]; then
   fi
 else
   echo "Skipping build image"
+  # If we skip the build AND no code hash was provided, we need to
+  # determine the latest commit hashes to use the correct image tag.
+  if [[ -z "$CODE_HASH" ]]; then
+    echo "CODE_HASH is not set. Fetching latest commit hashes from remote repositories..."
+
+    # Helper function to get the latest commit hash from a remote repo's main branch
+    # without needing to clone the entire repository.
+    get_latest_remote_hash() {
+      local repo_url="$1"
+      echo "Fetching latest commit hash from '$repo_url'..." >&2
+      # Use git ls-remote to get the hash of HEAD, then use awk/cut for the short hash.
+      git ls-remote "$repo_url" HEAD | awk '{print $1}' | cut -c1-7
+    }
+
+    # Always get the latest vllm hash
+    VLLM_HASH=$(get_latest_remote_hash "https://github.com/vllm-project/vllm.git")
+    echo "Latest resolved VLLM_HASH: $VLLM_HASH"
+
+    # Default CODE_HASH is just the vllm hash
+    CODE_HASH=$VLLM_HASH
+
+    # If additional repos are specified, get their hashes and build the composite hash
+    if [ "$REPO" = "TPU_COMMONS_TORCHAX" ]; then
+      TPU_COMMONS_HASH=$(get_latest_remote_hash "https://github.com/vllm-project/tpu_commons.git")
+      echo "Latest resolved TPU_COMMONS_HASH: $TPU_COMMONS_HASH"
+
+      TORCHAX_HASH=$(get_latest_remote_hash "https://github.com/pytorch/xla.git")
+      echo "Latest resolved TORCHAX_HASH: $TORCHAX_HASH"
+
+      CODE_HASH="${VLLM_HASH}-${TPU_COMMONS_HASH}-${TORCHAX_HASH}"
+    elif [ "$REPO" = "TPU_COMMONS" ]; then
+      TPU_COMMONS_HASH=$(get_latest_remote_hash "https://github.com/vllm-project/tpu_commons.git")
+      echo "Latest resolved TPU_COMMONS_HASH: $TPU_COMMONS_HASH"
+
+      CODE_HASH="${VLLM_HASH}-${TPU_COMMONS_HASH}-"
+    fi
+
+    echo "Constructed latest CODE_HASH to use: $CODE_HASH"
+  fi
 fi
 
 echo "./scripts/scheduler/schedule_run.sh $INPUT_CSV $CODE_HASH $JOB_REFERENCE $RUN_TYPE"
