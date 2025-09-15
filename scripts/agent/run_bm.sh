@@ -54,10 +54,20 @@ echo "lanching vllm..."
 echo "logging to $VLLM_LOG"
 echo
 
-EXTRA_ARGS=""
+if [[ -z "${EXTRA_ARGS:-}" ]]; then
+  # If it is unset or empty, we initialize it as an empty string.
+  # This makes the append operation (+=) safe to use later.
+  EXTRA_ARGS=""
+fi
+
+if [[ -n "${ADDITIONAL_CONFIG:-}" ]]; then
+  echo "Adding --additional_config=${ADDITIONAL_CONFIG} to EXTRA_ARGS for running vllm serve ..."
+  EXTRA_ARGS+=" --additional_config=${ADDITIONAL_CONFIG}"
+fi
+
 if [[ "$MODEL" == "google/gemma-3-27b-it" ]]; then
   echo "google/gemma-3-27b-it"
-  EXTRA_ARGS="--limit-mm-per-prompt {\"image\":0}"
+  EXTRA_ARGS+=" --limit-mm-per-prompt {\"image\":0}"
 fi
 
 VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR="$PROFILE_FOLDER" vllm serve $MODEL \
@@ -176,7 +186,7 @@ run_benchmark(){
   elif [ "$DATASET" = "bench-custom-token" ]; then
     dataset_path="$WORKSPACE/dataset/${MODEL##*/}/inlen${INPUT_LEN}_outlen${OUTPUT_LEN}_prefixlen${PREFIX_LEN}.jsonl"
     echo "dataset_path: $dataset_path"
-    python benchmarks/benchmark_serving.py \
+    vllm bench serve \
       --backend vllm \
       --model $MODEL \
       --request-rate $request_rate \
