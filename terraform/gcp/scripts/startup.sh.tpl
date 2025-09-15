@@ -70,7 +70,7 @@ if ! mountpoint -q /mnt/disks/persist; then
 fi
 
 # Add ownership of USERNAME on /mnt/disks/persist
-sudo chown ${USERNAME}:${USERNAME} /mnt/disks/persist
+sudo chown -R ${USERNAME}:${USERNAME} /mnt/disks/persist
 
 # Install miniconda for local bm run.
 sudo -u ${USERNAME} -i bash <<'EOF'
@@ -117,7 +117,7 @@ systemctl daemon-reload
 systemctl start docker
 
 # Docker change the permissions. So resetting it again.
-sudo chown ${USERNAME}:${USERNAME} /mnt/disks/persist
+sudo chown -R ${USERNAME}:${USERNAME} /mnt/disks/persist
 
 sudo usermod -aG docker ${USERNAME}
 

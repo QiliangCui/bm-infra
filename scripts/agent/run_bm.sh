@@ -62,7 +62,7 @@ fi
 
 if [[ -n "${ADDITIONAL_CONFIG:-}" ]]; then
   echo "Adding --additional_config=${ADDITIONAL_CONFIG} to EXTRA_ARGS for running vllm serve ..."
-  EXTRA_ARGS+=" --additional_config=${ADDITIONAL_CONFIG}"
+  EXTRA_ARGS+=" --additional_config='${ADDITIONAL_CONFIG}'"
 fi
 
 if [[ "$MODEL" == "google/gemma-3-27b-it" ]]; then
@@ -70,7 +70,7 @@ if [[ "$MODEL" == "google/gemma-3-27b-it" ]]; then
   EXTRA_ARGS+=" --limit-mm-per-prompt {\"image\":0}"
 fi
 
-VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR="$PROFILE_FOLDER" vllm serve $MODEL \
+eval "VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR=\"$PROFILE_FOLDER\" vllm serve $MODEL \
  --seed 42 \
  --disable-log-requests \
  --max-num-seqs $MAX_NUM_SEQS \
@@ -78,7 +78,7 @@ VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR="$PROFILE_FOLDER" vllm serve $MODEL \
  --tensor-parallel-size $TENSOR_PARALLEL_SIZE \
  --no-enable-prefix-caching \
  --download_dir $DOWNLOAD_DIR \
- --max-model-len $MAX_MODEL_LEN $EXTRA_ARGS> "$VLLM_LOG" 2>&1 &
+ --max-model-len $MAX_MODEL_LEN $EXTRA_ARGS > \"$VLLM_LOG\" 2>&1 &"
 
 
 echo "wait for 20 minutes.."
