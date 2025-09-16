@@ -70,6 +70,17 @@ if [[ "$MODEL" == "google/gemma-3-27b-it" ]]; then
   EXTRA_ARGS+=" --limit-mm-per-prompt {\"image\":0}"
 fi
 
+echo "Printing the vllm serve command used to start the server:"
+echo "VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR=\"$PROFILE_FOLDER\" vllm serve $MODEL \
+ --seed 42 \
+ --disable-log-requests \
+ --max-num-seqs $MAX_NUM_SEQS \
+ --max-num-batched-tokens $MAX_NUM_BATCHED_TOKENS \
+ --tensor-parallel-size $TENSOR_PARALLEL_SIZE \
+ --no-enable-prefix-caching \
+ --download_dir $DOWNLOAD_DIR \
+ --max-model-len $MAX_MODEL_LEN $EXTRA_ARGS > \"$VLLM_LOG\" 2>&1 &"
+
 eval "VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR=\"$PROFILE_FOLDER\" vllm serve $MODEL \
  --seed 42 \
  --disable-log-requests \

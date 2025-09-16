@@ -39,7 +39,7 @@ sudo mkdir -p /mnt/disks/persist
 
 # Robustly waiting for the persistent disk to appear.
 # This loop willwiat for up to 2 minutes (120 seconds)
-WAIT_SECONDS=120
+WAIT_SECONDS=600
 for ((i=0; i<WAIT_SECONDS; i++)); do
   # The '-b' flag checks if it is a block device
   if [ -b /dev/${persistent_device_name} ]; then
