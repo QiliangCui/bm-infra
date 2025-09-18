@@ -174,9 +174,14 @@ else
   total_token_throughput=$(grep "Total Token throughput (tok/s):" "$BM_LOG" | sed 's/[^0-9.]//g')
 
   if [[ -z "$throughput" || ! "$throughput" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
-    echo "Failed to get the throughput"
-    echo "AccuracyMetrics=$AccuracyMetricsJSON" > "artifacts/$RECORD_ID.result"
-    exit 0
+    if [[ -n "$AccuracyMetricsJSON" ]]; then
+      echo "Failed to get the throughput, but found accuracy metrics."
+      echo "AccuracyMetrics=$AccuracyMetricsJSON" > "artifacts/$RECORD_ID.result"
+      exit 0
+    else
+      echo "Failed to get the throughput and no accuracy metrics found."
+      exit 1
+    fi
   fi
 
   if (( $(echo "$throughput < $EXPECTED_THROUGHPUT" | bc -l) )); then
