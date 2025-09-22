@@ -20,7 +20,7 @@ set -euo pipefail
 #
 #                     These variables can be parsed and exported within the script as needed.
 #
-#  Others: 
+#  Others:
 #   REPO_MAP        - (Optional) An environment variable to map repository URLs to local
 #                     filesystem paths. This accelerates setup by using local mirrors
 #                     instead of performing a fresh `git clone` from the internet.
@@ -30,7 +30,7 @@ set -euo pipefail
 #                     URL, a colon (`||`), and the absolute path to the local mirror.
 #
 #                     Example:
-#                       export REPO_MAP="https://github.com/vllm-project/vllm.git:repos/vllm;https||//github.com/vllm-project/tpu_commons.git||repos/tpu_commons"
+#                       export REPO_MAP="https://github.com/vllm-project/vllm.git:repos/vllm;https||//github.com/vllm-project/tpu_inference.git||repos/tpu_inference"
 #
 #                     If this variable is not set, or a specific URL is not found in
 #                     the map, the script will gracefully fall back to `git clone`.
@@ -56,7 +56,7 @@ declare -A REPO_MAP_ASSOC
 # Check if the REPO_MAP environment variable is set and not empty.
 if [[ -n "${REPO_MAP:-}" ]]; then
   echo "Found REPO_MAP environment variable, parsing local repository paths..."
-  
+
   # Temporarily change the Internal Field Separator (IFS) to ';' to split pairs
   OLD_IFS="$IFS"
   IFS=';'
@@ -88,6 +88,7 @@ clone_and_get_hash() {
   local repo_url="$1"
   local dest_folder="$2"
   local target_hash="$3"
+  local branch_name="$4"
 
   # Check for a local path in the global associative array
   local local_repo_path="${REPO_MAP_ASSOC[$repo_url]:-}"
@@ -106,6 +107,11 @@ clone_and_get_hash() {
 
   pushd "$dest_folder" > /dev/null
 
+  if [[ -n "$branch_name" ]]; then
+    echo "Checking out to $branch_name" >&2
+    git checkout "$branch_name" >&2
+  fi
+
   # If target hash is provided, reset to it
   if [[ -n "$target_hash" ]]; then
     echo "Resetting to $target_hash" >&2
@@ -123,13 +129,13 @@ clone_and_get_hash() {
 if [[ "${SKIP_BUILD_IMAGE:-0}" != "1" ]]; then
 
   # Clone and get hash
-  VLLM_HASH=$(clone_and_get_hash "https://github.com/vllm-project/vllm.git" "artifacts/vllm" "$VLLM_HASH")
+  VLLM_HASH=$(clone_and_get_hash "https://github.com/utkarshsharma1/vllm.git" "artifacts/vllm" "$VLLM_HASH" "tpu_inference")
   echo "resolved VLLM_HASH: $VLLM_HASH"
 
   # A temp solution to patch a fix.
   if [[ "${LOCAL_PATCH:-0}" == "1" ]]; then
     echo "Update the vllm locally."
-    
+
     echo "bash ./tools/patch_core.sh"
     bash ./tools/patch_core.sh
 
@@ -143,7 +149,7 @@ if [[ "${SKIP_BUILD_IMAGE:-0}" != "1" ]]; then
     NEW_VLLM_HASH=$(git rev-parse --short HEAD)
 
     # RealHash_BaseHash
-    VLLM_HASH="${NEW_VLLM_HASH}_${VLLM_HASH}"    
+    VLLM_HASH="${NEW_VLLM_HASH}_${VLLM_HASH}"
     popd
   fi
 
@@ -156,7 +162,7 @@ if [[ "${SKIP_BUILD_IMAGE:-0}" != "1" ]]; then
   if [ "$REPO" = "TPU_COMMONS_TORCHAX" ]; then
     echo "build image for TPU_COMMONS_TORCHAX"
 
-    TPU_COMMONS_HASH=$(clone_and_get_hash "https://github.com/vllm-project/tpu_commons.git" "artifacts/tpu_commons" "$TPU_COMMONS_HASH")
+    TPU_COMMONS_HASH=$(clone_and_get_hash "https://github.com/utkarshsharma1/tpu-commons.git" "artifacts/tpu_commons" "$TPU_COMMONS_HASH" "tpu_inference")
     echo "resolved TPU_COMMONS_HASH: $TPU_COMMONS_HASH"
 
     TORCHAX_HASH=$(clone_and_get_hash "https://github.com/pytorch/xla.git" "artifacts/xla" "$TORCHAX_HASH")
@@ -167,7 +173,7 @@ if [[ "${SKIP_BUILD_IMAGE:-0}" != "1" ]]; then
   elif [ "$REPO" = "TPU_COMMONS" ]; then
     echo "build image for TPU_COMMONS only"
 
-    TPU_COMMONS_HASH=$(clone_and_get_hash "https://github.com/vllm-project/tpu_commons.git" "artifacts/tpu_commons" "$TPU_COMMONS_HASH")
+    TPU_COMMONS_HASH=$(clone_and_get_hash "https://github.com/utkarshsharma1/tpu-commons.git" "artifacts/tpu_commons" "$TPU_COMMONS_HASH" "tpu_inference")
     echo "resolved TPU_COMMONS_HASH: $TPU_COMMONS_HASH"
 
     ./scripts/scheduler/build_tpu_commons_image.sh "$VLLM_HASH" "$TPU_COMMONS_HASH" ""
