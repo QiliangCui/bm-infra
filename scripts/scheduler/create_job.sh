@@ -129,7 +129,7 @@ clone_and_get_hash() {
 if [[ "${SKIP_BUILD_IMAGE:-0}" != "1" ]]; then
 
   # Clone and get hash
-  VLLM_HASH=$(clone_and_get_hash "https://github.com/utkarshsharma1/vllm.git" "artifacts/vllm" "$VLLM_HASH" "tpu_inference")
+  VLLM_HASH=$(clone_and_get_hash "https://github.com/utkarshsharma1/vllm.git" "artifacts/vllm" "$VLLM_HASH" "tpu_inference2")
   echo "resolved VLLM_HASH: $VLLM_HASH"
 
   # A temp solution to patch a fix.
