@@ -11,8 +11,8 @@ ENV_FILE=$1
 source /etc/environment
 source $ENV_FILE
 
-remove_docker_container() { 
-    docker rm -f tpu-test || true; 
+remove_docker_container() {
+    docker rm -f tpu-test || true;
     docker rm -f vllm-tpu || true;
     docker rm -f $CONTAINER_NAME || true;
 }
@@ -24,7 +24,7 @@ remove_docker_container
 
 image_tag=$GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/vllm-tpu-bm/vllm-tpu:$CODE_HASH
 
-IFS='-' read -r VLLM_HASH TPU_COMMON_HASH TORCHAX_HASH _ <<< "$CODE_HASH"
+IFS='-' read -r VLLM_HASH TPU_INFERENCE_HASH TORCHAX_HASH _ <<< "$CODE_HASH"
 
 echo "image tag: $image_tag"
 
@@ -42,7 +42,7 @@ REMOTE_LOG_ROOT="gs://$GCS_BUCKET/job_logs/$RECORD_ID/"
 echo "Results will be stored in: $LOG_ROOT"
 
 if [ -z "$HF_TOKEN" ]; then
-  echo "Error: HF_TOKEN is not set or is empty."  
+  echo "Error: HF_TOKEN is not set or is empty."
   exit 1
 fi
 
@@ -71,7 +71,7 @@ echo "Run model $MODEL"
 echo
 
 echo "starting docker...$CONTAINER_NAME"
-echo    
+echo
 docker run \
  -v $DOWNLOAD_DIR:$DOWNLOAD_DIR \
  --env-file $ENV_FILE \
@@ -125,7 +125,7 @@ fi
 # =============== temp solution end ===============
 
 # TODO(patemotter): split these into functions
-if [ "$DATASET" = "sharegpt" ]; then  
+if [ "$DATASET" = "sharegpt" ]; then
   echo "Copying dataset to container..."
   mkdir -p ./artifacts/dataset/
   gsutil cp gs://$GCS_BUCKET/dataset/sharegpt/*.* ./artifacts/dataset/
@@ -152,7 +152,7 @@ echo "copy results and logs back..."
 VLLM_LOG="$LOG_ROOT/$TEST_NAME"_vllm_log.txt
 BM_LOG="$LOG_ROOT/$TEST_NAME"_bm_log.txt
 PROFILE_FOLDER="$LOG_ROOT/$TEST_NAME"_profile
-docker cp "$CONTAINER_NAME:/workspace/vllm_log.txt" "$VLLM_LOG" 
+docker cp "$CONTAINER_NAME:/workspace/vllm_log.txt" "$VLLM_LOG"
 docker cp "$CONTAINER_NAME:/workspace/bm_log.txt" "$BM_LOG"
 docker cp "$CONTAINER_NAME:/workspace/profile/plugins/profile" "$PROFILE_FOLDER"
 
@@ -163,7 +163,7 @@ AccuracyMetricsJSON=$(grep "AccuracyMetrics:" "$BM_LOG" | sed 's/AccuracyMetrics
 echo "AccuracyMetricsJSON: $AccuracyMetricsJSON"
 
 if [[ "$DATASET" == "math500" ]]; then
-  # For lm_eval runs, we should focus on the accuracy results only 
+  # For lm_eval runs, we should focus on the accuracy results only
   echo "Accuracy-only benchmark, skipping performance metrics."
   echo "AccuracyMetrics=$AccuracyMetricsJSON" > "artifacts/$RECORD_ID.result"
 else

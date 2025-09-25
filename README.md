@@ -40,8 +40,8 @@ sudo apt-get update && sudo apt-get install -y jq
    - CODE_HASH: the [vllm](https://github.com/vllm-project/vllm) code hash you want to run. use "" to indicate latest.
    - JOB_REFERENCE: A string that you can use later to find the job in database.
    - RUN_TYPE: default is "MANUAL". No need to set this usually.
-   - REPO: which backend framework to use, default is using vLLM ("DEFAULT") but can also be "TPU_COMMONS"
-   - TPU_COMMONS_TPU_BACKEND_TYPE: whhich TPU Commons TPU_BACKEND_TYPE to use -- can be "torchax" (default) or "jax"
+   - REPO: which backend framework to use, default is using vLLM ("DEFAULT") but can also be "TPU_INFERENCE"
+   - TPU_INFERENCE_TPU_BACKEND_TYPE: whhich TPU Inference TPU_BACKEND_TYPE to use -- can be "torchax" (default) or "jax"
 
 Example:
 
@@ -67,7 +67,7 @@ Write some script to query the database as `./scripts/manager/get_status.sh` or 
 
 ### Submit a job to run with dumping profile.
 
-Use the command above with a "PROFILE=1" as ExtraEnv. For example, 
+Use the command above with a "PROFILE=1" as ExtraEnv. For example,
 
 ```
 ./scripts/scheduler/create_job.sh cases/case1.csv "309c1bb82" cuiq-0804-xprof MANUAL DEFAULT "PROFILE=1"
@@ -200,13 +200,13 @@ Change the machine number number in ./terraform/gcp/main.tf
 
 ## The Code Hash
 
-Format is `A[_B]-[C]-[D]`.  
+Format is `A[_B]-[C]-[D]`.
 
-A: The vllm repo hash. 
+A: The vllm repo hash.
 
-B: If exists, it is the vllm main branch official head. If it exists, it indicate the A is a local commit. 
+B: If exists, it is the vllm main branch official head. If it exists, it indicate the A is a local commit.
 
-C: TPU_COMMONS branch hash. 
+C: TPU_INFERENCE branch hash.
 
 D: Torch XLA branch hash.
 

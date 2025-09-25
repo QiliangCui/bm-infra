@@ -20,7 +20,7 @@ set -euo pipefail
 #
 #                     These variables can be parsed and exported within the script as needed.
 #
-#  Others: 
+#  Others:
 #   REPO_MAP        - (Optional) An environment variable to map repository URLs to local
 #                     filesystem paths. This accelerates setup by using local mirrors
 #                     instead of performing a fresh `git clone` from the internet.
@@ -30,7 +30,7 @@ set -euo pipefail
 #                     URL, a colon (`||`), and the absolute path to the local mirror.
 #
 #                     Example:
-#                       export REPO_MAP="https://github.com/vllm-project/vllm.git:repos/vllm;https||//github.com/vllm-project/tpu_commons.git||repos/tpu_commons"
+#                       export REPO_MAP="https://github.com/vllm-project/vllm.git:repos/vllm;https||//github.com/vllm-project/tpu_inference.git||repos/tpu_inference"
 #
 #                     If this variable is not set, or a specific URL is not found in
 #                     the map, the script will gracefully fall back to `git clone`.
@@ -56,7 +56,7 @@ declare -A REPO_MAP_ASSOC
 # Check if the REPO_MAP environment variable is set and not empty.
 if [[ -n "${REPO_MAP:-}" ]]; then
   echo "Found REPO_MAP environment variable, parsing local repository paths..."
-  
+
   # Temporarily change the Internal Field Separator (IFS) to ';' to split pairs
   OLD_IFS="$IFS"
   IFS=';'
@@ -73,12 +73,12 @@ if [[ -n "${REPO_MAP:-}" ]]; then
 fi
 # ==============================================================================
 
-if [[ "$REPO" != "DEFAULT" && "$REPO" != "TPU_COMMONS" && "$REPO" != "TPU_COMMONS_TORCHAX" ]]; then
-  echo "Error: REPO must be one of: DEFAULT, TPU_COMMONS, or TPU_COMMONS_TORCHAX, but got '$REPO'"
+if [[ "$REPO" != "DEFAULT" && "$REPO" != "TPU_INFERENCE" && "$REPO" != "TPU_INFERENCE_TORCHAX" ]]; then
+  echo "Error: REPO must be one of: DEFAULT, TPU_INFERENCE, or TPU_INFERENCE_TORCHAX, but got '$REPO'"
   exit 1
 fi
 
-IFS='-' read -r VLLM_HASH TPU_COMMONS_HASH TORCHAX_HASH _ <<< "$CODE_HASH"
+IFS='-' read -r VLLM_HASH TPU_INFERENCE_HASH TORCHAX_HASH _ <<< "$CODE_HASH"
 
 echo "Recreating artifacts directory"
 rm -rf artifacts/
@@ -129,7 +129,7 @@ if [[ "${SKIP_BUILD_IMAGE:-0}" != "1" ]]; then
   # A temp solution to patch a fix.
   if [[ "${LOCAL_PATCH:-0}" == "1" ]]; then
     echo "Update the vllm locally."
-    
+
     echo "bash ./tools/patch_core.sh"
     bash ./tools/patch_core.sh
 
@@ -143,7 +143,7 @@ if [[ "${SKIP_BUILD_IMAGE:-0}" != "1" ]]; then
     NEW_VLLM_HASH=$(git rev-parse --short HEAD)
 
     # RealHash_BaseHash
-    VLLM_HASH="${NEW_VLLM_HASH}_${VLLM_HASH}"    
+    VLLM_HASH="${NEW_VLLM_HASH}_${VLLM_HASH}"
     popd
   fi
 
@@ -153,25 +153,25 @@ if [[ "${SKIP_BUILD_IMAGE:-0}" != "1" ]]; then
   CODE_HASH=$VLLM_HASH
 
   # If additional image is needed
-  if [ "$REPO" = "TPU_COMMONS_TORCHAX" ]; then
-    echo "build image for TPU_COMMONS_TORCHAX"
+  if [ "$REPO" = "TPU_INFERENCE_TORCHAX" ]; then
+    echo "build image for TPU_INFERENCE_TORCHAX"
 
-    TPU_COMMONS_HASH=$(clone_and_get_hash "https://github.com/vllm-project/tpu_commons.git" "artifacts/tpu_commons" "$TPU_COMMONS_HASH")
-    echo "resolved TPU_COMMONS_HASH: $TPU_COMMONS_HASH"
+    TPU_INFERENCE_HASH=$(clone_and_get_hash "git@github.com:utkarshsharma1/tpu-inference.git" "artifacts/tpu_inference" "$TPU_INFERENCE_HASH")
+    echo "resolved TPU_INFERENCE_HASH: $TPU_INFERENCE_HASH"
 
     TORCHAX_HASH=$(clone_and_get_hash "https://github.com/pytorch/xla.git" "artifacts/xla" "$TORCHAX_HASH")
     echo "resolved TORCHAX_HASH: $TORCHAX_HASH"
 
-    ./scripts/scheduler/build_tpu_commons_image.sh "$VLLM_HASH" "$TPU_COMMONS_HASH" "$TORCHAX_HASH"
-    CODE_HASH="${VLLM_HASH}-${TPU_COMMONS_HASH}-${TORCHAX_HASH}"
-  elif [ "$REPO" = "TPU_COMMONS" ]; then
-    echo "build image for TPU_COMMONS only"
+    ./scripts/scheduler/build_tpu_inference_image.sh "$VLLM_HASH" "$TPU_INFERENCE_HASH" "$TORCHAX_HASH"
+    CODE_HASH="${VLLM_HASH}-${TPU_INFERENCE_HASH}-${TORCHAX_HASH}"
+  elif [ "$REPO" = "TPU_INFERENCE" ]; then
+    echo "build image for TPU_INFERENCE only"
 
-    TPU_COMMONS_HASH=$(clone_and_get_hash "https://github.com/vllm-project/tpu_commons.git" "artifacts/tpu_commons" "$TPU_COMMONS_HASH")
-    echo "resolved TPU_COMMONS_HASH: $TPU_COMMONS_HASH"
+    TPU_INFERENCE_HASH=$(clone_and_get_hash "git@github.com:utkarshsharma1/tpu-inference.git" "artifacts/tpu_inference" "$TPU_INFERENCE_HASH")
+    echo "resolved TPU_INFERENCE_HASH: $TPU_INFERENCE_HASH"
 
-    ./scripts/scheduler/build_tpu_commons_image.sh "$VLLM_HASH" "$TPU_COMMONS_HASH" ""
-    CODE_HASH="${VLLM_HASH}-${TPU_COMMONS_HASH}-"
+    ./scripts/scheduler/build_tpu_inference_image.sh "$VLLM_HASH" "$TPU_INFERENCE_HASH" ""
+    CODE_HASH="${VLLM_HASH}-${TPU_INFERENCE_HASH}-"
 
   fi
 else
