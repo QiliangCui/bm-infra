@@ -18,7 +18,7 @@ fi
 # We look for lines that may start with whitespace and then the specific code.
 LINE_TO_FIND="engine_core = EngineCoreProc(\*args, \*\*kwargs)"
 # The new content to be inserted.
-REPLACEMENT_LINE="from tpu_commons.core.core_tpu import DisaggEngineCoreProc; engine_core = DisaggEngineCoreProc(*args, **kwargs)"
+REPLACEMENT_LINE="from tpu_inference.core.core_tpu import DisaggEngineCoreProc; engine_core = DisaggEngineCoreProc(*args, **kwargs)"
 
 # --- Substitution Logic ---
 # Use sed to find and replace the line.
