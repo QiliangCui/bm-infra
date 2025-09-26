@@ -162,7 +162,7 @@ if [[ "${SKIP_BUILD_IMAGE:-0}" != "1" ]]; then
   if [ "$REPO" = "TPU_COMMONS_TORCHAX" ]; then
     echo "build image for TPU_COMMONS_TORCHAX"
 
-    TPU_COMMONS_HASH=$(clone_and_get_hash "git@github.com:utkarshsharma1/tpu-commons.gitt" "artifacts/tpu_commons" "$TPU_COMMONS_HASH" "tpu_inference")
+    TPU_COMMONS_HASH=$(clone_and_get_hash "git@github.com:utkarshsharma1/tpu_inference.git" "artifacts/tpu_commons" "$TPU_COMMONS_HASH" "tpu_inference")
     echo "resolved TPU_COMMONS_HASH: $TPU_COMMONS_HASH"
 
     TORCHAX_HASH=$(clone_and_get_hash "https://github.com/pytorch/xla.git" "artifacts/xla" "$TORCHAX_HASH")
@@ -173,7 +173,7 @@ if [[ "${SKIP_BUILD_IMAGE:-0}" != "1" ]]; then
   elif [ "$REPO" = "TPU_COMMONS" ]; then
     echo "build image for TPU_COMMONS only"
 
-    TPU_COMMONS_HASH=$(clone_and_get_hash "git@github.com:utkarshsharma1/tpu-commons.git" "artifacts/tpu_commons" "$TPU_COMMONS_HASH" "tpu_inference")
+    TPU_COMMONS_HASH=$(clone_and_get_hash "git@github.com:utkarshsharma1/tpu_inference.git" "artifacts/tpu_commons" "$TPU_COMMONS_HASH" "tpu_inference")
     echo "resolved TPU_COMMONS_HASH: $TPU_COMMONS_HASH"
 
     ./scripts/scheduler/build_tpu_commons_image.sh "$VLLM_HASH" "$TPU_COMMONS_HASH" ""
