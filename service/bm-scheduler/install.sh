@@ -48,4 +48,4 @@ echo "sudo systemctl stop bm-scheduler.service"
 sudo systemctl stop bm-scheduler.service
 
 # add to crontab
-(crontab -l 2>/dev/null | grep -v 'bm-scheduler.service'; echo "0 * * * * sudo /bin/systemctl restart bm-scheduler.service") | crontab -
+(crontab -l 2>/dev/null | grep -v 'bm-scheduler.service'; echo "0 0 * * * sudo /bin/systemctl restart bm-scheduler.service") | crontab -

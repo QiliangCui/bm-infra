@@ -70,6 +70,11 @@ if [[ "$MODEL" == "google/gemma-3-27b-it" ]]; then
   EXTRA_ARGS+=" --limit-mm-per-prompt {\"image\":0}"
 fi
 
+if [[ "$MODEL" == "deepseek-ai/DeepSeek-R1" ]]; then
+  echo "deepseek-ai/DeepSeek-R1"
+  EXTRA_ARGS+=" --hf-config=deepseek-ai/DeepSeek-R1 --hf_overrides '{\"architectures\": [\"DeepseekV3ForCausalLM\"]}' --gpu-memory-utilization 0.7"
+fi
+
 echo "Printing the vllm serve command used to start the server:"
 echo "VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR=\"$PROFILE_FOLDER\" vllm serve $MODEL \
  --seed 42 \

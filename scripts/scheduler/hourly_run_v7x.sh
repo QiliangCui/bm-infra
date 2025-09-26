@@ -31,9 +31,13 @@ export REPO_MAP="$REPO_MAP_STRING"
 export SKIP_BUILD_IMAGE=1
 # ===================================================================
 
-# Ironwood
-echo "./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/hourly_ironwood.csv \"\" $TAG HOURLY TPU_COMMONS"
-./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/hourly_ironwood.csv "" $TAG HOURLY TPU_COMMONS
+# Ironwood qwen & Llama
+echo "./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_qwen_llama_tpu7x_2.csv \"\" $TAG DAILY TPU_COMMONS"
+./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_qwen_llama_tpu7x_2.csv "" $TAG DAILY TPU_COMMONS
+
+# Ironwood Deepseek
+echo "./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_deepseek_tpu7x_8.csv \"\" $TAG DAILY TPU_COMMONS \"JAX_RANDOM_WEIGHTS=true;VLLM_MLA_DISABLE=1;NEW_MODEL_DESIGN=True;TPU_BACKEND_TYPE=jax\""
+./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_deepseek_tpu7x_8.csv "" $TAG DAILY TPU_COMMONS "JAX_RANDOM_WEIGHTS=true;VLLM_MLA_DISABLE=1;NEW_MODEL_DESIGN=True;TPU_BACKEND_TYPE=jax"
 
 echo "./scripts/cleanup_docker.sh"
 ./scripts/cleanup_docker.sh
