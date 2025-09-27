@@ -61,6 +61,9 @@ cat $ENV_FILE_TMP
 EXTRA_ENVS_LINE=$(grep '^EXTRA_ENVS=' "$ENV_FILE_TMP")
 EXTRA_ENVS_VALUE="${EXTRA_ENVS_LINE#EXTRA_ENVS=}"
 
+# Strip leading/trailing single and double quotes from the value
+EXTRA_ENVS_VALUE=$(echo "$EXTRA_ENVS_VALUE" | sed -e "s/^'//" -e "s/'$//" -e 's/^"//' -e 's/"$//')
+
 # Remove the original EXTRA_ENVS line
 grep -v '^EXTRA_ENVS=' "$ENV_FILE_TMP" > "${ENV_FILE}"
 
