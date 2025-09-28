@@ -32,6 +32,7 @@ IFS='-' read -r VLLM_HASH TPU_COMMON_HASH TORCHAX_HASH _ <<< "$CODE_HASH"
 
 pushd "$VLLM_FOLDER"
 git fetch origin
+git fetch --all --tags
 git reset --hard "$VLLM_HASH"
 popd
 
@@ -57,6 +58,7 @@ if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
     echo "Checking out correct tpu_commons commit..."
     pushd "$TPU_COMMONS_FOLDER"
     git fetch origin
+    git fetch --all --tags
     git reset --hard "$TPU_COMMON_HASH"
     popd
 
