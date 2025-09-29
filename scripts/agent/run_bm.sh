@@ -75,6 +75,11 @@ if [[ "$MODEL" == "deepseek-ai/DeepSeek-R1" ]]; then
   EXTRA_ARGS+=" --hf-config=deepseek-ai/DeepSeek-R1 --hf_overrides '{\"architectures\": [\"DeepseekV3ForCausalLM\"]}' --gpu-memory-utilization 0.7"
 fi
 
+if [[ "$MODEL" == "Qwen/Qwen3-32B" ]]; then
+  echo "Qwen/Qwen3-32B"
+  EXTRA_ARGS+=" --kv-cache-dtype=fp8 --gpu-memory-utilization=0.96"
+fi
+
 echo "Printing the vllm serve command used to start the server:"
 echo "VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR=\"$PROFILE_FOLDER\" vllm serve $MODEL \
  --seed 42 \
