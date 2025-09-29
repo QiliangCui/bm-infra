@@ -3,10 +3,10 @@
 set -euo pipefail
 
 # Datasets using lm-evaluation-harness `lm_eval`.
-LM_EVAL_DATASETS=("math500")
+LM_EVAL_DATASETS=("math500" "mmlu" "mlperf")
 
 # Datasets that use the internal python performance benchmark script `python benchmark_serving.py`.
-BM_INFRA_DATASETS=("custom-token" "mmlu" "mlperf" "bench-custom-token")
+BM_INFRA_DATASETS=("custom-token" "bench-custom-token")
 
 # All other datasets will use the standard `vllm bench serve` command.
 
@@ -55,8 +55,8 @@ contains_element () {
 # Run accuracy benchmark via lm_eval
 if contains_element "$DATASET" "${LM_EVAL_DATASETS[@]}"; then
   echo "DATASET ($DATASET) is an accuracy benchmark. Running lm_eval path."
-  /workspace/lm_eval/run_math500_lm_eval.sh
-  echo "AccuracyMetrics: $(cat /workspace/math500_accuracy.json)" > /workspace/bm_log.txt
+  /workspace/lm_eval/$DATASET/run.sh
+  echo "AccuracyMetrics: $(cat /workspace/${DATASET}_accuracy.json)" > /workspace/bm_log.txt
   echo "Finished running $DATASET benchmark."
   exit 0
 fi

@@ -70,6 +70,11 @@ fi
 echo "Run model $MODEL"
 echo
 
+EXTRA_DOCKER_ARGS=""
+if [ -n "$SKIP_JAX_PRECOMPILE" ]; then
+  EXTRA_DOCKER_ARGS="-e SKIP_JAX_PRECOMPILE=$SKIP_JAX_PRECOMPILE"
+fi
+
 echo "starting docker...$CONTAINER_NAME"
 echo    
 docker run \
@@ -80,6 +85,7 @@ docker run \
  -e MODEL=$MODEL \
  -e DATASET=$DATASET \
  -e WORKSPACE=/workspace \
+ $EXTRA_DOCKER_ARGS \
  --name $CONTAINER_NAME \
  -d \
  --privileged \
@@ -132,7 +138,7 @@ if [ "$DATASET" = "sharegpt" ]; then
   docker cp artifacts/dataset "$CONTAINER_NAME:/workspace/"
 fi
 
-if [[ "$DATASET" == "math500" ]]; then
+if [[ "$DATASET" == "math500" || "$DATASET" == "mmlu" || "$DATASET" == "mlperf" ]]; then
   echo "Copying lm_eval directory to container..."
   docker cp lm_eval "$CONTAINER_NAME:/workspace/"
 fi
@@ -146,7 +152,7 @@ docker exec "$CONTAINER_NAME" chmod +x "/workspace/vllm/run_bm.sh"
 
 echo "run script..."
 echo
-docker exec "$CONTAINER_NAME" /bin/bash -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled && ./run_bm.sh"
+docker exec "$CONTAINER_NAME" /bin/bash -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled && ./run_bm.sh 2>&1 | tee /workspace/bm_log.txt"
 
 echo "copy results and logs back..."
 VLLM_LOG="$LOG_ROOT/$TEST_NAME"_vllm_log.txt
@@ -155,15 +161,17 @@ PROFILE_FOLDER="$LOG_ROOT/$TEST_NAME"_profile
 docker cp "$CONTAINER_NAME:/workspace/vllm_log.txt" "$VLLM_LOG" 
 docker cp "$CONTAINER_NAME:/workspace/bm_log.txt" "$BM_LOG"
 docker cp "$CONTAINER_NAME:/workspace/profile/plugins/profile" "$PROFILE_FOLDER"
+docker cp "$CONTAINER_NAME:/workspace/failed_output.json" "$LOG_ROOT/failed_output.json" || true
 
 echo "gsutil cp $LOG_ROOT/* $REMOTE_LOG_ROOT"
 gsutil cp -r $LOG_ROOT/* $REMOTE_LOG_ROOT
 
-AccuracyMetricsJSON=$(grep "AccuracyMetrics:" "$BM_LOG" | sed 's/AccuracyMetrics: //')
+AccuracyMetricsJSON=$(grep -a "AccuracyMetrics:" "$BM_LOG" | sed 's/AccuracyMetrics: //')
 echo "AccuracyMetricsJSON: $AccuracyMetricsJSON"
 
-if [[ "$DATASET" == "math500" ]]; then
-  # For lm_eval runs, we should focus on the accuracy results only 
+LM_EVAL_DATASETS=("math500" "mmlu" "mlperf")
+if [[ " ${LM_EVAL_DATASETS[*]} " =~ " $DATASET " ]]; then
+  # For lm_eval runs, we should focus on the accuracy results only
   echo "Accuracy-only benchmark, skipping performance metrics."
   echo "AccuracyMetrics=$AccuracyMetricsJSON" > "artifacts/$RECORD_ID.result"
 else
