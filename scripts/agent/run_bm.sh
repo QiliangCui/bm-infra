@@ -72,7 +72,7 @@ fi
 
 if [[ "$MODEL" == "deepseek-ai/DeepSeek-R1" ]]; then
   echo "deepseek-ai/DeepSeek-R1"
-  EXTRA_ARGS+=" --hf-config=deepseek-ai/DeepSeek-R1 --hf_overrides '{\"architectures\": [\"DeepseekV3ForCausalLM\"]}' --gpu-memory-utilization 0.7"
+  EXTRA_ARGS+=" --hf-config=deepseek-ai/DeepSeek-R1 --hf_overrides '{\"architectures\": [\"DeepseekV3ForCausalLM\"]}' --gpu-memory-utilization 0.91"
 fi
 
 if [[ "$MODEL" == "Qwen/Qwen3-32B" ]]; then
