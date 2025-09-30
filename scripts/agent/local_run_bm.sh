@@ -74,7 +74,6 @@ if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
     echo "tpu_commons installation complete."
 
     $CONDA run -n "$ENV_NAME" bash -c "gsutil cp gs://amangu-multipods/code/device.py /mnt/disks/persist/bm-agent/miniconda3/envs/$ENV_NAME/lib/python3.12/site-packages/tpu_info/device.py"
-    $CONDA run -n "$ENV_NAME" bash -c "gsutil cp gs://amangu-multipods/code/tuned_block_sizes.py $TPU_COMMONS_FOLDER/tpu_commons/kernels/ragged_paged_attention/v3/tuned_block_sizes.py"
     echo "Local v7x changes complete."
 
   fi
