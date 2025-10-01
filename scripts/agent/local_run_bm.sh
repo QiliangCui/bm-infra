@@ -64,10 +64,10 @@ if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
 
     # Install tpu_commons in the new conda environment
     echo "Installing tpu_commons package into '$ENV_NAME'..."
-    $CONDA run -n "$ENV_NAME" bash -c "pip install --pre jax==0.8.0.dev20250928 --index-url https://us-python.pkg.dev/ml-oss-artifacts-published/jax/simple/ --find-links https://storage.googleapis.com/jax-releases/libtpu_releases.html"
-    $CONDA run -n "$ENV_NAME" bash -c "pip install --pre jaxlib==0.8.0.dev20250928 --index-url https://us-python.pkg.dev/ml-oss-artifacts-published/jax/simple/ --find-links https://storage.googleapis.com/jax-releases/libtpu_releases.html"
     $CONDA run -n "$ENV_NAME" bash -c "cd '$TPU_COMMONS_FOLDER' && pip install -r requirements.txt && pip install -e ."
     $CONDA run -n "$ENV_NAME" bash -c "cd '$TPU_COMMONS_FOLDER' && pip install -r requirements_benchmarking.txt"
+    $CONDA run -n "$ENV_NAME" bash -c "pip install --pre jax==0.8.0.dev20250928 --index-url https://us-python.pkg.dev/ml-oss-artifacts-published/jax/simple/ --find-links https://storage.googleapis.com/jax-releases/libtpu_releases.html"
+    $CONDA run -n "$ENV_NAME" bash -c "pip install --pre jaxlib==0.8.0.dev20250928 --index-url https://us-python.pkg.dev/ml-oss-artifacts-published/jax/simple/ --find-links https://storage.googleapis.com/jax-releases/libtpu_releases.html"
     $CONDA run -n "$ENV_NAME" bash -c "pip install numba"
     $CONDA run -n "$ENV_NAME" bash -c "mkdir -p ../shared-wheels && gsutil cp gs://libtpu-tpu7x-releases/wheels/libtpu/libtpu-0.0.24.dev20250928+tpu7x-cp312-cp312-manylinux_2_31_x86_64.whl ../shared-wheels/"
     $CONDA run -n "$ENV_NAME" bash -c "pip install ../shared-wheels/libtpu-0.0.24.dev20250928+tpu7x-cp312-cp312-manylinux_2_31_x86_64.whl"
