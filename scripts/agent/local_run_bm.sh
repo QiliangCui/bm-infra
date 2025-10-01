@@ -85,7 +85,6 @@ clean_up() {
    pkill -f "vllm serve" || true
    ./scripts/agent/clean_old_vllm_envs.sh || true
 }
-trap clean_up EXIT
 
 # Do a cleanup before starting
 clean_up
@@ -94,6 +93,39 @@ clean_up
 TMP_WORKSPACE="/tmp/workspace"
 LOG_ROOT=$(mktemp -d)
 REMOTE_LOG_ROOT="gs://$GCS_BUCKET/job_logs/$RECORD_ID/"
+VLLM_LOG="$LOG_ROOT/${TEST_NAME}_vllm_log.txt"
+BM_LOG="$LOG_ROOT/${TEST_NAME}_bm_log.txt"
+
+
+# Copy results
+upload_logs_on_exit() {
+    echo "--- Running log upload on exit ---"
+
+    # Check if the source log files exist before trying to copy them
+    if [ -f "$TMP_WORKSPACE/vllm_log.txt" ]; then
+        cp "$TMP_WORKSPACE/vllm_log.txt" "$VLLM_LOG"
+    else
+        echo "vllm_log.txt not found in workspace."
+    fi
+
+    if [ -f "$TMP_WORKSPACE/bm_log.txt" ]; then
+        cp "$TMP_WORKSPACE/bm_log.txt" "$BM_LOG"
+    else
+        echo "bm_log.txt not found in workspace."
+    fi
+
+    # Check if there are any files to upload
+    if [ -n "$(ls -A "$LOG_ROOT")" ]; then
+        echo "Uploading logs from $LOG_ROOT to $REMOTE_LOG_ROOT"
+        # Use -n to avoid errors on empty directories and -m for parallel uploads
+        gsutil -m cp -n -r "$LOG_ROOT"/* "$REMOTE_LOG_ROOT"
+    else
+        echo "No log files found in $LOG_ROOT to upload."
+    fi
+}
+
+# Clean up and upload logs when EXITING
+trap 'clean_up; upload_logs_on_exit' EXIT
 
 rm -rf "$TMP_WORKSPACE"
 mkdir -p "$TMP_WORKSPACE"
@@ -146,12 +178,6 @@ $CONDA run -n "$ENV_NAME" bash -c "
   ./run_bm.sh
 "
 
-# Copy results
-VLLM_LOG="$LOG_ROOT/${TEST_NAME}_vllm_log.txt"
-BM_LOG="$LOG_ROOT/${TEST_NAME}_bm_log.txt"
-cp "$TMP_WORKSPACE/vllm_log.txt" "$VLLM_LOG"
-cp "$TMP_WORKSPACE/bm_log.txt" "$BM_LOG"
-
 # Parse throughput
 throughput=$(grep 'Request throughput (req/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
 echo "Throughput: $throughput"
@@ -161,9 +187,6 @@ output_token_throughput=$(grep 'Output token throughput (tok/s):' "$BM_LOG" | se
 echo "OutputTokenThroughput: $output_token_throughput"
 total_token_throughput=$(grep 'Total Token throughput (tok/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
 echo "TotalTokenThroughput: $total_token_throughput"
-
-# Upload to GCS
-gsutil cp "$LOG_ROOT"/* "$REMOTE_LOG_ROOT"
 
 # Check throughput
 if [[ -z "$throughput" || ! "$throughput" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
