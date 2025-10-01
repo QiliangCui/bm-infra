@@ -75,7 +75,9 @@ if [[ "$MODEL" == "deepseek-ai/DeepSeek-R1" ]]; then
   EXTRA_ARGS+=" --hf-config=deepseek-ai/DeepSeek-R1 --hf_overrides '{\"architectures\": [\"DeepseekV3ForCausalLM\"]}' --gpu-memory-utilization 0.91"
 fi
 
-if [[ "$MODEL" == "Qwen/Qwen3-32B" ]]; then
+# TODO: Remove this fragile string matching way of passing extra flags. This is done in despirite times.
+# Implement EXTRA_FLAGS support, which can be passed dynamically from the csv.
+if [[ "$MODEL" == "Qwen/Qwen3-32B" && "$ADDITIONAL_CONFIG" == *"float8"* ]]; then
   echo "Qwen/Qwen3-32B"
   EXTRA_ARGS+=" --kv-cache-dtype=fp8 --gpu-memory-utilization=0.96"
 fi
