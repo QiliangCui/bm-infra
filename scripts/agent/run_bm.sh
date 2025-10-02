@@ -219,7 +219,7 @@ run_benchmark(){
       --custom-output-len $OUTPUT_LEN \
       --percentile-metrics ttft,tpot,itl,e2el \
       $PROFILE_FLAG \
-      --custom-skip-chat-template \
+      --skip-chat-template \
       --ignore-eos > "$BM_LOG" 2>&1
   elif [ "$DATASET" = "sharegpt" ]; then
     dataset_path="$WORKSPACE/dataset/ShareGPT_V3_unfiltered_cleaned_split.json"
