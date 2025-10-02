@@ -93,26 +93,10 @@ clean_up
 TMP_WORKSPACE="/tmp/workspace"
 LOG_ROOT=$(mktemp -d)
 REMOTE_LOG_ROOT="gs://$GCS_BUCKET/job_logs/$RECORD_ID/"
-VLLM_LOG="$LOG_ROOT/${TEST_NAME}_vllm_log.txt"
-BM_LOG="$LOG_ROOT/${TEST_NAME}_bm_log.txt"
-
 
 # Copy results
 upload_logs_on_exit() {
     echo "--- Running log upload on exit ---"
-
-    # Check if the source log files exist before trying to copy them
-    if [ -f "$TMP_WORKSPACE/vllm_log.txt" ]; then
-        cp "$TMP_WORKSPACE/vllm_log.txt" "$VLLM_LOG"
-    else
-        echo "vllm_log.txt not found in workspace."
-    fi
-
-    if [ -f "$TMP_WORKSPACE/bm_log.txt" ]; then
-        cp "$TMP_WORKSPACE/bm_log.txt" "$BM_LOG"
-    else
-        echo "bm_log.txt not found in workspace."
-    fi
 
     # Check if there are any files to upload
     if [ -n "$(ls -A "$LOG_ROOT")" ]; then
@@ -177,6 +161,23 @@ $CONDA run -n "$ENV_NAME" bash -c "
   MODEL='$MODEL' \
   ./run_bm.sh
 "
+
+VLLM_LOG="$LOG_ROOT/${TEST_NAME}_vllm_log.txt"
+BM_LOG="$LOG_ROOT/${TEST_NAME}_bm_log.txt"
+
+echo "Copying log files from workspace..."
+# Check if the source log files exist before trying to copy them
+if [ -f "$TMP_WORKSPACE/vllm_log.txt" ]; then
+  cp "$TMP_WORKSPACE/vllm_log.txt" "$VLLM_LOG"
+else
+  echo "vllm_log.txt not found in workspace."
+fi
+
+if [ -f "$TMP_WORKSPACE/bm_log.txt" ]; then
+  cp "$TMP_WORKSPACE/bm_log.txt" "$BM_LOG"
+else
+  echo "bm_log.txt not found in workspace."
+fi
 
 # Parse throughput
 throughput=$(grep 'Request throughput (req/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
