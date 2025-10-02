@@ -9,7 +9,11 @@ WORKDIR /workspace/tpu_commons
 RUN python3 -m pip install numba
 
 # Install lm_eval with math dependencies, commit is same as https://github.com/vllm-project/vllm/blob/main/.buildkite/scripts/hardware_ci/run-tpu-v1-test.sh#L64
-RUN python3 -m pip install "lm-eval[math] @ git+https://github.com/EleutherAI/lm-evaluation-harness.git@206b7722158f58c35b7ffcd53b035fdbdda5126d"
+RUN python3 -m pip install "lm-eval[all] @ git+https://github.com/EleutherAI/lm-evaluation-harness.git@206b7722158f58c35b7ffcd53b035fdbdda5126d"
+
+# Install nltk and the 'punkt' tokenizer for faster rouge score calculation
+RUN python3 -m pip install nltk && \
+    python3 -c "import nltk; nltk.download('punkt')"
 
 # Build tpu_commons
 COPY tpu_commons .

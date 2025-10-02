@@ -9,11 +9,11 @@ cd "$(dirname "$0")"
 # --- Configuration ---
 export LOG_DIR=./results
 export MODEL_NAME=$MODEL
-export TASK_NAME=math500
+export TASK_NAME=mlperf
 export OUTPUT_PREFIX=${TASK_NAME}_$(echo $MODEL_NAME | sed 's/\//-/g')
 
 export OUTPUT_BASE_PATH=$LOG_DIR/$OUTPUT_PREFIX.json
-export ACCURACY_JSON_PATH=/workspace/math500_accuracy.json
+export ACCURACY_JSON_PATH=/workspace/mlperf_accuracy.json
 
 echo "Running lm_eval, output will be timestamped in: $LOG_DIR"
 
@@ -25,8 +25,9 @@ CMD=(
     --model_args "pretrained=$MODEL_NAME,tensor_parallel_size=${TP_SIZE:-8},dtype=auto,max_model_len=2048"
     --tasks "$TASK_NAME"
     --include_path .
-    --num_fewshot 4
     --batch_size auto
+    --log_samples
+    --limit "${NumPrompts:-1000}"
     --output_path "$OUTPUT_BASE_PATH"
 )
 
@@ -50,4 +51,4 @@ fi
 echo "Found and using file: $LATEST_FILE"
 
 echo "Parsing results and writing to $ACCURACY_JSON_PATH..."
-python parse_lm_eval_math500_results.py "$LATEST_FILE" > "$ACCURACY_JSON_PATH"
+python parse_lm_eval_mlperf_results.py "$LATEST_FILE" > "$ACCURACY_JSON_PATH"

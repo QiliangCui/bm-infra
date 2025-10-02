@@ -99,26 +99,28 @@ DATASETS=("custom-token" "mmlu" "mlperf" "bench-custom-token" "math500")
 if [[ " ${DATASETS[*]} " == *" $DATASET "* ]]; then
   echo "Temp solution: Syncing dataset for $DATASET"
 
-  mkdir -p ./artifacts/dataset/
+  DATASET_DOWNLOAD_DIR="./artifacts/dataset"
+  mkdir -p "$DATASET_DOWNLOAD_DIR"
 
   if [ "$DATASET" = "custom-token" ]; then
     # Download flat files for custom-token
-    gsutil -m cp gs://$GCS_BUCKET/dataset/*.* ./artifacts/dataset/
+    gsutil -m cp gs://$GCS_BUCKET/dataset/*.* "$DATASET_DOWNLOAD_DIR/"
   elif [ "$DATASET" = "mmlu" ]; then
     # Download mmlu directory recursively
-    gsutil -m cp -r gs://$GCS_BUCKET/dataset/mmlu/* ./artifacts/dataset/
+    gsutil -m cp -r gs://$GCS_BUCKET/dataset/mmlu/* "$DATASET_DOWNLOAD_DIR/"
   elif [ "$DATASET" = "mlperf" ]; then
-    # Download single pkl file for MLPerf
-    gsutil -m cp -r gs://$GCS_BUCKET/dataset/mlperf/processed-data.pkl ./artifacts/dataset/
+    # Download single jsonl file for MLPerf
+    gsutil -m cp gs://vllm-cb-storage2/dataset/mlperf/mlperf.jsonl "$DATASET_DOWNLOAD_DIR/"
   elif [ "$DATASET" = "bench-custom-token" ]; then
     # Download flat files for custom-token
-    gsutil -m cp -r gs://$GCS_BUCKET/bench-dataset/* ./artifacts/dataset/
+    gsutil -m cp -r gs://$GCS_BUCKET/bench-dataset/* "$DATASET_DOWNLOAD_DIR/"
   elif [ "$DATASET" = "math500" ]; then
-    gsutil -m cp -r gs://$GCS_BUCKET/dataset/math500.jsonl ./artifacts/dataset/
+    # Download single jsonl file for math500
+    gsutil -m cp -r gs://$GCS_BUCKET/dataset/math500/math500.jsonl "$DATASET_DOWNLOAD_DIR/"
   fi
 
   echo "Copying dataset to container..."
-  docker cp artifacts/dataset "$CONTAINER_NAME:/workspace/"
+  docker cp "$DATASET_DOWNLOAD_DIR" "$CONTAINER_NAME:/workspace/"
 
   echo docker cp scripts/agent/benchmark_serving.py "$CONTAINER_NAME:/workspace/vllm/benchmarks/benchmark_serving.py"
   docker cp scripts/agent/benchmark_serving.py "$CONTAINER_NAME:/workspace/vllm/benchmarks/benchmark_serving.py"
