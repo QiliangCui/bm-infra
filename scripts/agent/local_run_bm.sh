@@ -160,7 +160,7 @@ $CONDA run -n "$ENV_NAME" bash -c "
   TARGET_COMMIT='$VLLM_HASH' \
   MODEL='$MODEL' \
   ./run_bm.sh
-"
+" || true	# To prevent script termination on failure and upload failure logs
 
 VLLM_LOG="$LOG_ROOT/${TEST_NAME}_vllm_log.txt"
 BM_LOG="$LOG_ROOT/${TEST_NAME}_bm_log.txt"
