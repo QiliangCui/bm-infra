@@ -156,7 +156,7 @@ if [[ "${SKIP_BUILD_IMAGE:-0}" != "1" ]]; then
   if [ "$REPO" = "TPU_INFERENCE_TORCHAX" ]; then
     echo "build image for TPU_INFERENCE_TORCHAX"
 
-    TPU_INFERENCE_HASH=$(clone_and_get_hash "git@github.com:utkarshsharma1/tpu-inference.git" "artifacts/tpu-inference" "$TPU_INFERENCE_HASH")
+    TPU_INFERENCE_HASH=$(clone_and_get_hash "https://github.com/vllm-project/tpu-inference.git" "artifacts/tpu-inference" "$TPU_INFERENCE_HASH")
     echo "resolved TPU_INFERENCE_HASH: $TPU_INFERENCE_HASH"
 
     TORCHAX_HASH=$(clone_and_get_hash "https://github.com/pytorch/xla.git" "artifacts/xla" "$TORCHAX_HASH")
@@ -167,7 +167,7 @@ if [[ "${SKIP_BUILD_IMAGE:-0}" != "1" ]]; then
   elif [ "$REPO" = "TPU_INFERENCE" ]; then
     echo "build image for TPU_INFERENCE only"
 
-    TPU_INFERENCE_HASH=$(clone_and_get_hash "git@github.com:utkarshsharma1/tpu-inference.git" "artifacts/tpu-inference" "$TPU_INFERENCE_HASH")
+    TPU_INFERENCE_HASH=$(clone_and_get_hash "https://github.com/vllm-project/tpu-inference.git" "artifacts/tpu-inference" "$TPU_INFERENCE_HASH")
     echo "resolved TPU_INFERENCE_HASH: $TPU_INFERENCE_HASH"
 
     ./scripts/scheduler/build_tpu_inference_image.sh "$VLLM_HASH" "$TPU_INFERENCE_HASH" ""
