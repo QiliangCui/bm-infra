@@ -77,9 +77,9 @@ fi
 
 # TODO: Remove this fragile string matching way of passing extra flags. This is done in despirite times.
 # Implement EXTRA_FLAGS support, which can be passed dynamically from the csv.
-if [[ "$MODEL" == "Qwen/Qwen3-32B" && "${ADDITIONAL_CONFIG:-}" == *"float8"* ]]; then
-  echo "Qwen/Qwen3-32B with float8 config detected."
-  EXTRA_ARGS+=" --kv-cache-dtype=fp8 --gpu-memory-utilization=0.96"
+if [[ "$MODEL" == *"Qwen/Qwen3"* && "${ADDITIONAL_CONFIG:-}" == *"float8"* ]]; then
+  echo "$MODEL with float8 config detected."
+  EXTRA_ARGS+=" --kv-cache-dtype=fp8 --gpu-memory-utilization=0.98"
 fi
 
 echo "Printing the vllm serve command used to start the server:"
