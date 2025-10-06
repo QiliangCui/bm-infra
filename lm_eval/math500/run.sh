@@ -28,6 +28,7 @@ CMD=(
     --num_fewshot 4
     --batch_size auto
     --output_path "$OUTPUT_BASE_PATH"
+    --apply_chat_template
 )
 
 # Execute the command, allowing stderr for error visibility

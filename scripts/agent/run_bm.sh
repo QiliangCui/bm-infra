@@ -56,7 +56,9 @@ contains_element () {
 if contains_element "$DATASET" "${LM_EVAL_DATASETS[@]}"; then
   echo "DATASET ($DATASET) is an accuracy benchmark. Running lm_eval path."
   /workspace/lm_eval/$DATASET/run.sh
-  echo "AccuracyMetrics: $(cat /workspace/${DATASET}_accuracy.json)" > /workspace/bm_log.txt
+  printf "AccuracyMetrics: " > /workspace/bm_log.txt
+  cat "/workspace/${DATASET}_accuracy.json" | tr -d '\n' >> /workspace/bm_log.txt
+  echo "" >> /workspace/bm_log.txt
   echo "Finished running $DATASET benchmark."
   exit 0
 fi

@@ -29,6 +29,7 @@ CMD=(
     --log_samples
     --limit "${NumPrompts:-1000}"
     --output_path "$OUTPUT_BASE_PATH"
+    --apply_chat_template
 )
 
 # Execute the command, allowing stderr for error visibility
