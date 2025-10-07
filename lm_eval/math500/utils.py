@@ -13,8 +13,7 @@ try:
     from sympy.parsing.latex import parse_latex
 except ModuleNotFoundError:
     raise ModuleNotFoundError(
-        "`math-verify`, `sympy>=1.12`, and antlr4-python3-runtime==4.11 is required for generating translation task prompt templates. \
-please install via pip install lm-eval[math] or pip install -e .[math]",
+        "`math-verify`, `sympy>=1.12`, and antlr4-python3-runtime==4.11 is required for generating translation task prompt templates. \nplease install via pip install lm-eval[math] or pip install -e .[math]",
     )
 
 
@@ -44,26 +43,46 @@ def process_docs(dataset: datasets.Dataset) -> datasets.Dataset:
 def list_fewshot_samples() -> list[dict]:
     return [
         {
-            "problem": "Find the domain of the expression  $\\frac{\\sqrt{x-2}}{\\sqrt{5-x}}$.}",
-            "solution": "The expressions inside each square root must be non-negative. Therefore, $x-2 \\ge 0$, so $x\\ge2$, and $5 - x \\ge 0$, so $x \\le 5$. Also, the denominator cannot be equal to zero, so $5-x>0$, which gives $x<5$. Therefore, the domain of the expression is $\\boxed{[2,5)}$.\nFinal Answer: The final answer is $[2,5)$. I hope it is correct.",
+            "problem": r"""Find the domain of the expression  $\frac{\sqrt{x-2}}{\sqrt{5-x}}$
+.}""",
+            "solution": r"""The expressions inside each square root must be non-negative. Therefore, $x-2 \ge 0$, so $x\ge2$, and $5 - x \ge 0$, so $x \le 5$. Also, the denominator cannot be equal to zero, so $5-x>0$, which gives $x<5$. Therefore, the domain of the expression is $\boxed{[2,5)}$.
+Final Answer: The final answer is $[2,5)$. I hope it is correct.""",
             "few_shot": "1",
             "level": "Level 5",
         },
         {
-            "problem": "If $\\det \\mathbf{A} = 2$ and $\\det \\mathbf{B} = 12,$ then find $\\det (\\mathbf{A} \\mathbf{B}).$",
-            "solution": "We have that $\\det (\\mathbf{A} \\mathbf{B}) = (\\det \\mathbf{A})(\\det \\mathbf{B}) = (2)(12) = \\boxed{24}.$\nFinal Answer: The final answer is $24$. I hope it is correct.",
+            "problem": r"""If $\det \mathbf{A} = 2$ and $\det \mathbf{B} = 12,$ then find $\det (\mathbf{A} \mathbf{B}).$""",
+            "solution": r"""We have that $\det (\mathbf{A} \mathbf{B}) = (\det \mathbf{A})(\det \mathbf{B}) = (2)(12) = \boxed{24}.$
+Final Answer: The final answer is $24$. I hope it is correct.""",
             "few_shot": "1",
             "level": "Level 5",
         },
         {
-            "problem": "Terrell usually lifts two 20-pound weights 12 times. If he uses two 15-pound weights instead, how many times must Terrell lift them in order to lift the same total weight?",
-            "solution": "If Terrell lifts two 20-pound weights 12 times, he lifts a total of $2\\cdot 12\\cdot20=480$ pounds of weight.  If he lifts two 15-pound weights instead for $n$ times, he will lift a total of $2\\cdot15\\cdot n=30n$ pounds of weight.  Equating this to 480 pounds, we can solve for $n$:\n\\begin{align*}\n30n&=480\\\n\\Rightarrow\\qquad n&=480/30=\\boxed{16}\n\\end{align*}\nFinal Answer: The final answer is $16$. I hope it is correct.",
+            "problem": r"""Terrell usually lifts two 20-pound weights 12 times. If he uses two 15-pound weights instead, how many times must Terrell lift them in order to lift the same total weight?""",
+            "solution": r"""If Terrell lifts two 20-pound weights 12 times, he lifts a total of $2\cdot 12\cdot20=480$ pounds of weight.  If he lifts two 15-pound weights instead for $n$ times, he will lift a total of $2\cdot15\cdot n=30n$ pounds of weight.  Equating this to 480 pounds, we can solve for $n$: 
+\begin{align*}
+30n&=480\\ \Rightarrow\qquad n&=480/30=\boxed{16}
+\end{align*}
+Final Answer: The final answer is $16$. I hope it is correct.""",
             "few_shot": "1",
             "level": "Level 5",
         },
         {
-            "problem": "If the system of equations\n\n\\begin{align*}\n6x-4y&=a,\\\n6y-9x &=b.\n\\end{align*}has a solution $(x, y)$ where $x$ and $y$ are both nonzero,\nfind $\\frac{a}{b},$ assuming $b$ is nonzero.",
-            "solution": "If we multiply the first equation by $-\\frac{3}{2}$, we obtain\n\n$$6y-9x=-\\frac{3}{2}a.$$Since we also know that $6y-9x=b$, we have\n\n$$-\\frac{3}{2}a=b\\Rightarrow\\frac{a}{b}=\\boxed{-\\frac{2}{3}}.$$\nFinal Answer: The final answer is $-\\frac{2}{3}$. I hope it is correct.",
+            "problem": r"""If the system of equations
+
+\begin{align*}
+6x-4y&=a,\\
+6y-9x &=b.
+\end{align*}
+has a solution $(x, y)$ where $x$ and $y$ are both nonzero,
+find $\frac{a}{b},$ assuming $b$ is nonzero.""",
+            "solution": r"""If we multiply the first equation by $-\frac{3}{2}$, we obtain
+
+$$6y-9x=-\frac{3}{2}a.$$
+Since we also know that $6y-9x=b$, we have
+
+$$-\frac{3}{2}a=b\Rightarrow\frac{a}{b}=\boxed{-\frac{2}{3}}.$$
+Final Answer: The final answer is $-\frac{2}{3}$. I hope it is correct.""",
             "few_shot": "1",
             "level": "Level 5",
         },
@@ -210,12 +229,11 @@ def is_equiv(x1: str, x2: str) -> bool:
         eval_logger.debug(f"Failed comparing {x1} and {x2} with {e}")
         return False
 
-
 def get_unnormalized_answer(text: str) -> str:
     end_seq = "I hope it is correct."
     text += end_seq
     match = re.search(
-        r"Final Answer: The final answer is(.*?). I hope it is correct.",
+        r"Final Answer: The final answer is(.*?)(?:\. I hope it is correct\.)",
         text,
     )
     if match:
@@ -229,7 +247,7 @@ SUBSTITUTIONS = [
     ("a ", ""),
     (".$", "$"),
     ("\\$", ""),
-    (r"\ ", ""),
+    (r"\\ ", ""),
     (" ", ""),
     ("mbox", "text"),
     (",\\text{and}", ","),
@@ -266,10 +284,11 @@ REMOVED_EXPRESSIONS = [
     "multiples",
     "\\text{s}",
     "\\text{.}",
-    "\\text{\ns}",
-    "\\text{}^2",
-    "\\text{}^3",
-    "\\text{\n}",
+    "\\text{\\ns}",
+    "\\text{}",
+    "\\text{}",
+    "\\text{}",
+    "\\text{}",
     "\\text{}",
     r"\mathrm{th}",
     r"^\circ",
@@ -297,11 +316,11 @@ def normalize_final_answer(final_answer: str) -> str:
 
     # Extract answer that is in LaTeX math, is bold,
     # is surrounded by a box, etc.
-    final_answer = re.sub(r"(.*?)(\$)(.*?)(\$)(.*)", "$\\3$", final_answer)
-    final_answer = re.sub(r"(\\text\{)(.*?)(\})", "\\2", final_answer)
-    final_answer = re.sub(r"(\\textbf\{)(.*?)(\})", "\\2", final_answer)
-    final_answer = re.sub(r"(\\overline\{)(.*?)(\})", "\\2", final_answer)
-    final_answer = re.sub(r"(\\boxed\{)(.*)(\})", "\\2", final_answer)
+    final_answer = re.sub(r"(.*?)(\$)(.*?)(\$)(.*)", "$\3$", final_answer)
+    final_answer = re.sub(r"(\\text{)(.*?)(\})", "\2", final_answer)
+    final_answer = re.sub(r"(\\textbf{)(.*?)(\})", "\2", final_answer)
+    final_answer = re.sub(r"(\\overline{)(.*?)(\})", "\2", final_answer)
+    final_answer = re.sub(r"(\\boxed{)(.*)(\})", "\2", final_answer)
 
     # Normalize shorthand TeX:
     #  \fracab -> \frac{a}{b}
@@ -309,8 +328,8 @@ def normalize_final_answer(final_answer: str) -> str:
     #  \fracabc -> \frac{a}{b}c
     #  \sqrta -> \sqrt{a}
     #  \sqrtab -> sqrt{a}b
-    final_answer = re.sub(r"(frac)([^{])(.)", "frac{\\2}{\\3}", final_answer)
-    final_answer = re.sub(r"(sqrt)([^{])", "sqrt{\\2}", final_answer)
+    final_answer = re.sub(r"(frac)([^{])(.)", "frac{\2}{\3}", final_answer)
+    final_answer = re.sub(r"(sqrt)([^{])", "sqrt{\2}", final_answer)
     final_answer = final_answer.replace("$", "")
 
     # Normalize 100,000 -> 100000

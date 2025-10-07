@@ -70,6 +70,11 @@ fi
 echo "Run model $MODEL"
 echo
 
+EXTRA_DOCKER_ARGS=""
+if [ -n "$SKIP_JAX_PRECOMPILE" ]; then
+  EXTRA_DOCKER_ARGS="-e SKIP_JAX_PRECOMPILE=$SKIP_JAX_PRECOMPILE"
+fi
+
 echo "starting docker...$CONTAINER_NAME"
 echo    
 docker run \
@@ -80,6 +85,7 @@ docker run \
  -e MODEL=$MODEL \
  -e DATASET=$DATASET \
  -e WORKSPACE=/workspace \
+ $EXTRA_DOCKER_ARGS \
  --name $CONTAINER_NAME \
  -d \
  --privileged \
@@ -93,26 +99,28 @@ DATASETS=("custom-token" "mmlu" "mlperf" "bench-custom-token" "math500")
 if [[ " ${DATASETS[*]} " == *" $DATASET "* ]]; then
   echo "Temp solution: Syncing dataset for $DATASET"
 
-  mkdir -p ./artifacts/dataset/
+  DATASET_DOWNLOAD_DIR="./artifacts/dataset"
+  mkdir -p "$DATASET_DOWNLOAD_DIR"
 
   if [ "$DATASET" = "custom-token" ]; then
     # Download flat files for custom-token
-    gsutil -m cp gs://$GCS_BUCKET/dataset/*.* ./artifacts/dataset/
+    gsutil -m cp gs://$GCS_BUCKET/dataset/*.* "$DATASET_DOWNLOAD_DIR/"
   elif [ "$DATASET" = "mmlu" ]; then
     # Download mmlu directory recursively
-    gsutil -m cp -r gs://$GCS_BUCKET/dataset/mmlu/* ./artifacts/dataset/
+    gsutil -m cp -r gs://$GCS_BUCKET/dataset/mmlu/* "$DATASET_DOWNLOAD_DIR/"
   elif [ "$DATASET" = "mlperf" ]; then
-    # Download single pkl file for MLPerf
-    gsutil -m cp -r gs://$GCS_BUCKET/dataset/mlperf/processed-data.pkl ./artifacts/dataset/
+    # Download single jsonl file for MLPerf
+    gsutil -m cp gs://vllm-cb-storage2/dataset/mlperf/mlperf_shuffled.jsonl "$DATASET_DOWNLOAD_DIR/mlperf.jsonl"
   elif [ "$DATASET" = "bench-custom-token" ]; then
     # Download flat files for custom-token
-    gsutil -m cp -r gs://$GCS_BUCKET/bench-dataset/* ./artifacts/dataset/
+    gsutil -m cp -r gs://$GCS_BUCKET/bench-dataset/* "$DATASET_DOWNLOAD_DIR/"
   elif [ "$DATASET" = "math500" ]; then
-    gsutil -m cp -r gs://$GCS_BUCKET/dataset/math500.jsonl ./artifacts/dataset/
+    # Download single jsonl file for math500
+    gsutil -m cp -r gs://$GCS_BUCKET/dataset/math500/math500.jsonl "$DATASET_DOWNLOAD_DIR/"
   fi
 
   echo "Copying dataset to container..."
-  docker cp artifacts/dataset "$CONTAINER_NAME:/workspace/"
+  docker cp "$DATASET_DOWNLOAD_DIR" "$CONTAINER_NAME:/workspace/"
 
   echo docker cp scripts/agent/benchmark_serving.py "$CONTAINER_NAME:/workspace/vllm/benchmarks/benchmark_serving.py"
   docker cp scripts/agent/benchmark_serving.py "$CONTAINER_NAME:/workspace/vllm/benchmarks/benchmark_serving.py"
@@ -132,7 +140,7 @@ if [ "$DATASET" = "sharegpt" ]; then
   docker cp artifacts/dataset "$CONTAINER_NAME:/workspace/"
 fi
 
-if [[ "$DATASET" == "math500" ]]; then
+if [[ "$DATASET" == "math500" || "$DATASET" == "mmlu" || "$DATASET" == "mlperf" ]]; then
   echo "Copying lm_eval directory to container..."
   docker cp lm_eval "$CONTAINER_NAME:/workspace/"
 fi
@@ -146,7 +154,7 @@ docker exec "$CONTAINER_NAME" chmod +x "/workspace/vllm/run_bm.sh"
 
 echo "run script..."
 echo
-docker exec "$CONTAINER_NAME" /bin/bash -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled && ./run_bm.sh"
+docker exec "$CONTAINER_NAME" /bin/bash -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled && ./run_bm.sh 2>&1 | tee /workspace/bm_log.txt"
 
 echo "copy results and logs back..."
 VLLM_LOG="$LOG_ROOT/$TEST_NAME"_vllm_log.txt
@@ -155,15 +163,17 @@ PROFILE_FOLDER="$LOG_ROOT/$TEST_NAME"_profile
 docker cp "$CONTAINER_NAME:/workspace/vllm_log.txt" "$VLLM_LOG" 
 docker cp "$CONTAINER_NAME:/workspace/bm_log.txt" "$BM_LOG"
 docker cp "$CONTAINER_NAME:/workspace/profile/plugins/profile" "$PROFILE_FOLDER"
+docker cp "$CONTAINER_NAME:/workspace/failed_output.json" "$LOG_ROOT/failed_output.json" || true
 
 echo "gsutil cp $LOG_ROOT/* $REMOTE_LOG_ROOT"
 gsutil cp -r $LOG_ROOT/* $REMOTE_LOG_ROOT
 
-AccuracyMetricsJSON=$(grep "AccuracyMetrics:" "$BM_LOG" | sed 's/AccuracyMetrics: //')
+AccuracyMetricsJSON=$(grep -a "AccuracyMetrics:" "$BM_LOG" | sed 's/AccuracyMetrics: //')
 echo "AccuracyMetricsJSON: $AccuracyMetricsJSON"
 
-if [[ "$DATASET" == "math500" ]]; then
-  # For lm_eval runs, we should focus on the accuracy results only 
+LM_EVAL_DATASETS=("math500" "mmlu" "mlperf")
+if [[ " ${LM_EVAL_DATASETS[*]} " =~ " $DATASET " ]]; then
+  # For lm_eval runs, we should focus on the accuracy results only
   echo "Accuracy-only benchmark, skipping performance metrics."
   echo "AccuracyMetrics=$AccuracyMetricsJSON" > "artifacts/$RECORD_ID.result"
 else
