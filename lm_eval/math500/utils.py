@@ -61,7 +61,7 @@ Final Answer: The final answer is $24$. I hope it is correct.""",
             "problem": r"""Terrell usually lifts two 20-pound weights 12 times. If he uses two 15-pound weights instead, how many times must Terrell lift them in order to lift the same total weight?""",
             "solution": r"""If Terrell lifts two 20-pound weights 12 times, he lifts a total of $2\cdot 12\cdot20=480$ pounds of weight.  If he lifts two 15-pound weights instead for $n$ times, he will lift a total of $2\cdot15\cdot n=30n$ pounds of weight.  Equating this to 480 pounds, we can solve for $n$: 
 \begin{align*}
-30n&=480\\n\Rightarrow\qquad n&=480/30=\boxed{16}
+30n&=480\\ \Rightarrow\qquad n&=480/30=\boxed{16}
 \end{align*}
 Final Answer: The final answer is $16$. I hope it is correct.""",
             "few_shot": "1",
@@ -290,11 +290,11 @@ REMOVED_EXPRESSIONS = [
     "\\text{}",
     "\\text{}",
     "\\text{}",
-    r"\\mathrm{th}",
+    r"\mathrm{th}",
     r"^\circ",
     r"^{\circ}",
-    r"\\;",
-    r",\\!",
+    r"\;",
+    r",\!",
     "{,}",
     '"',
     "\\dots",

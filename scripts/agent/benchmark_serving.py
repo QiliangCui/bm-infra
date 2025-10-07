@@ -76,7 +76,6 @@ from benchmark_dataset import (
     ShareGPTDataset,
     SonnetDataset,
     VisionArenaDataset,
-    MMLUDataset,
 )
 from benchmark_utils import convert_to_pytorch_benchmark_format, write_to_json
 

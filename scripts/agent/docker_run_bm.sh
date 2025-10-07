@@ -110,7 +110,7 @@ if [[ " ${DATASETS[*]} " == *" $DATASET "* ]]; then
     gsutil -m cp -r gs://$GCS_BUCKET/dataset/mmlu/* "$DATASET_DOWNLOAD_DIR/"
   elif [ "$DATASET" = "mlperf" ]; then
     # Download single jsonl file for MLPerf
-    gsutil -m cp gs://vllm-cb-storage2/dataset/mlperf/mlperf.jsonl "$DATASET_DOWNLOAD_DIR/"
+    gsutil -m cp gs://vllm-cb-storage2/dataset/mlperf/mlperf_shuffled.jsonl "$DATASET_DOWNLOAD_DIR/mlperf.jsonl"
   elif [ "$DATASET" = "bench-custom-token" ]; then
     # Download flat files for custom-token
     gsutil -m cp -r gs://$GCS_BUCKET/bench-dataset/* "$DATASET_DOWNLOAD_DIR/"

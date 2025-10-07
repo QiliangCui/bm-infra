@@ -10,7 +10,8 @@ cd "$(dirname "$0")"
 export LOG_DIR=./results
 export MODEL_NAME=$MODEL
 export TASK_NAME=mlperf
-export OUTPUT_PREFIX=${TASK_NAME}_$(echo $MODEL_NAME | sed 's/\//-/g')
+OUTPUT_PREFIX=${TASK_NAME}_$(echo "$MODEL_NAME" | sed 's/\//-/g')
+export OUTPUT_PREFIX
 
 export OUTPUT_BASE_PATH=$LOG_DIR/$OUTPUT_PREFIX.json
 export ACCURACY_JSON_PATH=/workspace/mlperf_accuracy.json
@@ -27,7 +28,7 @@ CMD=(
     --include_path .
     --batch_size auto
     --log_samples
-    --limit "${NumPrompts:-1000}"
+    --limit "${NumPrompts:-24576}"
     --output_path "$OUTPUT_BASE_PATH"
     --apply_chat_template
 )
