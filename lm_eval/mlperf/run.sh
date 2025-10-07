@@ -28,7 +28,7 @@ CMD=(
     --include_path .
     --batch_size auto
     --log_samples
-    --limit "${NumPrompts:-24576}"
+    --limit "${NumPrompts:-1000}"
     --output_path "$OUTPUT_BASE_PATH"
     --apply_chat_template
 )

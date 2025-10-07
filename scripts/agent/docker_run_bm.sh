@@ -154,7 +154,7 @@ docker exec "$CONTAINER_NAME" chmod +x "/workspace/vllm/run_bm.sh"
 
 echo "run script..."
 echo
-docker exec "$CONTAINER_NAME" /bin/bash -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled && ./run_bm.sh 2>&1 | tee /workspace/bm_log.txt"
+docker exec "$CONTAINER_NAME" /bin/bash -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled && ./run_bm.sh"
 
 echo "copy results and logs back..."
 VLLM_LOG="$LOG_ROOT/$TEST_NAME"_vllm_log.txt
@@ -194,7 +194,7 @@ else
     fi
   fi
 
-  if (( $(echo "$throughput < $EXPECTED_THROUGHPUT" | bc -l) )); then
+  if (( $(echo "$throughput < ${EXPECTED_THROUGHPUT:-0}" | bc -l) )); then
     echo "Error: throughput($throughput) is less than expected($EXPECTED_THROUGHPUT)"
   fi
   echo "Throughput=$throughput" > "artifacts/$RECORD_ID.result"
