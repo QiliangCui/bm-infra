@@ -31,11 +31,11 @@ export REPO_MAP="$REPO_MAP_STRING"
 # ===================================================================
 
 # torch xla
-echo "./scripts/scheduler/create_job.sh ./cases/hourly.csv \"\" $TAG HOURLY"
-./scripts/scheduler/create_job.sh ./cases/hourly.csv "" $TAG HOURLY
+echo "./scripts/scheduler/create_job.sh ./cases/hourly.csv \"\" $TAG HOURLY TPU_INFERENCE"
+./scripts/scheduler/create_job.sh ./cases/hourly.csv "" $TAG HOURLY TPU_INFERENCE
 
-echo "./scripts/scheduler/create_job.sh ./cases/hourly_xla_meta.csv \"\" $TAG HOURLY_XLA_META DEFAULT \"PROFILE=0\""
-./scripts/scheduler/create_job.sh ./cases/hourly_xla_meta.csv "" $TAG HOURLY_XLA_META DEFAULT "PROFILE=0"
+echo "./scripts/scheduler/create_job.sh ./cases/hourly_xla_meta.csv \"\" $TAG HOURLY_XLA_META TPU_INFERENCE \"PROFILE=0\""
+./scripts/scheduler/create_job.sh ./cases/hourly_xla_meta.csv "" $TAG HOURLY_XLA_META TPU_INFERENCE "PROFILE=0"
 
 echo "./scripts/scheduler/create_job.sh ./cases/hourly_customer1.csv \"\" $TAG CUSTOMER1_HOURLY"
 ./scripts/scheduler/create_job.sh ./cases/hourly_customer1.csv "" $TAG CUSTOMER1_HOURLY
