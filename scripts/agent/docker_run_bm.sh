@@ -171,8 +171,6 @@ gsutil cp -r $LOG_ROOT/* $REMOTE_LOG_ROOT
 AccuracyMetricsJSON=$(grep -a "AccuracyMetrics:" "$BM_LOG" | sed 's/AccuracyMetrics: //')
 echo "AccuracyMetricsJSON: $AccuracyMetricsJSON"
 
-if [[ "$DATASET" == "math500" ]]; then
-  # For lm_eval runs, we should focus on the accuracy results only
 LM_EVAL_DATASETS=("math500" "mmlu" "mlperf")
 if [[ " ${LM_EVAL_DATASETS[*]} " =~ " $DATASET " ]]; then
   # For lm_eval runs, we should focus on the accuracy results only
