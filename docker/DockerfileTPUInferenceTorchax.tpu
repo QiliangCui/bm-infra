@@ -7,7 +7,7 @@ FROM $BASE_IMAGE
 WORKDIR /workspace/tpu_inference
 
 # Build tpu_inference
-COPY tpu_inference .
+COPY tpu-inference .
 RUN python3 -m pip install -e . \
     --index-url https://us-python.pkg.dev/ml-oss-artifacts-published/jax/simple/ \
     --find-links https://storage.googleapis.com/jax-releases/libtpu_releases.html
