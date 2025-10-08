@@ -3,7 +3,7 @@ ARG BASE_IMAGE="us-central1-docker.pkg.dev/tpu-pytorch-releases/docker/xla:night
 
 FROM $BASE_IMAGE
 
-WORKDIR /workspace/tpu_commons
+WORKDIR /workspace/tpu_inference
 
 # TODO(cuiq) temp solution and should be deleted when vllm fixes this.
 RUN python3 -m pip install numba
@@ -15,8 +15,8 @@ RUN python3 -m pip install "lm-eval[all] @ git+https://github.com/EleutherAI/lm-
 RUN python3 -m pip install nltk && \
     python3 -c "import nltk; nltk.download('punkt', download_dir='/usr/local/nltk_data')"
 
-# Build tpu_commons
-COPY tpu_commons .
+# Build tpu_inference
+COPY tpu_inference .
 RUN python3 -m pip install -e . \
     --index-url https://us-python.pkg.dev/ml-oss-artifacts-published/jax/simple/ \
     --find-links https://storage.googleapis.com/jax-releases/libtpu_releases.html
