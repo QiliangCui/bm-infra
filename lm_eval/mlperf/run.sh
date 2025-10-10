@@ -3,8 +3,11 @@
 # Exit immediately if a command exits with a non-zero status.
 set -ex
 
-# Change to the script's directory to ensure relative paths work correctly.
-cd "$(dirname "$0")"
+# Get the absolute directory of the script to resolve paths correctly.
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+
+# Change to the script's directory to ensure relative paths for logging.
+cd "$SCRIPT_DIR"
 
 # --- Configuration ---
 export LOG_DIR=./results
@@ -25,7 +28,7 @@ CMD=(
     --model vllm
     --model_args "pretrained=$MODEL_NAME,tensor_parallel_size=${TP_SIZE:-8},dtype=auto,max_model_len=2048"
     --tasks "$TASK_NAME"
-    --include_path .
+    --include_path "$SCRIPT_DIR"
     --batch_size auto
     --log_samples
     --limit "${NumPrompts:-1000}"
