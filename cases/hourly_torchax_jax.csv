@@ -4,7 +4,6 @@ v6e-1,Qwen/Qwen2.5-1.5B-Instruct-AWQ,512,4096,1,2048,sonnet,1800,128
 v6e-1,Qwen/Qwen2.5-7B-Instruct,128,1024,1,2048,sonnet,1800,128
 v6e-1,Qwen/Qwen3-4B,128,1024,1,2048,sonnet,1800,128
 v6e-1,Qwen/Qwen3-8B,128,512,1,2048,sonnet,1800,128
-v6e-8,Qwen/Qwen3-30B-A3B,128,1024,4,2048,sonnet,1800,128
 v6e-1,RedHatAI/Meta-Llama-3.1-8B-Instruct-quantized.w8a8,128,1024,1,2048,sonnet,1800,128
 v6e-1,RedHatAI/Meta-Llama-3.1-8B-Instruct-FP8,128,1024,1,2048,sonnet,1800,128
 v6e-1,RedHatAI/Meta-Llama-3.1-8B-Instruct-FP8-dynamic,128,1024,1,2048,sonnet,1800,128
