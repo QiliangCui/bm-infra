@@ -198,19 +198,19 @@ else
     CODE_HASH=$VLLM_HASH
 
     # If additional repos are specified, get their hashes and build the composite hash
-    if [ "$REPO" = "TPU_COMMONS_TORCHAX" ]; then
-      TPU_COMMONS_HASH=$(get_latest_remote_hash "https://github.com/vllm-project/tpu_commons.git")
-      echo "Latest resolved TPU_COMMONS_HASH: $TPU_COMMONS_HASH"
+    if [ "$REPO" = "TPU_INFERENCE_TORCHAX" ]; then
+      TPU_INFERENCE_HASH=$(get_latest_remote_hash "https://github.com/vllm-project/tpu-inference.git")
+      echo "Latest resolved TPU_INFERENCE_HASH: $TPU_INFERENCE_HASH"
 
       TORCHAX_HASH=$(get_latest_remote_hash "https://github.com/pytorch/xla.git")
       echo "Latest resolved TORCHAX_HASH: $TORCHAX_HASH"
 
-      CODE_HASH="${VLLM_HASH}-${TPU_COMMONS_HASH}-${TORCHAX_HASH}"
-    elif [ "$REPO" = "TPU_COMMONS" ]; then
-      TPU_COMMONS_HASH=$(get_latest_remote_hash "https://github.com/vllm-project/tpu_commons.git")
-      echo "Latest resolved TPU_COMMONS_HASH: $TPU_COMMONS_HASH"
+      CODE_HASH="${VLLM_HASH}-${TPU_INFERENCE_HASH}-${TORCHAX_HASH}"
+    elif [ "$REPO" = "TPU_INFERENCE" ]; then
+      TPU_INFERENCE_HASH=$(get_latest_remote_hash "https://github.com/vllm-project/tpu-inference.git")
+      echo "Latest resolved TPU_INFERENCE_HASH: $TPU_INFERENCE_HASH"
 
-      CODE_HASH="${VLLM_HASH}-${TPU_COMMONS_HASH}-"
+      CODE_HASH="${VLLM_HASH}-${TPU_INFERENCE_HASH}-"
     fi
 
     echo "Constructed latest CODE_HASH to use: $CODE_HASH"

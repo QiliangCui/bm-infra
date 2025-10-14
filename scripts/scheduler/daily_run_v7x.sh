@@ -10,12 +10,12 @@ rm -rf repos/
 mkdir -p repos/
 
 git clone https://github.com/vllm-project/vllm.git repos/vllm
-git clone https://github.com/vllm-project/tpu_commons.git repos/tpu_commons
+git clone https://github.com/vllm-project/tpu-inference.git repos/tpu-inference
 git clone https://github.com/pytorch/xla.git repos/xla
 
 map_entries=(
   "https://github.com/vllm-project/vllm.git||repos/vllm"
-  "https://github.com/vllm-project/tpu_commons.git||repos/tpu_commons"
+  "https://github.com/vllm-project/tpu-inference.git||repos/tpu-inference"
   "https://github.com/pytorch/xla.git||repos/xla"
 )
 
@@ -32,12 +32,12 @@ export SKIP_BUILD_IMAGE=1
 # ===================================================================
 
 # Ironwood qwen & Llama
-echo "./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_qwen_llama_tpu7x_2.csv \"\" $TAG DAILY TPU_COMMONS"
-./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_qwen_llama_tpu7x_2.csv "" $TAG DAILY TPU_COMMONS
+echo "./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_qwen_llama_tpu7x_2.csv \"\" $TAG DAILY TPU_INFERENCE"
+./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_qwen_llama_tpu7x_2.csv "" $TAG DAILY TPU_INFERENCE
 
 # Ironwood Deepseek
-echo "./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_deepseek_tpu7x_8.csv \"\" $TAG DAILY TPU_COMMONS \"JAX_RANDOM_WEIGHTS=true;VLLM_MLA_DISABLE=1;NEW_MODEL_DESIGN=True;TPU_BACKEND_TYPE=jax\""
-./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_deepseek_tpu7x_8.csv "" $TAG DAILY TPU_COMMONS "JAX_RANDOM_WEIGHTS=true;VLLM_MLA_DISABLE=1;NEW_MODEL_DESIGN=True;TPU_BACKEND_TYPE=jax"
+echo "./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_deepseek_tpu7x_8.csv \"\" $TAG DAILY TPU_INFERENCE \"JAX_RANDOM_WEIGHTS=true;VLLM_MLA_DISABLE=1;NEW_MODEL_DESIGN=True;TPU_BACKEND_TYPE=jax\""
+./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_deepseek_tpu7x_8.csv "" $TAG DAILY TPU_INFERENCE "JAX_RANDOM_WEIGHTS=true;VLLM_MLA_DISABLE=1;NEW_MODEL_DESIGN=True;TPU_BACKEND_TYPE=jax"
 
 echo "./scripts/cleanup_docker.sh"
 ./scripts/cleanup_docker.sh

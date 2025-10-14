@@ -10,8 +10,8 @@ ENV_FILE=$1
 PYTHON_VERSION="3.12"
 VLLM_FOLDER="../vllm"
 VLLM_REPO="https://github.com/vllm-project/vllm"
-TPU_COMMONS_FOLDER="../tpu_commons"
-TPU_COMMONS_REPO="https://github.com/vllm-project/tpu_commons.git"
+TPU_INFERENCE_FOLDER="../tpu-inference"
+TPU_INFERENCE_REPO="https://github.com/vllm-project/tpu-inference.git"
 CONDA="/mnt/disks/persist/bm-agent/miniconda3/bin/conda"
 
 # Load environment
@@ -48,32 +48,32 @@ if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
   $CONDA run -n "$ENV_NAME" pip install "lm-eval[math] @ git+https://github.com/EleutherAI/lm-evaluation-harness.git@206b7722158f58c35b7ffcd53b035fdbdda5126d"
   $CONDA run -n "$ENV_NAME" bash -c "cd '$VLLM_FOLDER' && VLLM_USE_PRECOMPILED=1 pip install --editable ."
 
-  # Check if TPU_COMMON_HASH is set and not empty
-  if [[ -n "$TPU_COMMON_HASH" ]]; then
-    echo "TPU_COMMON_HASH is set to '$TPU_COMMON_HASH'. Cloning and installing tpu_commons..."
+  # Check if TPU_INFERENCE_HASH is set and not empty
+  if [[ -n "$TPU_INFERENCE_HASH" ]]; then
+    echo "TPU_INFERENCE_HASH is set to '$TPU_INFERENCE_HASH'. Cloning and installing tpu-inference..."
 
-    # Clone or update tpu_commons repo
-    if [ ! -d "$TPU_COMMONS_FOLDER" ]; then
-        git clone "$TPU_COMMONS_REPO" "$TPU_COMMONS_FOLDER"
+    # Clone or update tpu-inference repo
+    if [ ! -d "$TPU_INFERENCE_FOLDER" ]; then
+        git clone "$TPU_INFERENCE_REPO" "$TPU_INFERENCE_FOLDER"
     fi
 
-    echo "Checking out correct tpu_commons commit..."
-    pushd "$TPU_COMMONS_FOLDER"
+    echo "Checking out correct tpu_inference commit..."
+    pushd "$TPU_INFERENCE_FOLDER"
     git fetch origin
     git fetch --all --tags
-    git reset --hard "$TPU_COMMON_HASH"
+    git reset --hard "$TPU_INFERENCE_HASH"
     popd
 
-    # Install tpu_commons in the new conda environment
-    echo "Installing tpu_commons package into '$ENV_NAME'..."
-    $CONDA run -n "$ENV_NAME" bash -c "cd '$TPU_COMMONS_FOLDER' && pip install -r requirements.txt && pip install -e ."
-    $CONDA run -n "$ENV_NAME" bash -c "cd '$TPU_COMMONS_FOLDER' && pip install -r requirements_benchmarking.txt"
+    # Install tpu-inference in the new conda environment
+    echo "Installing tpu_inference package into '$ENV_NAME'..."
+    $CONDA run -n "$ENV_NAME" bash -c "cd '$TPU_INFERENCE_FOLDER' && pip install -r requirements.txt && pip install -e ."
+    $CONDA run -n "$ENV_NAME" bash -c "cd '$TPU_INFERENCE_FOLDER' && pip install -r requirements_benchmarking.txt"
     $CONDA run -n "$ENV_NAME" bash -c "pip install --pre jax==0.8.0.dev20250928 --index-url https://us-python.pkg.dev/ml-oss-artifacts-published/jax/simple/ --find-links https://storage.googleapis.com/jax-releases/libtpu_releases.html"
     $CONDA run -n "$ENV_NAME" bash -c "pip install --pre jaxlib==0.8.0.dev20250928 --index-url https://us-python.pkg.dev/ml-oss-artifacts-published/jax/simple/ --find-links https://storage.googleapis.com/jax-releases/libtpu_releases.html"
     $CONDA run -n "$ENV_NAME" bash -c "pip install numba"
     $CONDA run -n "$ENV_NAME" bash -c "mkdir -p ../shared-wheels && gsutil cp gs://libtpu-tpu7x-releases/wheels/libtpu/libtpu-0.0.24.dev20250928+tpu7x-cp312-cp312-manylinux_2_31_x86_64.whl ../shared-wheels/"
     $CONDA run -n "$ENV_NAME" bash -c "pip install ../shared-wheels/libtpu-0.0.24.dev20250928+tpu7x-cp312-cp312-manylinux_2_31_x86_64.whl"
-    echo "tpu_commons installation complete."
+    echo "tpu-inference installation complete."
 
     $CONDA run -n "$ENV_NAME" bash -c "gsutil cp gs://amangu-multipods/code/device.py /mnt/disks/persist/bm-agent/miniconda3/envs/$ENV_NAME/lib/python3.12/site-packages/tpu_info/device.py"
     echo "Local v7x changes complete."
