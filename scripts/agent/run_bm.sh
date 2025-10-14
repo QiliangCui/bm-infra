@@ -2,10 +2,29 @@
 
 set -euo pipefail
 
+# Datasets using lm-evaluation-harness `lm_eval`.
+LM_EVAL_DATASETS=("math500" "mmlu" "mlperf")
+
+# Datasets that use the internal python performance benchmark script `python benchmark_serving.py`.
+BM_INFRA_DATASETS=("custom-token" "bench-custom-token")
+
+# All other datasets will use the standard `vllm bench serve` command.
+
+# TODO: Move to image building.
+# Ingore the error because in case of using uv, the packages are installed outside this script.
+pip install pandas || true
+pip install datasets || true
+pip install evaluate==0.4.5 || true
+pip install rouge-score==0.1.2 || true
+# Install lm_eval with math dependencies, commit is same as https://github.com/vllm-project/vllm/blob/main/.buildkite/scripts/hardware_ci/run-tpu-v1-test.sh#L64
+pip install "lm-eval[math] @ git+https://github.com/EleutherAI/lm-evaluation-harness.git@206b7722158f58c35b7ffcd53b035fdbdda5126d" || true
+
+
 VLLM_LOG="$WORKSPACE/vllm_log.txt"
 BM_LOG="$WORKSPACE/bm_log.txt"
 BEST_BM_LOG="$WORKSPACE/best_bm_log.txt"
 PROFILE_FOLDER="$WORKSPACE/profile"
+
 
 if [ -n "$TARGET_COMMIT" ]; then
   head_hash=$(git rev-parse HEAD)
@@ -25,25 +44,36 @@ fi
 echo "model: $MODEL"
 echo
 
-#
+# Helper function to check if a value is in an array
+contains_element () {
+  local e match="$1"
+  shift
+  for e; do [[ "$e" == "$match" ]] && return 0; done
+  return 1
+}
+
+# Run accuracy benchmark via lm_eval
+if contains_element "$DATASET" "${LM_EVAL_DATASETS[@]}"; then
+  echo "DATASET ($DATASET) is an accuracy benchmark. Running lm_eval path."
+  /workspace/lm_eval/$DATASET/run.sh
+  printf "AccuracyMetrics: " > /workspace/bm_log.txt
+  cat "/workspace/${DATASET}_accuracy.json" | tr -d '\n' >> /workspace/bm_log.txt
+  echo "" >> /workspace/bm_log.txt
+  echo "Finished running $DATASET benchmark."
+  exit 0
+fi
+
+
 # create a log and profile folder
-#
 mkdir -p "$WORKSPACE/log"
 mkdir -p "$PROFILE_FOLDER"
-
-# TODO: Move to image building.
-# Ingore the error because in case of using uv, the packages are installed outside this script.
-pip install pandas || true
-pip install datasets || true
-pip install evaluate==0.4.5 || true
-pip install rouge-score==0.1.2 || true
 
 if [ "$DATASET" = "sonnet" ]; then
   echo "Create sonnet_4x.txt"
   echo "" > benchmarks/sonnet_4x.txt
   for _ in {1..4}
-   do
-    cat benchmarks/sonnet.txt >> benchmarks/sonnet_4x.txt
+    do
+     cat benchmarks/sonnet.txt >> benchmarks/sonnet_4x.txt
   done
 fi
 
@@ -106,8 +136,6 @@ eval "VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR=\"$PROFILE_FOLDER\" vllm serve $MODE
 
 echo "wait for 20 minutes.."
 echo
-# sleep 1200
-# wait for 10 minutes...
 for i in {1..120}; do
     # TODO: detect other type of errors.
     if grep -Fq "raise RuntimeError" "$VLLM_LOG"; then
@@ -127,145 +155,88 @@ NUM_PROMPTS=${NUM_PROMPTS:-1000}
 PREFIX_LEN=${PREFIX_LEN:-0}
 
 PROFILE_FLAG=""
-
 # Check if the PROFILE variable is numerically equal to 1
 if [[ "${PROFILE:-0}" -eq 1 ]]; then
   PROFILE_FLAG="--profile"
 fi
 
-run_benchmark(){  
-  #
-  # run test
-  #
-  echo "run benchmark test..."
+run_benchmark(){
+  echo "running benchmark..."
   echo "logging to $BM_LOG"
   echo
-  
-  request_rate="$1"
-  if [ "$DATASET" = "sonnet" ]; then
-    python benchmarks/benchmark_serving.py \
-      --backend vllm \
-      --model $MODEL \
-      --request-rate $request_rate \
-      --dataset-name sonnet \
-      --dataset-path benchmarks/sonnet_4x.txt \
-      --sonnet-input-len $INPUT_LEN \
-      --sonnet-output-len $OUTPUT_LEN \
-      --num-prompts ${NUM_PROMPTS} \
-      --percentile-metrics ttft,tpot,itl,e2el \
-      $PROFILE_FLAG \
-      --ignore-eos > "$BM_LOG" 2>&1
 
-  elif [ "$DATASET" = "random" ]; then
-    python benchmarks/benchmark_serving.py \
-      --backend vllm \
-      --model $MODEL \
-      --request-rate $request_rate \
-      --dataset-name random \
-      --random-input-len $INPUT_LEN \
-      --random-output-len $OUTPUT_LEN \
-      --num-prompts ${NUM_PROMPTS} \
-      --percentile-metrics ttft,tpot,itl,e2el \
-      $PROFILE_FLAG \
-      --ignore-eos > "$BM_LOG" 2>&1
-  elif [ "$DATASET" = "mmlu" ]; then
-    python benchmarks/benchmark_serving.py \
-      --backend vllm \
-      --model $MODEL \
-      --request-rate $request_rate \
-      --dataset-name mmlu \
-      --dataset-path /workspace/dataset \
-      --mmlu-num-shots 0 \
-      --mmlu-method HELM \
-      --num-prompts ${NUM_PROMPTS} \
-      --percentile-metrics ttft,tpot,itl,e2el \
-      $PROFILE_FLAG \
-      --ignore-eos > "$BM_LOG" 2>&1
-  elif [ "$DATASET" = "mlperf" ]; then
-    python benchmarks/benchmark_serving.py \
-      --backend vllm \
-      --model $MODEL \
-      --request-rate $request_rate \
-      --dataset-name mlperf \
-      --dataset-path /workspace/dataset/processed-data.pkl \
-      --mlperf-input-len $INPUT_LEN \
-      --max-model-len $MAX_MODEL_LEN \
-      --num-prompts ${NUM_PROMPTS} \
-      --percentile-metrics ttft,tpot,itl,e2el \
-      $PROFILE_FLAG \
-      --ignore-eos > "$BM_LOG" 2>&1
-  elif [ "$DATASET" = "custom-token" ]; then
-    dataset_path="$WORKSPACE/dataset/${MODEL##*/}_${INPUT_LEN}_${OUTPUT_LEN}_tp${TENSOR_PARALLEL_SIZE}.json"
-    python benchmarks/benchmark_serving.py \
-      --backend vllm \
-      --model $MODEL \
-      --request-rate $request_rate \
-      --dataset-name custom-token \
-      --dataset-path $dataset_path \
-      --num-prompts ${NUM_PROMPTS} \
-      --percentile-metrics ttft,tpot,itl,e2el \
-      $PROFILE_FLAG \
-      --ignore-eos > "$BM_LOG" 2>&1
-  elif [ "$DATASET" = "bench-custom-token" ]; then
-    dataset_path="$WORKSPACE/dataset/${MODEL##*/}/inlen${INPUT_LEN}_outlen${OUTPUT_LEN}_prefixlen${PREFIX_LEN}.jsonl"
-    echo "dataset_path: $dataset_path"
-    vllm bench serve \
-      --backend vllm \
-      --model $MODEL \
-      --request-rate $request_rate \
-      --dataset-name custom \
-      --dataset-path $dataset_path \
-      --num-prompts ${NUM_PROMPTS} \
-      --custom-output-len $OUTPUT_LEN \
-      --percentile-metrics ttft,tpot,itl,e2el \
-      $PROFILE_FLAG \
-      --skip-chat-template \
-      --ignore-eos > "$BM_LOG" 2>&1
-  elif [ "$DATASET" = "sharegpt" ]; then
-    dataset_path="$WORKSPACE/dataset/ShareGPT_V3_unfiltered_cleaned_split.json"
+  local request_rate="$1"
+  local command_to_run
+  local ARGS=()
 
-    if [ "$INPUT_LEN" -gt 0 ]; then
-      echo "Please set INPUT_LEN to 0 for sharegpt dataset because it is not used." > "$BM_LOG" 2>&1      
-      exit 1
-    fi
-    
-    ARGS=(
-      --backend vllm
-      --model "$MODEL"
-      --request-rate "$request_rate"
-      --dataset-name sharegpt
-      --dataset-path "$dataset_path"
-      --num-prompts "$NUM_PROMPTS"
-      --percentile-metrics ttft,tpot,itl,e2el
-      --ignore-eos
-      $PROFILE_FLAG
-    )
-
-    if [ "$OUTPUT_LEN" -ne 0 ]; then
-      ARGS+=(--sharegpt-output-len "$OUTPUT_LEN")
-    fi    
-
-    python benchmarks/benchmark_serving.py "${ARGS[@]}" > "$BM_LOG" 2>&1
-
-  # only used for VL model
-  elif [ "$DATASET" = "hf" ]; then
-    dataset_path="lmarena-ai/VisionArena-Chat" 
-    python benchmarks/benchmark_serving.py \
-      --backend openai-chat \
-      --model $MODEL \
-      --request-rate $request_rate \
-      --dataset-name hf \
-      --dataset-path $dataset_path \
-      --num-prompts "$NUM_PROMPTS" \
-      --endpoint /v1/chat/completions \
-      --percentile-metrics ttft,tpot,itl,e2el \
-      $PROFILE_FLAG \
-      --ignore-eos > "$BM_LOG" 2>&1
-
+  # Determine benchmark command to use
+  if contains_element "$DATASET" "${BM_INFRA_DATASETS[@]}"; then
+    command_to_run=("python" "benchmarks/benchmark_serving.py")
   else
-    echo "Error: unsupported dataset '$DATASET'" > "$BM_LOG" 2>&1
-    exit 1
+    command_to_run=("vllm" "bench" "serve")
   fi
+
+  # Common arguments
+  ARGS+=(
+    --backend vllm
+    --model "$MODEL"
+    --request-rate "$request_rate"
+    --dataset-name "$DATASET"
+    --num-prompts "$NUM_PROMPTS"
+    --percentile-metrics "ttft,tpot,itl,e2el"
+    --ignore-eos
+    $PROFILE_FLAG
+  )
+
+  # Dataset-specific arguments
+  case "$DATASET" in
+    sonnet)
+      ARGS+=(--dataset-path "benchmarks/sonnet_4x.txt" --sonnet-input-len "$INPUT_LEN" --sonnet-output-len "$OUTPUT_LEN")
+      ;;
+    random)
+      ARGS+=(--random-input-len "$INPUT_LEN" --random-output-len "$OUTPUT_LEN")
+      ;;
+    mmlu)
+      ARGS+=(--dataset-path "/workspace/dataset" --mmlu-num-shots 0 --mmlu-method "HELM")
+      ;;
+    mlperf)
+      ARGS+=(--dataset-path "/workspace/dataset/processed-data.pkl" --mlperf-input-len "$INPUT_LEN" --max-model-len "$MAX_MODEL_LEN")
+      ;;
+    custom-token)
+      local dataset_path="$WORKSPACE/dataset/${MODEL##*/}_${INPUT_LEN}_${OUTPUT_LEN}_tp${TENSOR_PARALLEL_SIZE}.json"
+      ARGS+=(--dataset-path "$dataset_path")
+      ;;
+    bench-custom-token)
+      local dataset_path="$WORKSPACE/dataset/${MODEL##*/}/inlen${INPUT_LEN}_outlen${OUTPUT_LEN}_prefixlen${PREFIX_LEN}.jsonl"
+      echo "dataset_path: $dataset_path"
+      # The original script set dataset-name to 'custom' for this case
+      ARGS[7]="custom" # This replaces the --dataset-name value in the array
+      ARGS+=(--dataset-path "$dataset_path" --custom-output-len "$OUTPUT_LEN" --skip-chat-template)
+      ;;
+    sharegpt)
+      local dataset_path="$WORKSPACE/dataset/ShareGPT_V3_unfiltered_cleaned_split.json"
+      if [ "$INPUT_LEN" -gt 0 ]; then
+        echo "Please set INPUT_LEN to 0 for sharegpt dataset because it is not used." > "$BM_LOG" 2>&1
+        exit 1
+      fi
+      ARGS+=(--dataset-path "$dataset_path")
+      if [ "$OUTPUT_LEN" -ne 0 ]; then
+        ARGS+=(--sharegpt-output-len "$OUTPUT_LEN")
+      fi
+      ;;
+    hf)
+      # Override backend for this specific case
+      ARGS[1]="openai-chat" # Replaces --backend value
+      ARGS+=(--dataset-path "lmarena-ai/VisionArena-Chat" --endpoint "/v1/chat/completions")
+      ;;
+    *)
+      echo "Error: unsupported dataset '$DATASET'" > "$BM_LOG" 2>&1
+      exit 1
+      ;;
+  esac
+
+  # Execute the command
+  "${command_to_run[@]}" "${ARGS[@]}" > "$BM_LOG" 2>&1
 
   echo "completed..."
   echo
@@ -275,9 +246,9 @@ run_benchmark(){
   echo "throughput: $throughput, P99 E2EL:$p99_e2el"
   echo
   echo "$throughput $p99_e2el"
-  
 }
-read throughput p99_e2el < <(run_benchmark "inf" | tail -n 1) 
+
+read throughput p99_e2el < <(run_benchmark "inf" | tail -n 1)
 
 echo "throughput:$throughput"
 echo "p99_e2el:$p99_e2el"

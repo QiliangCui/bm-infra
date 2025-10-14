@@ -28,7 +28,7 @@ if [ ! -d "$VLLM_FOLDER" ] || [ -z "$(ls -A "$VLLM_FOLDER")" ]; then
   git clone "$VLLM_REPO" "$VLLM_FOLDER"
 fi
 
-IFS='-' read -r VLLM_HASH TPU_COMMON_HASH TORCHAX_HASH _ <<< "$CODE_HASH"
+IFS='-' read -r VLLM_HASH TPU_INFERENCE_HASH TORCHAX_HASH _ <<< "$CODE_HASH"
 
 pushd "$VLLM_FOLDER"
 git fetch origin
@@ -40,10 +40,12 @@ popd
 if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
   echo "Creating conda environment '$ENV_NAME'..."
   $CONDA create -y -n "$ENV_NAME" python="$PYTHON_VERSION"
-  
+
   echo "Installing vllm and dependencies..."
   $CONDA run -n "$ENV_NAME" pip install --upgrade pip
   $CONDA run -n "$ENV_NAME" pip install pandas datasets
+  # Install lm_eval with math dependencies, commit is same as https://github.com/vllm-project/vllm/blob/main/.buildkite/scripts/hardware_ci/run-tpu-v1-test.sh#L64
+  $CONDA run -n "$ENV_NAME" pip install "lm-eval[math] @ git+https://github.com/EleutherAI/lm-evaluation-harness.git@206b7722158f58c35b7ffcd53b035fdbdda5126d"
   $CONDA run -n "$ENV_NAME" bash -c "cd '$VLLM_FOLDER' && VLLM_USE_PRECOMPILED=1 pip install --editable ."
 
   # Check if TPU_COMMON_HASH is set and not empty
@@ -80,7 +82,8 @@ if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
 fi
 
 # Safety cleanup on exit
-clean_up() { 
+clean_up() {
+   pkill -f vllm || true
    pkill -f VLLM || true
    pkill -f "vllm serve" || true
    ./scripts/agent/clean_old_vllm_envs.sh || true
@@ -136,7 +139,7 @@ echo "Copying and chmod-ing run_bm.sh..."
 cp scripts/agent/run_bm.sh "$VLLM_FOLDER/run_bm.sh"
 chmod +x "$VLLM_FOLDER/run_bm.sh"
 
-if [ "$DATASET" = "sharegpt" ]; then  
+if [ "$DATASET" = "sharegpt" ]; then
   echo "Copying dataset to container..."
   mkdir -p ./artifacts/dataset/
   gsutil cp gs://$GCS_BUCKET/dataset/sharegpt/*.* ./artifacts/dataset/

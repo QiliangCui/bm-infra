@@ -4,10 +4,10 @@ ARG INSTALL_TORCHAX="true"  # default is true, override with --build-arg INSTALL
 
 FROM $BASE_IMAGE
 
-WORKDIR /workspace/tpu_commons
+WORKDIR /workspace/tpu_inference
 
-# Build tpu_commons
-COPY tpu_commons .
+# Build tpu_inference
+COPY tpu-inference .
 RUN python3 -m pip install -e . \
     --index-url https://us-python.pkg.dev/ml-oss-artifacts-published/jax/simple/ \
     --find-links https://storage.googleapis.com/jax-releases/libtpu_releases.html

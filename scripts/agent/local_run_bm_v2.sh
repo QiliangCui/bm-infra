@@ -34,7 +34,7 @@ if [ ! -d "$VLLM_FOLDER" ] || [ -z "$(ls -A "$VLLM_FOLDER")" ]; then
   git clone "$VLLM_REPO" "$VLLM_FOLDER"
 fi
 
-IFS='-' read -r VLLM_HASH TPU_COMMON_HASH TORCHAX_HASH _ <<< "$CODE_HASH"
+IFS='-' read -r VLLM_HASH TPU_INFERENCE_HASH TORCHAX_HASH _ <<< "$CODE_HASH"
 
 pushd "$VLLM_FOLDER"
 git fetch origin
@@ -43,10 +43,13 @@ popd
 
 # Check and create uv venv
 if [ ! -d "$ENV_PATH" ]; then
-  echo "Creating uv environment at $ENV_PATH..."  
+  echo "Creating uv environment at $ENV_PATH..."
   uv venv "$ENV_PATH" --python "python$PYTHON_VERSION"
   uv pip install -p "$ENV_PATH/bin/python" --upgrade pip
   uv pip install -p "$ENV_PATH/bin/python" pandas datasets
+
+  # Install lm_eval with math dependencies, commit is same as https://github.com/vllm-project/vllm/blob/main/.buildkite/scripts/hardware_ci/run-tpu-v1-test.sh#L64
+  uv pip install -p "$ENV_PATH/bin/python" "lm-eval[math] @ git+https://github.com/EleutherAI/lm-evaluation-harness.git@206b7722158f58c35b7ffcd53b035fdbdda5126d"
 
   echo "Installing vllm and dependencies..."
   echo VLLM_USE_PRECOMPILED=1 uv pip install -p "$ENV_PATH/bin/python" -e "$VLLM_FOLDER" --torch-backend=cu128
@@ -54,7 +57,7 @@ if [ ! -d "$ENV_PATH" ]; then
 fi
 
 # Safety cleanup on exit
-clean_up() { 
+clean_up() {
    pkill -f vllm || true
    pkill -f VLLM || true
    ./scripts/agent/clean_old_vllm_envs_v2.sh || true
@@ -93,7 +96,7 @@ cp scripts/agent/run_bm.sh "$VLLM_FOLDER/run_bm.sh"
 chmod +x "$VLLM_FOLDER/run_bm.sh"
 
 # prepare datasets
-if [ "$DATASET" = "sharegpt" ]; then  
+if [ "$DATASET" = "sharegpt" ]; then
   echo "Copying dataset to container..."
   mkdir -p ./artifacts/dataset/
   gsutil cp gs://$GCS_BUCKET/dataset/sharegpt/*.* ./artifacts/dataset/

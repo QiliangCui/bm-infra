@@ -11,8 +11,8 @@ ENV_FILE=$1
 source /etc/environment
 source $ENV_FILE
 
-remove_docker_container() { 
-    docker rm -f tpu-test || true; 
+remove_docker_container() {
+    docker rm -f tpu-test || true;
     docker rm -f vllm-tpu || true;
     docker rm -f $CONTAINER_NAME || true;
 }
@@ -24,7 +24,7 @@ remove_docker_container
 
 image_tag=$GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/vllm-tpu-bm/vllm-tpu:$CODE_HASH
 
-IFS='-' read -r VLLM_HASH TPU_COMMON_HASH TORCHAX_HASH _ <<< "$CODE_HASH"
+IFS='-' read -r VLLM_HASH TPU_INFERENCE_HASH TORCHAX_HASH _ <<< "$CODE_HASH"
 
 echo "image tag: $image_tag"
 
@@ -42,7 +42,7 @@ REMOTE_LOG_ROOT="gs://$GCS_BUCKET/job_logs/$RECORD_ID/"
 echo "Results will be stored in: $LOG_ROOT"
 
 if [ -z "$HF_TOKEN" ]; then
-  echo "Error: HF_TOKEN is not set or is empty."  
+  echo "Error: HF_TOKEN is not set or is empty."
   exit 1
 fi
 
@@ -70,8 +70,13 @@ fi
 echo "Run model $MODEL"
 echo
 
+EXTRA_DOCKER_ARGS=""
+if [ -n "$SKIP_JAX_PRECOMPILE" ]; then
+  EXTRA_DOCKER_ARGS="-e SKIP_JAX_PRECOMPILE=$SKIP_JAX_PRECOMPILE"
+fi
+
 echo "starting docker...$CONTAINER_NAME"
-echo    
+echo
 docker run \
  -v $DOWNLOAD_DIR:$DOWNLOAD_DIR \
  --env-file $ENV_FILE \
@@ -80,6 +85,7 @@ docker run \
  -e MODEL=$MODEL \
  -e DATASET=$DATASET \
  -e WORKSPACE=/workspace \
+ $EXTRA_DOCKER_ARGS \
  --name $CONTAINER_NAME \
  -d \
  --privileged \
@@ -89,28 +95,32 @@ docker run \
 
 # =============== temp solution start ===============
 
-DATASETS=("custom-token" "mmlu" "mlperf" "bench-custom-token")
+DATASETS=("custom-token" "mmlu" "mlperf" "bench-custom-token" "math500")
 if [[ " ${DATASETS[*]} " == *" $DATASET "* ]]; then
   echo "Temp solution: Syncing dataset for $DATASET"
 
-  mkdir -p ./artifacts/dataset/
+  DATASET_DOWNLOAD_DIR="./artifacts/dataset"
+  mkdir -p "$DATASET_DOWNLOAD_DIR"
 
   if [ "$DATASET" = "custom-token" ]; then
     # Download flat files for custom-token
-    gsutil -m cp gs://$GCS_BUCKET/dataset/*.* ./artifacts/dataset/
+    gsutil -m cp gs://$GCS_BUCKET/dataset/*.* "$DATASET_DOWNLOAD_DIR/"
   elif [ "$DATASET" = "mmlu" ]; then
     # Download mmlu directory recursively
-    gsutil -m cp -r gs://$GCS_BUCKET/dataset/mmlu/* ./artifacts/dataset/
+    gsutil -m cp -r gs://$GCS_BUCKET/dataset/mmlu/* "$DATASET_DOWNLOAD_DIR/"
   elif [ "$DATASET" = "mlperf" ]; then
-    # Download single pkl file for MLPerf
-    gsutil -m cp -r gs://$GCS_BUCKET/dataset/mlperf/processed-data.pkl ./artifacts/dataset/
+    # Download single jsonl file for MLPerf
+    gsutil -m cp gs://vllm-cb-storage2/dataset/mlperf/mlperf_shuffled.jsonl "$DATASET_DOWNLOAD_DIR/mlperf.jsonl"
   elif [ "$DATASET" = "bench-custom-token" ]; then
     # Download flat files for custom-token
-    gsutil -m cp -r gs://$GCS_BUCKET/bench-dataset/* ./artifacts/dataset/
+    gsutil -m cp -r gs://$GCS_BUCKET/bench-dataset/* "$DATASET_DOWNLOAD_DIR/"
+  elif [ "$DATASET" = "math500" ]; then
+    # Download single jsonl file for math500
+    gsutil -m cp -r gs://$GCS_BUCKET/dataset/math500/math500.jsonl "$DATASET_DOWNLOAD_DIR/"
   fi
 
   echo "Copying dataset to container..."
-  docker cp artifacts/dataset "$CONTAINER_NAME:/workspace/"
+  docker cp "$DATASET_DOWNLOAD_DIR" "$CONTAINER_NAME:/workspace/"
 
   echo docker cp scripts/agent/benchmark_serving.py "$CONTAINER_NAME:/workspace/vllm/benchmarks/benchmark_serving.py"
   docker cp scripts/agent/benchmark_serving.py "$CONTAINER_NAME:/workspace/vllm/benchmarks/benchmark_serving.py"
@@ -119,13 +129,20 @@ if [[ " ${DATASETS[*]} " == *" $DATASET "* ]]; then
   docker cp scripts/agent/benchmark_dataset.py "$CONTAINER_NAME:/workspace/vllm/benchmarks/benchmark_dataset.py"
 fi
 
+
 # =============== temp solution end ===============
 
-if [ "$DATASET" = "sharegpt" ]; then  
+# TODO(patemotter): split these into functions
+if [ "$DATASET" = "sharegpt" ]; then
   echo "Copying dataset to container..."
   mkdir -p ./artifacts/dataset/
   gsutil cp gs://$GCS_BUCKET/dataset/sharegpt/*.* ./artifacts/dataset/
   docker cp artifacts/dataset "$CONTAINER_NAME:/workspace/"
+fi
+
+if [[ "$DATASET" == "math500" || "$DATASET" == "mmlu" || "$DATASET" == "mlperf" ]]; then
+  echo "Copying lm_eval directory to container..."
+  docker cp lm_eval "$CONTAINER_NAME:/workspace/"
 fi
 
 echo "copy script run_bm.sh to container..."
@@ -143,70 +160,78 @@ echo "copy results and logs back..."
 VLLM_LOG="$LOG_ROOT/$TEST_NAME"_vllm_log.txt
 BM_LOG="$LOG_ROOT/$TEST_NAME"_bm_log.txt
 PROFILE_FOLDER="$LOG_ROOT/$TEST_NAME"_profile
-docker cp "$CONTAINER_NAME:/workspace/vllm_log.txt" "$VLLM_LOG" 
+docker cp "$CONTAINER_NAME:/workspace/vllm_log.txt" "$VLLM_LOG"
 docker cp "$CONTAINER_NAME:/workspace/bm_log.txt" "$BM_LOG"
 docker cp "$CONTAINER_NAME:/workspace/profile/plugins/profile" "$PROFILE_FOLDER"
+docker cp "$CONTAINER_NAME:/workspace/failed_output.json" "$LOG_ROOT/failed_output.json" || true
 
 echo "gsutil cp $LOG_ROOT/* $REMOTE_LOG_ROOT"
 gsutil cp -r $LOG_ROOT/* $REMOTE_LOG_ROOT
 
-throughput=$(grep "Request throughput (req/s):" "$BM_LOG" | sed 's/[^0-9.]//g')
-echo "throughput for $TEST_NAME at $VLLM_HASH: $throughput"
-
-output_token_throughput=$(grep "Output token throughput (tok/s):" "$BM_LOG" | sed 's/[^0-9.]//g')
-total_token_throughput=$(grep "Total Token throughput (tok/s):" "$BM_LOG" | sed 's/[^0-9.]//g')
-# Extract the JSON string for accuracy metrics. The sed command removes the 'AccuracyMetrics: ' prefix.
-AccuracyMetricsJSON=$(grep "AccuracyMetrics:" "$BM_LOG" | sed 's/AccuracyMetrics: //')
+AccuracyMetricsJSON=$(grep -a "AccuracyMetrics:" "$BM_LOG" | sed 's/AccuracyMetrics: //')
 echo "AccuracyMetricsJSON: $AccuracyMetricsJSON"
 
-#
-# compare the throughput with EXPECTED_THROUGHPUT 
-# and assert meeting the expectation
-# Even if failed to get throughput, we still consider the docker run is good.
-# The following script will report failure if the result out is not created.
-# 
-if [[ -z "$throughput" || ! "$throughput" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
-  echo "Failed to get the throughput"
-  exit 0
+LM_EVAL_DATASETS=("math500" "mmlu" "mlperf")
+if [[ " ${LM_EVAL_DATASETS[*]} " =~ " $DATASET " ]]; then
+  # For lm_eval runs, we should focus on the accuracy results only
+  echo "Accuracy-only benchmark, skipping performance metrics."
+  echo "AccuracyMetrics=$AccuracyMetricsJSON" > "artifacts/$RECORD_ID.result"
+else
+  throughput=$(grep "Request throughput (req/s):" "$BM_LOG" | sed 's/[^0-9.]//g')
+  echo "throughput for $TEST_NAME at $VLLM_HASH: $throughput"
+
+  output_token_throughput=$(grep "Output token throughput (tok/s):" "$BM_LOG" | sed 's/[^0-9.]//g')
+  total_token_throughput=$(grep "Total Token throughput (tok/s):" "$BM_LOG" | sed 's/[^0-9.]//g')
+
+  if [[ -z "$throughput" || ! "$throughput" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+    if [[ -n "$AccuracyMetricsJSON" ]]; then
+      echo "Failed to get the throughput, but found accuracy metrics."
+      echo "AccuracyMetrics=$AccuracyMetricsJSON" > "artifacts/$RECORD_ID.result"
+      exit 0
+    else
+      echo "Failed to get the throughput and no accuracy metrics found."
+      exit 1
+    fi
+  fi
+
+  if (( $(echo "$throughput < ${EXPECTED_THROUGHPUT:-0}" | bc -l) )); then
+    echo "Error: throughput($throughput) is less than expected($EXPECTED_THROUGHPUT)"
+  fi
+  echo "Throughput=$throughput" > "artifacts/$RECORD_ID.result"
+
+  extract_value() {
+    local section="$1"
+    local label="$2"  # Mean, Median, or P99
+    grep "$section (ms):" "$BM_LOG" | \
+      awk -v label="$label" '$0 ~ label { print $NF }'
+  }
+
+  # Median values
+  MedianITL=$(extract_value "ITL" "Median")
+  MedianTPOT=$(extract_value "TPOT" "Median")
+  MedianTTFT=$(extract_value "TTFT" "Median")
+  MedianETEL=$(extract_value "E2EL" "Median")
+
+  # P99 values
+  P99ITL=$(extract_value "ITL" "P99")
+  P99TPOT=$(extract_value "TPOT" "P99")
+  P99TTFT=$(extract_value "TTFT" "P99")
+  P99ETEL=$(extract_value "E2EL" "P99")
+
+  # Write results to file
+  (
+    printf '%s=%s\n' \
+      "MedianITL" "$MedianITL" \
+      "MedianTPOT" "$MedianTPOT" \
+      "MedianTTFT" "$MedianTTFT" \
+      "MedianETEL" "$MedianETEL" \
+      "P99ITL" "$P99ITL" \
+      "P99TPOT" "$P99TPOT" \
+      "P99TTFT" "$P99TTFT" \
+      "P99ETEL" "$P99ETEL" \
+      "OutputTokenThroughput" "$output_token_throughput" \
+      "TotalTokenThroughput" "$total_token_throughput" \
+      "AccuracyMetrics" "$AccuracyMetricsJSON"
+  ) >> "artifacts/$RECORD_ID.result"
 fi
 
-if (( $(echo "$throughput < $EXPECTED_THROUGHPUT" | bc -l) )); then
-  echo "Error: throughput($throughput) is less than expected($EXPECTED_THROUGHPUT)"
-  exit 0
-fi
-
-# write output
-echo "Throughput=$throughput" > "artifacts/$RECORD_ID.result"
-
-extract_value() {
-  local section="$1"
-  local label="$2"  # Mean, Median, or P99
-  grep "$section (ms):" "$BM_LOG" | \
-    awk -v label="$label" '$0 ~ label { print $NF }'
-}
-
-# Median values
-MedianITL=$(extract_value "ITL" "Median")
-MedianTPOT=$(extract_value "TPOT" "Median")
-MedianTTFT=$(extract_value "TTFT" "Median")
-MedianETEL=$(extract_value "E2EL" "Median")
-
-# P99 values
-P99ITL=$(extract_value "ITL" "P99")
-P99TPOT=$(extract_value "TPOT" "P99")
-P99TTFT=$(extract_value "TTFT" "P99")
-P99ETEL=$(extract_value "E2EL" "P99")
-
-cat <<EOF >> "artifacts/$RECORD_ID.result"
-MedianITL=$MedianITL
-MedianTPOT=$MedianTPOT
-MedianTTFT=$MedianTTFT
-MedianETEL=$MedianETEL
-P99ITL=$P99ITL
-P99TPOT=$P99TPOT
-P99TTFT=$P99TTFT
-P99ETEL=$P99ETEL
-OutputTokenThroughput=$output_token_throughput
-TotalTokenThroughput=$total_token_throughput
-AccuracyMetrics=$AccuracyMetricsJSON
-EOF

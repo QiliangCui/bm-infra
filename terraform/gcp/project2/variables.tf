@@ -7,7 +7,7 @@ variable "region" {
 }
 
 variable "tpu_zone" {
-    default = "asia-east1-c"
+    default = "asia-south1-b"
 }
 
 variable "purpose" {
@@ -27,15 +27,15 @@ variable "gcs_bucket" {
 }
 
 variable "v6e_1_count" {
-  default     = 0
+  default     = 8
 }
 
 variable "v6e_4_count" {
-  default     = 0
+  default     = 4
 }
 
 variable "v6e_8_count" {
-  default     = 0
+  default     = 12
 }
 
 variable "instance_name_offset" {
@@ -45,6 +45,6 @@ variable "instance_name_offset" {
 }
 
 variable "branch_hash" {
-  default     = "2711a8eae41f37273a4f75a3bd4c240c9a4bbae8"
+  default     = "0be57b1c3b42085c3289e6cf7e6421667b151a6f"
   description = "commit hash of bm-infra branch."
 }

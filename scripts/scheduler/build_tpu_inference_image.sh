@@ -2,9 +2,9 @@
 set -euo pipefail
 
 VLLM_HASH=$1
-TPU_COMMONS_HASH=$2
+TPU_INFERENCE_HASH=$2
 TORCHAX_HASH=$3
-CODE_HASH="${VLLM_HASH}-${TPU_COMMONS_HASH}-${TORCHAX_HASH}"
+CODE_HASH="${VLLM_HASH}-${TPU_INFERENCE_HASH}-${TORCHAX_HASH}"
 
 BASE_IMAGE="$GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/vllm-tpu-bm/vllm-tpu:$VLLM_HASH"
 IMAGE_TAG="$GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/vllm-tpu-bm/vllm-tpu:$CODE_HASH"
@@ -29,10 +29,10 @@ fi
 
 # 3. Determine Dockerfile
 if [ -z "$TORCHAX_HASH" ]; then
-  DOCKERFILE="../docker/DockerfileTPUCommon.tpu"
+  DOCKERFILE="../docker/DockerfileTPUInference.tpu"
   echo "Building without torchax"
 else
-  DOCKERFILE="../docker/DockerfileTPUCommonTorchax.tpu"
+  DOCKERFILE="../docker/DockerfileTPUInferenceTorchax.tpu"
   echo "Building with torchax"
 fi
 
