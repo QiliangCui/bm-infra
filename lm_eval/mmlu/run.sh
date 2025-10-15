@@ -26,6 +26,7 @@ CMD=(
     --model vllm
     --model_args "pretrained=$MODEL_NAME,tensor_parallel_size=${TP_SIZE:-8},dtype=auto"
     --tasks "$TASK_NAME"
+    --num_fewshot 5
     --batch_size auto
     --output_path "$OUTPUT_BASE_PATH"
 )
