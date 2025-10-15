@@ -18,6 +18,8 @@ set -a
 source "$ENV_FILE"
 set +a
 
+export PATH="/usr/local/cuda/bin:$PATH"
+
 ENV_NAME="vllm-bm-$CODE_HASH"
 
 # Clone or update vllm repo

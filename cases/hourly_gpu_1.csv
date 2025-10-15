@@ -1,4 +1,5 @@
 Device,Model,MaxNumSeqs,MaxNumBatchedTokens,TensorParallelSize,MaxModelLen,Dataset,InputLen,OutputLen,ExpectedETEL
+h100-8,Qwen/Qwen3-30B-A3B,128,1024,4,2048,sonnet,1800,128
 h100-8,Qwen/Qwen2.5-14B-Instruct,256,2048,8,2048,sonnet,1800,128
 h100-8,Qwen/Qwen2.5-32B,256,2048,8,2048,sonnet,1800,128
 h100-8,Qwen/Qwen3-32B,256,2048,8,2048,sonnet,1800,128
