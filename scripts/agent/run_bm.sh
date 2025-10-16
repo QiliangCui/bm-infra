@@ -176,6 +176,9 @@ run_benchmark(){
     command_to_run=("vllm" "bench" "serve")
   fi
 
+  # TODO: Remove this hardcoding before merging to mains.
+  command_to_run=("vllm" "bench" "serve")
+
   # Common arguments
   ARGS+=(
     --backend vllm
