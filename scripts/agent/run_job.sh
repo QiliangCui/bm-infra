@@ -26,7 +26,7 @@ upload_failure_logs() {
   SERVICE_NAME=${_SYSTEMD_UNIT:-"bm-agent.service"}
 
   # Create a temporary file for the logs.
-  LOG_FILE=$(mktemp "/tmp/${SERVICE_NAME}-failure-log-${RECORD_ID}.txt")
+  LOG_FILE=$(mktemp "/tmp/${SERVICE_NAME}-failure-log-${RECORD_ID}-XXXXXX.txt")
 
   echo "Capturing logs for service '$SERVICE_NAME' since '$SCRIPT_START_TIME'..."
 
