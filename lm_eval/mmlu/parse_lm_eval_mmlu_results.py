@@ -18,10 +18,10 @@ def parse_mmlu_results(input_file):
             data = json.load(f)
     except json.JSONDecodeError:
         print(f"Error: Could not decode JSON from {input_file}", file=sys.stderr)
-        return
+        sys.exit(1)
     except FileNotFoundError:
         print(f"Error: Input file not found at {input_file}", file=sys.stderr)
-        return
+        sys.exit(1)
 
     results = data.get("results", {})
     groups = data.get("groups", {})
