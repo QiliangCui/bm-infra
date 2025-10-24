@@ -18,16 +18,16 @@ def parse_mmlu_results(input_file):
             data = json.load(f)
     except json.JSONDecodeError:
         print(f"Error: Could not decode JSON from {input_file}", file=sys.stderr)
-        return
+        sys.exit(1)
     except FileNotFoundError:
         print(f"Error: Input file not found at {input_file}", file=sys.stderr)
-        return
+        sys.exit(1)
 
     results = data.get("results", {})
     groups = data.get("groups", {})
     
     summary = {}
-    acc_key = "acc,none"
+    acc_key = "exact_match,strict_match"
 
     # Process all tasks and group aggregates from the 'results' dictionary.
     # The keys from lm-eval are already correctly prefixed (e.g., 'mmlu_humanities').
@@ -35,13 +35,13 @@ def parse_mmlu_results(input_file):
         if acc_key in metrics:
             summary[task] = metrics[acc_key]
 
-    # The overall aggregate is in the 'groups' dict under the key 'mmlu'.
+    # The overall aggregate is in the 'groups' dict under the key 'mmlu_llama'.
     # We rename it to 'mmlu_agg' for clarity in our database.
-    if 'mmlu' in groups and acc_key in groups['mmlu']:
-         summary['mmlu_agg'] = groups['mmlu'][acc_key]
+    if 'mmlu_llama' in groups and acc_key in groups['mmlu_llama']:
+         summary['mmlu_agg'] = groups['mmlu_llama'][acc_key]
          # The 'mmlu' task is just the aggregate, so remove it to avoid duplication
-         if 'mmlu' in summary:
-             del summary['mmlu']
+         if 'mmlu_llama' in summary:
+             del summary['mmlu_llama']
 
     # Print machine-readable JSON to stdout for the runner script
     print(json.dumps(summary))

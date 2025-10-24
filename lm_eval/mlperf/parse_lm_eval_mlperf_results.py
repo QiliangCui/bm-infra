@@ -11,14 +11,14 @@ def parse_results(file_path):
     """
     if not os.path.exists(file_path):
         print(f"Error: File not found at {file_path}", file=sys.stderr)
-        return
+        sys.exit(1)
 
     with open(file_path, 'r') as f:
         try:
             data = json.load(f)
         except json.JSONDecodeError:
             print(f"Error: Could not decode JSON from {file_path}", file=sys.stderr)
-            return
+            sys.exit(1)
 
     # Extract the main task name (assuming one task per file)
     task_name = list(data['results'].keys())[0]
