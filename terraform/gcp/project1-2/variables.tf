@@ -45,6 +45,6 @@ variable "instance_name_offset" {
 }
 
 variable "branch_hash" {
-  default     = "0be57b1c3b42085c3289e6cf7e6421667b151a6f"
+  default     = "0927e1ff8289350d0d1cb03a04e64108ebf00d12"
   description = "commit hash of bm-infra branch."
 }
