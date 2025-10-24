@@ -10,7 +10,6 @@ cd "$(dirname "$0")"
 export LOG_DIR=./results
 export MODEL_NAME=$MODEL
 # Use a specific MMLU subtask if the MMLU_SUBTASK env var is set, otherwise default to the full mmlu group task.
-export TASK_NAME=${MMLU_SUBTASK:-mmlu}
 export OUTPUT_PREFIX=${TASK_NAME}_$(echo $MODEL_NAME | sed 's#/#-#g')
 
 export OUTPUT_BASE_PATH=$LOG_DIR/$OUTPUT_PREFIX.json
@@ -25,8 +24,9 @@ CMD=(
     lm_eval
     --model vllm
     --model_args "pretrained=$MODEL_NAME,tensor_parallel_size=${TP_SIZE:-8},dtype=auto"
-    --tasks "$TASK_NAME"
-    --num_fewshot 5
+    --tasks mmlu_llama
+    --num_fewshot 0
+    --apply_chat_template
     --batch_size auto
     --output_path "$OUTPUT_BASE_PATH"
 )
