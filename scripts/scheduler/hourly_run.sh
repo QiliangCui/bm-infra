@@ -79,17 +79,17 @@ echo "./scripts/scheduler/create_job.sh ./cases/hourly_torchax_jax_customer1.csv
 
 if [[ "$HOUR_NOW" == "00" || "$HOUR_NOW" == "12" ]]; then
   # vLLM
-  echo "./scripts/scheduler/create_job.sh ./cases/autotune.csv \"\" $TAG AUTOTUNE"
-  ./scripts/scheduler/create_job.sh ./cases/autotune.csv "" $TAG AUTOTUNE
+  # echo "./scripts/scheduler/create_job.sh ./cases/autotune.csv \"\" $TAG AUTOTUNE"
+  # ./scripts/scheduler/create_job.sh ./cases/autotune.csv "" $TAG AUTOTUNE
 
   # echo "./scripts/scheduler/create_job.sh ./cases/autotune_xla_meta.csv \"\" $TAG AUTOTUNE_XLA_META DEFAULT \"PROFILE=0\""
   # ./scripts/scheduler/create_job.sh ./cases/autotune_xla_meta.csv "" $TAG AUTOTUNE_XLA_META DEFAULT "PROFILE=0"
 
-  echo "./scripts/scheduler/create_job.sh ./cases/autotune_customer1.csv \"\" $TAG CUSTOMER1_AUTOTUNE"
-  ./scripts/scheduler/create_job.sh ./cases/autotune_customer1.csv "" $TAG CUSTOMER1_AUTOTUNE
+  # echo "./scripts/scheduler/create_job.sh ./cases/autotune_customer1.csv \"\" $TAG CUSTOMER1_AUTOTUNE"
+  # ./scripts/scheduler/create_job.sh ./cases/autotune_customer1.csv "" $TAG CUSTOMER1_AUTOTUNE
 
-  echo "./scripts/scheduler/create_job.sh ./cases/autotune_jax.csv \"\" $TAG AUTOTUNE_JAX TPU_INFERENCE \"TPU_BACKEND_TYPE=jax\""
-  ./scripts/scheduler/create_job.sh ./cases/autotune_jax.csv "" $TAG AUTOTUNE_JAX TPU_INFERENCE "TPU_BACKEND_TYPE=jax"
+  # echo "./scripts/scheduler/create_job.sh ./cases/autotune_jax.csv \"\" $TAG AUTOTUNE_JAX TPU_INFERENCE \"TPU_BACKEND_TYPE=jax\""
+  # ./scripts/scheduler/create_job.sh ./cases/autotune_jax.csv "" $TAG AUTOTUNE_JAX TPU_INFERENCE "TPU_BACKEND_TYPE=jax"
 fi
 
 # Too many autotune that can't be scheduled in one hour
