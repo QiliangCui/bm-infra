@@ -2,3 +2,6 @@ Device,Model,MaxNumSeqs,MaxNumBatchedTokens,TensorParallelSize,MaxModelLen,Datas
 v6e-8,meta-llama/Llama-3.3-70B-Instruct,128,1024,8,2048,mmlu,1800,128,,,
 v6e-8,meta-llama/Llama-3.3-70B-Instruct,128,1024,8,2048,mlperf,1024,1024,,1000
 v6e-8,meta-llama/Llama-3.3-70B-Instruct,128,1024,8,2048,math500,1024,1024,,,
+v6e-8,Qwen/Qwen3-32B,128,1024,8,2048,mmlu,1800,128,,,
+v6e-8,Qwen/Qwen3-32B,128,1024,8,2048,mlperf,1024,1024,,1000
+v6e-8,Qwen/Qwen3-32B,128,1024,8,2048,math500,1024,1024,,,
