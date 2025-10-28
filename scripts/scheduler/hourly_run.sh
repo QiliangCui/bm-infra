@@ -6,6 +6,10 @@ HOUR_NOW=$(TZ="$TIMEZONE" date +%H)
 # ===================================================================
 # Clone code all at once and export the folder to REPO_MAP.
 # In this way, all the create_job.sh below share the same git code.s
+
+echo "./scripts/cleanup_docker.sh"
+./scripts/cleanup_docker.sh
+
 rm -rf repos/
 mkdir -p repos/
 
@@ -129,5 +133,3 @@ fi
 echo LOCAL_PATCH=1 ./scripts/scheduler/create_job.sh ./cases/hourly_disagg.csv "" $TAG HOURLY_DISAGG TPU_INFERENCE "PREFILL_SLICES=2;DECODE_SLICES=2;TPU_BACKEND_TYPE=jax"
 LOCAL_PATCH=1 ./scripts/scheduler/create_job.sh ./cases/hourly_disagg.csv "" $TAG HOURLY_DISAGG TPU_INFERENCE "PREFILL_SLICES=2;DECODE_SLICES=2;TPU_BACKEND_TYPE=jax"
 
-echo "./scripts/cleanup_docker.sh"
-./scripts/cleanup_docker.sh
