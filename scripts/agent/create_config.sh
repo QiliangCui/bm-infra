@@ -28,7 +28,7 @@ JSON_OUTPUT=$(gcloud spanner databases execute-sql "$GCP_DATABASE_ID" \
     --instance="$GCP_INSTANCE_ID" \
     --project="$GCP_PROJECT_ID" \
     --format="json" \
-    --sql="SELECT RecordId, Model, CodeHash, MaxNumSeqs, MaxNumBatchedTokens, TensorParallelSize, MaxModelLen, Dataset, InputLen, OutputLen, NumPrompts, PrefixLen, ExpectedETEL, ExtraEnvs, AdditionalConfig FROM RunRecord WHERE RecordId = '$RECORD_ID';")
+    --sql="SELECT RecordId, Model, CodeHash, MaxNumSeqs, MaxNumBatchedTokens, TensorParallelSize, MaxModelLen, Dataset, InputLen, OutputLen, NumPrompts, PrefixLen, ExpectedETEL, ExtraEnvs, AdditionalConfig, Device FROM RunRecord WHERE RecordId = '$RECORD_ID';")
 
 # Now, use this powerful jq script to parse the JSON and build the .env file.
 # This correctly zips headers with values and handles all special characters.
