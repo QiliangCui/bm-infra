@@ -6,6 +6,10 @@ HOUR_NOW=$(TZ="$TIMEZONE" date +%H)
 # ===================================================================
 # Clone code all at once and export the folder to REPO_MAP.
 # In this way, all the create_job.sh below share the same git code.s
+
+echo "./scripts/cleanup_docker.sh"
+./scripts/cleanup_docker.sh
+
 rm -rf repos/
 mkdir -p repos/
 
@@ -31,14 +35,14 @@ export REPO_MAP="$REPO_MAP_STRING"
 # ===================================================================
 
 # torch xla
-echo "./scripts/scheduler/create_job.sh ./cases/hourly.csv \"\" $TAG HOURLY"
-./scripts/scheduler/create_job.sh ./cases/hourly.csv "" $TAG HOURLY
+# echo "./scripts/scheduler/create_job.sh ./cases/hourly.csv \"\" $TAG HOURLY"
+# ./scripts/scheduler/create_job.sh ./cases/hourly.csv "" $TAG HOURLY
 
-echo "./scripts/scheduler/create_job.sh ./cases/hourly_xla_meta.csv \"\" $TAG HOURLY_XLA_META DEFAULT \"PROFILE=0\""
-./scripts/scheduler/create_job.sh ./cases/hourly_xla_meta.csv "" $TAG HOURLY_XLA_META DEFAULT "PROFILE=0"
+# echo "./scripts/scheduler/create_job.sh ./cases/hourly_xla_meta.csv \"\" $TAG HOURLY_XLA_META DEFAULT \"PROFILE=0\""
+# ./scripts/scheduler/create_job.sh ./cases/hourly_xla_meta.csv "" $TAG HOURLY_XLA_META DEFAULT "PROFILE=0"
 
-echo "./scripts/scheduler/create_job.sh ./cases/hourly_customer1.csv \"\" $TAG CUSTOMER1_HOURLY"
-./scripts/scheduler/create_job.sh ./cases/hourly_customer1.csv "" $TAG CUSTOMER1_HOURLY
+# echo "./scripts/scheduler/create_job.sh ./cases/hourly_customer1.csv \"\" $TAG CUSTOMER1_HOURLY"
+# ./scripts/scheduler/create_job.sh ./cases/hourly_customer1.csv "" $TAG CUSTOMER1_HOURLY
 
 # Run gpu_1 on even hours, gpu_2 on odd hours
 # Because I don't have enough h100-8 now.
@@ -79,17 +83,17 @@ echo "./scripts/scheduler/create_job.sh ./cases/hourly_torchax_jax_customer1.csv
 
 if [[ "$HOUR_NOW" == "00" || "$HOUR_NOW" == "12" ]]; then
   # vLLM
-  echo "./scripts/scheduler/create_job.sh ./cases/autotune.csv \"\" $TAG AUTOTUNE"
-  ./scripts/scheduler/create_job.sh ./cases/autotune.csv "" $TAG AUTOTUNE
+  # echo "./scripts/scheduler/create_job.sh ./cases/autotune.csv \"\" $TAG AUTOTUNE"
+  # ./scripts/scheduler/create_job.sh ./cases/autotune.csv "" $TAG AUTOTUNE
 
   # echo "./scripts/scheduler/create_job.sh ./cases/autotune_xla_meta.csv \"\" $TAG AUTOTUNE_XLA_META DEFAULT \"PROFILE=0\""
   # ./scripts/scheduler/create_job.sh ./cases/autotune_xla_meta.csv "" $TAG AUTOTUNE_XLA_META DEFAULT "PROFILE=0"
 
-  echo "./scripts/scheduler/create_job.sh ./cases/autotune_customer1.csv \"\" $TAG CUSTOMER1_AUTOTUNE"
-  ./scripts/scheduler/create_job.sh ./cases/autotune_customer1.csv "" $TAG CUSTOMER1_AUTOTUNE
+  # echo "./scripts/scheduler/create_job.sh ./cases/autotune_customer1.csv \"\" $TAG CUSTOMER1_AUTOTUNE"
+  # ./scripts/scheduler/create_job.sh ./cases/autotune_customer1.csv "" $TAG CUSTOMER1_AUTOTUNE
 
-  echo "./scripts/scheduler/create_job.sh ./cases/autotune_jax.csv \"\" $TAG AUTOTUNE_JAX TPU_INFERENCE \"TPU_BACKEND_TYPE=jax\""
-  ./scripts/scheduler/create_job.sh ./cases/autotune_jax.csv "" $TAG AUTOTUNE_JAX TPU_INFERENCE "TPU_BACKEND_TYPE=jax"
+  # echo "./scripts/scheduler/create_job.sh ./cases/autotune_jax.csv \"\" $TAG AUTOTUNE_JAX TPU_INFERENCE \"TPU_BACKEND_TYPE=jax\""
+  # ./scripts/scheduler/create_job.sh ./cases/autotune_jax.csv "" $TAG AUTOTUNE_JAX TPU_INFERENCE "TPU_BACKEND_TYPE=jax"
 fi
 
 # Too many autotune that can't be scheduled in one hour
@@ -129,5 +133,3 @@ fi
 echo LOCAL_PATCH=1 ./scripts/scheduler/create_job.sh ./cases/hourly_disagg.csv "" $TAG HOURLY_DISAGG TPU_INFERENCE "PREFILL_SLICES=2;DECODE_SLICES=2;TPU_BACKEND_TYPE=jax"
 LOCAL_PATCH=1 ./scripts/scheduler/create_job.sh ./cases/hourly_disagg.csv "" $TAG HOURLY_DISAGG TPU_INFERENCE "PREFILL_SLICES=2;DECODE_SLICES=2;TPU_BACKEND_TYPE=jax"
 
-echo "./scripts/cleanup_docker.sh"
-./scripts/cleanup_docker.sh

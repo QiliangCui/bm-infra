@@ -10,7 +10,6 @@ cd "$(dirname "$0")"
 export LOG_DIR=./results
 export MODEL_NAME=$MODEL
 # Use a specific MMLU subtask if the MMLU_SUBTASK env var is set, otherwise default to the full mmlu group task.
-export TASK_NAME=${MMLU_SUBTASK:-mmlu}
 export OUTPUT_PREFIX=${TASK_NAME}_$(echo $MODEL_NAME | sed 's#/#-#g')
 
 export OUTPUT_BASE_PATH=$LOG_DIR/$OUTPUT_PREFIX.json
@@ -21,13 +20,24 @@ echo "Output will be timestamped in: $LOG_DIR"
 
 mkdir -p "$LOG_DIR"
 
+# Default model arguments
+MODEL_ARGS="pretrained=$MODEL_NAME,tensor_parallel_size=${TP_SIZE:-8},dtype=auto,max_model_len=2048"
+
+# Check if running on v7x-8 hardware
+if [[ "$DEVICE" == v7x-8 ]]; then
+    echo "Running on v7x hardware, adjusting model arguments for DeepSeek-R1."
+    MODEL_ARGS="pretrained=$MODEL_NAME,tensor_parallel_size=8,dtype=auto,max_model_len=2048,max_num_seqs=128,max_num_batched_tokens=128,gpu_memory_utilization=0.95"
+fi
+
 CMD=(
     lm_eval
     --model vllm
-    --model_args "pretrained=$MODEL_NAME,tensor_parallel_size=${TP_SIZE:-8},dtype=auto"
-    --tasks "$TASK_NAME"
-    --num_fewshot 5
+    --model_args "$MODEL_ARGS"
+    --tasks mmlu_llama
+    --num_fewshot 0
+    --apply_chat_template
     --batch_size auto
+    --limit 100  # note this is 100 per mmlu sub-task, ~5700 samples overall
     --output_path "$OUTPUT_BASE_PATH"
 )
 
