@@ -10,13 +10,13 @@ resource "google_compute_disk" "large_disk" {
   zone = var.tpu_zone
 }
 
-resource "google_tpu_v2_vm" "tpu_v6" {
+resource "google_tpu_v2_vm" "tpu_v7" {
   provider = google-beta
   count    = var.tpu_count
 
   name             = "vllm-tpu-${var.accelerator_type}-${var.purpose}-${count.index + var.instance_name_offset}"
   zone             = var.tpu_zone
-  runtime_version  = "v2-alpha-tpuv6e"
+  runtime_version  = "v2-alpha-tpu7-ubuntu2404"
   accelerator_type = "${var.accelerator_type}"
   
   dynamic "scheduling_config" {    

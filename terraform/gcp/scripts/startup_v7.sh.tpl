@@ -28,13 +28,13 @@ chmod 777 /usr/bin/minijinja-cli
 sudo mkdir -p /mnt/disks/persist
 
 # Format if not already formatted
-if ! blkid /dev/nvme0n2; then
-  echo "Formatting /dev/nvme0n2 as ext4..."
-  sudo mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/nvme0n2
+if ! blkid /dev/nvme1n1; then
+  echo "Formatting /dev/nvme1n1 as ext4..."
+  sudo mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/nvme1n1
 fi
 
 # Add to /etc/fstab using UUID
-disk_uuid=$(blkid -s UUID -o value /dev/nvme0n2)
+disk_uuid=$(blkid -s UUID -o value /dev/nvme1n1)
 if ! grep -q "/mnt/disks/persist" /etc/fstab; then
   echo "UUID=$disk_uuid /mnt/disks/persist ext4 defaults,discard 0 2" | sudo tee -a /etc/fstab
 fi
