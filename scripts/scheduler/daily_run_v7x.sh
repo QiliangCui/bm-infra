@@ -43,5 +43,8 @@ echo "./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/dai
 echo "./scripts/scheduler/create_job.sh ./cases/accuracy_jax.csv \"\" $TAG JAX_ACCURACY TPU_INFERENCE \"VLLM_MLA_DISABLE=1;NEW_MODEL_DESIGN=True;TPU_BACKEND_TYPE=jax;\""
 ./scripts/scheduler/create_job.sh ./cases/accuracy_jax.csv "" $TAG JAX_ACCURACY TPU_INFERENCE "VLLM_MLA_DISABLE=1;NEW_MODEL_DESIGN=True;TPU_BACKEND_TYPE=jax;"
 
+echo "./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_qwen3_480B_FP8_tpu7x_8.csv \"\" $TAG DAILY TPU_INFERENCE"
+./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_qwen3_480B_FP8_tpu7x_8.csv "" $TAG DAILY TPU_INFERENCE
+
 echo "./scripts/cleanup_docker.sh"
 ./scripts/cleanup_docker.sh
