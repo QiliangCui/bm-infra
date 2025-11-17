@@ -1,9 +1,9 @@
 provider "google-beta" {
   project = "cloud-tpu-inference-test"
-  region  = "us-east5"
+  region  = "us-central1"
 }
 
 provider "google" {
   project = "cloud-tpu-inference-test"
-  region  = "us-east5"
+  region  = "us-central1"
 }
