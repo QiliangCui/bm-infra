@@ -58,7 +58,8 @@ tail -n +2 "$CSV_FILE" | while read -r line || [ -n "${line}" ]; do
     EXPECTED_ETEL \
     NUM_PROMPTS \
     MODELTAG \
-    PREFIX_LEN <<< "$line"
+    PREFIX_LEN \
+    REQUEST_RATE <<< "$line"
 
   RECORD_ID=$(uuidgen | tr 'A-Z' 'a-z')
 
@@ -79,7 +80,7 @@ tail -n +2 "$CSV_FILE" | while read -r line || [ -n "${line}" ]; do
     --sql="INSERT INTO RunRecord (
       RecordId, Status, CreatedTime, Device, Model, RunType, CodeHash,
       MaxNumSeqs, MaxNumBatchedTokens, TensorParallelSize, MaxModelLen,
-      Dataset, InputLen, OutputLen, LastUpdate, CreatedBy,JobReference, ExpectedETEL, NumPrompts, ModelTag, PrefixLen, ExtraEnvs
+      Dataset, InputLen, OutputLen, LastUpdate, CreatedBy,JobReference, ExpectedETEL, NumPrompts, ModelTag, PrefixLen, RequestRate, ExtraEnvs,
     ) VALUES (
       '$RECORD_ID', 'CREATED', PENDING_COMMIT_TIMESTAMP(), '$DEVICE', '$MODEL', '$RUN_TYPE', '$CODEHASH',
       $MAX_NUM_SEQS,
@@ -96,6 +97,7 @@ tail -n +2 "$CSV_FILE" | while read -r line || [ -n "${line}" ]; do
       ${NUM_PROMPTS:-1000},
       '${MODELTAG:-PROD}',
       ${PREFIX_LEN:-0},
+      ${REQUEST_RATE:-inf},
       '$EXTRA_ENVS'
     );"
   
