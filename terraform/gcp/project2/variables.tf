@@ -7,7 +7,7 @@ variable "region" {
 }
 
 variable "tpu_zone" {
-    default = "asia-south1-b"
+    default = "asia-east1-c"
 }
 
 variable "purpose" {
@@ -35,7 +35,7 @@ variable "v6e_4_count" {
 }
 
 variable "v6e_8_count" {
-  default     = 0
+  default     = 1
 }
 
 variable "instance_name_offset" {
