@@ -52,7 +52,7 @@ module "v6e-8" {
   spanner_instance     = var.spanner_instance
   spanner_db           = var.spanner_db
   gcs_bucket           = var.gcs_bucket
-  mnt_disk_gb          = 1024
+  mnt_disk_gb          = 2048
   startup_script_path  = "${path.module}/../scripts/startup.sh.tpl"
   branch_hash          = var.branch_hash
   instance_name_offset = var.instance_name_offset
