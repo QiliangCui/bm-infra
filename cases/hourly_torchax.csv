@@ -4,4 +4,3 @@ v6e-1,Qwen/Qwen2.5-7B-Instruct,256,1024,1,2048,sonnet,1800,128
 v6e-1,Qwen/Qwen3-8B,128,512,1,2048,sonnet,1800,128
 v6e-1,Qwen/Qwen3-4B,128,1024,1,2048,sonnet,1800,128
 v6e-1,meta-llama/Llama-3.1-8B-Instruct,256,1024,1,2048,sonnet,1800,128
-v6e-1,microsoft/Phi-3-mini-128k-instruct,512,512,1,2048,sonnet,1800,128
