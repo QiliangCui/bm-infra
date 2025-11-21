@@ -1,2 +1,0 @@
-Device,Model,MaxNumSeqs,MaxNumBatchedTokens,TensorParallelSize,MaxModelLen,Dataset,InputLen,OutputLen
-v6e-1,microsoft/Phi-3-mini-128k-instruct,128,1024,1,2048,sonnet,1800,128

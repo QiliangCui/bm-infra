@@ -6,4 +6,3 @@ h100-8,Qwen/Qwen2.5-7B-Instruct,256,2048,1,2048,sonnet,1800,128
 h100-8,Qwen/Qwen3-8B,128,512,1,2048,sonnet,1800,128
 h100-8,RedHatAI/Meta-Llama-3.1-8B-Instruct-quantized.w8a8,128,1024,1,2048,sonnet,1800,128
 h100-8,meta-llama/Llama-3.1-8B-Instruct,256,1024,1,2048,sonnet,1800,128
-h100-8,microsoft/Phi-3-mini-128k-instruct,128,1024,1,2048,sonnet,1800,128
