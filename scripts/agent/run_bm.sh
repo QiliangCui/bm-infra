@@ -112,6 +112,11 @@ if [[ "$MODEL" == *"Qwen/Qwen3"* && "${ADDITIONAL_CONFIG:-}" == *"float8"* ]]; t
   EXTRA_ARGS+=" --kv-cache-dtype=fp8 --gpu-memory-utilization=0.98"
 fi
 
+if [[ "$MODEL" == *"unsloth/gpt-oss-120b-BF16"* ]]; then
+  echo "$MODEL model detected."
+  EXTRA_ARGS+=" --gpu-memory-utilization=0.98"
+fi
+
 echo "Printing the vllm serve command used to start the server:"
 echo "VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR=\"$PROFILE_FOLDER\" vllm serve $MODEL \
  --seed 42 \
@@ -121,7 +126,8 @@ echo "VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR=\"$PROFILE_FOLDER\" vllm serve $MODE
  --tensor-parallel-size $TENSOR_PARALLEL_SIZE \
  --no-enable-prefix-caching \
  --download_dir $DOWNLOAD_DIR \
- --max-model-len $MAX_MODEL_LEN $EXTRA_ARGS > \"$VLLM_LOG\" 2>&1 &"
+ --max-model-len $MAX_MODEL_LEN $EXTRA_ARGS \
+ --async-scheduling > \"$VLLM_LOG\" 2>&1 &"
 
 eval "VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR=\"$PROFILE_FOLDER\" vllm serve $MODEL \
  --seed 42 \
@@ -131,7 +137,8 @@ eval "VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR=\"$PROFILE_FOLDER\" vllm serve $MODE
  --tensor-parallel-size $TENSOR_PARALLEL_SIZE \
  --no-enable-prefix-caching \
  --download_dir $DOWNLOAD_DIR \
- --max-model-len $MAX_MODEL_LEN $EXTRA_ARGS > \"$VLLM_LOG\" 2>&1 &"
+ --max-model-len $MAX_MODEL_LEN $EXTRA_ARGS \
+ --async-scheduling > \"$VLLM_LOG\" 2>&1 &"
 
 
 echo "wait for 20 minutes.."
