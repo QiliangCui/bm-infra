@@ -48,7 +48,8 @@ if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
   $CONDA run -n "$ENV_NAME" pip install pandas datasets
   # Install lm_eval with math dependencies, commit is same as https://github.com/vllm-project/vllm/blob/main/.buildkite/scripts/hardware_ci/run-tpu-v1-test.sh#L64
   $CONDA run -n "$ENV_NAME" pip install "lm-eval[math] @ git+https://github.com/EleutherAI/lm-evaluation-harness.git@206b7722158f58c35b7ffcd53b035fdbdda5126d"
-  $CONDA run -n "$ENV_NAME" bash -c "cd '$VLLM_FOLDER' && VLLM_USE_PRECOMPILED=1 pip install --editable ."
+  $CONDA run -n "$ENV_NAME" bash -c "cd '$VLLM_FOLDER' && pip install -r requirements/tpu.txt"
+  $CONDA run -n "$ENV_NAME" bash -c "cd '$VLLM_FOLDER' && VLLM_TARGET_DEVICE='tpu' python -m pip install -e ."
 
   # Check if TPU_INFERENCE_HASH is set and not empty
   if [[ -n "$TPU_INFERENCE_HASH" ]]; then
@@ -78,7 +79,7 @@ if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
     # $CONDA run -n "$ENV_NAME" bash -c "pip install ../shared-wheels/libtpu-0.0.24.dev20250928+tpu7x-cp312-cp312-manylinux_2_31_x86_64.whl"
     echo "tpu-inference installation complete."
 
-    $CONDA run -n "$ENV_NAME" bash -c "gsutil cp gs://amangu-multipods/code/device.py /mnt/disks/persist/bm-agent/miniconda3/envs/$ENV_NAME/lib/python3.12/site-packages/tpu_info/device.py"
+    #$CONDA run -n "$ENV_NAME" bash -c "gsutil cp gs://amangu-multipods/code/device.py /mnt/disks/persist/bm-agent/miniconda3/envs/$ENV_NAME/lib/python3.12/site-packages/tpu_info/device.py"
     echo "Local v7x changes complete."
 
   fi
