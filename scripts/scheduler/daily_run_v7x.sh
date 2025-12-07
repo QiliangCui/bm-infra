@@ -44,9 +44,8 @@ echo "./scripts/scheduler/create_job.sh ./cases/accuracy_jax.csv \"\" $TAG JAX_A
 ./scripts/scheduler/create_job.sh ./cases/accuracy_jax.csv "" $TAG JAX_ACCURACY TPU_INFERENCE "VLLM_MLA_DISABLE=1;NEW_MODEL_DESIGN=True;TPU_BACKEND_TYPE=jax;"
 
 # GPT OSS
-echo "./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_gpt_oss_120b_tpu7x_8.csv \"\" $TAG DAILY TPU_INFERENCE"
-./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_gpt_oss_120b_tpu7x_8.csv "" $TAG DAILY TPU_INFERENCE
-
+echo "./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_gpt_oss_120b_tpu7x_8.csv \"\" $TAG DAILY TPU_INFERENCE \"USE_MOE_EP_KERNEL=0;MODEL_IMPL_TYPE=vllm\""
+./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_gpt_oss_120b_tpu7x_8.csv "" $TAG DAILY TPU_INFERENCE "USE_MOE_EP_KERNEL=0;MODEL_IMPL_TYPE=vllm"
 # Qwen 3-480B
 echo "./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_qwen3_480B_FP8_tpu7x_8.csv \"\" $TAG DAILY TPU_INFERENCE"
 ./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_qwen3_480B_FP8_tpu7x_8.csv "" $TAG DAILY TPU_INFERENCE
