@@ -27,7 +27,7 @@ variable "gcs_bucket" {
 }
 
 variable "v7x_8_count" {
-  default     = 1
+  default     = 0
 }
 
 variable "instance_name_offset" {
