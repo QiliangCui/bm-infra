@@ -27,15 +27,15 @@ variable "gcs_bucket" {
 }
 
 variable "v6e_1_count" {
-  default     = 8
+  default     = 0
 }
 
 variable "v6e_4_count" {
-  default     = 3
+  default     = 0
 }
 
 variable "v6e_8_count" {
-  default     = 8
+  default     = 0
 }
 
 variable "branch_hash" {

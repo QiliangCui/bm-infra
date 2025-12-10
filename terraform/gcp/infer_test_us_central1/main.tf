@@ -15,7 +15,7 @@ module "v6e-1" {
   startup_script_path  = "${path.module}/../scripts/startup.sh.tpl"
   branch_hash          = var.branch_hash
   instance_name_offset = var.instance_name_offset
-  reserved             = false
+  reserved             = true
 }
 
 module "v6e-4" {

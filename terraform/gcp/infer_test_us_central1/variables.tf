@@ -27,7 +27,7 @@ variable "gcs_bucket" {
 }
 
 variable "v6e_1_count" {
-  default     = 0
+  default     = 4
 }
 
 variable "v6e_4_count" {
