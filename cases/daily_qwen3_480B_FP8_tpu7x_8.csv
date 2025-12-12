@@ -1,0 +1,2 @@
+Device,Model,MaxNumSeqs,MaxNumBatchedTokens,TensorParallelSize,MaxModelLen,Dataset,InputLen,OutputLen,ExpectedETEL,NumPrompts,ModelTag,PrefixLen,AdditionalConfig
+tpu7x-8,BCCard/Qwen3-Coder-480B-A35B-Instruct-FP8-Dynamic,128,1024,8,9216,bench-custom-token,1024,8192,43200000,100,NEW,0,'{"is_verbose": true}'
