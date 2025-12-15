@@ -23,7 +23,7 @@ mkdir -p "$LOG_DIR"
 CMD=(
     lm_eval
     --model vllm
-    --model_args "pretrained=$MODEL_NAME,tensor_parallel_size=${TP_SIZE:-8},dtype=auto"
+    --model_args "pretrained=$MODEL_NAME,tensor_parallel_size=${TP_SIZE:-8},dtype=auto,gpu_memory_utilization=0.98"
     --tasks mmlu_llama
     --num_fewshot 0
     --apply_chat_template
