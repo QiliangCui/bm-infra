@@ -25,7 +25,7 @@ mkdir -p "$LOG_DIR"
 CMD=(
     lm_eval
     --model vllm
-    --model_args "pretrained=$MODEL_NAME,tensor_parallel_size=${TP_SIZE:-8},dtype=auto,max_model_len=2048"
+    --model_args "pretrained=$MODEL_NAME,tensor_parallel_size=${TP_SIZE:-8},dtype=auto,max_model_len=2048,gpu_memory_utilization=0.98"
     --tasks "$TASK_NAME"
     --include_path "$SCRIPT_DIR"
     --num_fewshot 4
