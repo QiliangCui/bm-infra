@@ -1,9 +1,9 @@
 provider "google-beta" {
-  project = "cloud-ullm-inference-ci-cd"
+  project = "cloud-tpu-inference-test"
   region  = "us-central1"
 }
 
 provider "google" {
-  project = "cloud-ullm-inference-ci-cd"
+  project = "cloud-tpu-inference-test"
   region  = "us-central1"
 }

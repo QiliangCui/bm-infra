@@ -28,6 +28,16 @@ module "v6e-8-queue" {
   accelerator_type     = "v6e-8"
 }
 
+module "tpu7x-8-queue" {
+  source = "../modules/queue"
+  providers = {
+    google = google
+  }
+
+  purpose              = var.purpose
+  accelerator_type     = "tpu7x-8"
+}
+
 module "h100-8-queue" {
   source = "../modules/queue"
   providers = {

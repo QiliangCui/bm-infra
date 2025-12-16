@@ -82,6 +82,7 @@ echo "./scripts/scheduler/create_job.sh ./cases/hourly_torchax_jax_customer1.csv
 
 
 if [[ "$HOUR_NOW" == "00" || "$HOUR_NOW" == "12" ]]; then
+  :
   # vLLM
   # echo "./scripts/scheduler/create_job.sh ./cases/autotune.csv \"\" $TAG AUTOTUNE"
   # ./scripts/scheduler/create_job.sh ./cases/autotune.csv "" $TAG AUTOTUNE

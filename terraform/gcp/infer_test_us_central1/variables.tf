@@ -40,7 +40,7 @@ variable "v6e_8_count" {
 
 variable "instance_name_offset" {
   type        = number
-  default     = 100
+  default     = 200
   description = "instance name offset so that we can distinguish machines from different project or region."
 }
 

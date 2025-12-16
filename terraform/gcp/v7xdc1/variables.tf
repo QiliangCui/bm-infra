@@ -7,7 +7,7 @@ variable "region" {
 }
 
 variable "tpu_zone" {
-    default = "us-east5-b"
+    default = "us-central1-c"
 }
 
 variable "purpose" {
@@ -26,21 +26,13 @@ variable "gcs_bucket" {
   default = "vllm-cb-storage2"
 }
 
-variable "v6e_1_count" {
-  default     = 0
-}
-
-variable "v6e_4_count" {
-  default     = 0
-}
-
-variable "v6e_8_count" {
+variable "v7x_8_count" {
   default     = 0
 }
 
 variable "instance_name_offset" {
   type        = number
-  default     = 200
+  default     = 0
   description = "instance name offset so that we can distinguish machines from different project or region."
 }
 
