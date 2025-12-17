@@ -14,6 +14,7 @@ export OUTPUT_PREFIX=${TASK_NAME}_$(echo $MODEL_NAME | sed 's#/#-#g')
 
 export OUTPUT_BASE_PATH=$LOG_DIR/$OUTPUT_PREFIX.json
 export ACCURACY_JSON_PATH=/workspace/mmlu_accuracy.json
+export SKIP_JAX_PRECOMPILE=1
 
 echo "Running lm_eval for task: $TASK_NAME"
 echo "Output will be timestamped in: $LOG_DIR"
