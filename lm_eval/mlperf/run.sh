@@ -18,6 +18,7 @@ export OUTPUT_PREFIX
 
 export OUTPUT_BASE_PATH=$LOG_DIR/$OUTPUT_PREFIX.json
 export ACCURACY_JSON_PATH=/workspace/mlperf_accuracy.json
+export SKIP_JAX_PRECOMPILE=1
 
 echo "Running lm_eval, output will be timestamped in: $LOG_DIR"
 
