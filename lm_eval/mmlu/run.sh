@@ -14,7 +14,6 @@ export OUTPUT_PREFIX=${TASK_NAME}_$(echo $MODEL_NAME | sed 's#/#-#g')
 
 export OUTPUT_BASE_PATH=$LOG_DIR/$OUTPUT_PREFIX.json
 export ACCURACY_JSON_PATH=/workspace/mmlu_accuracy.json
-export SKIP_JAX_PRECOMPILE=1
 
 echo "Running lm_eval for task: $TASK_NAME"
 echo "Output will be timestamped in: $LOG_DIR"
@@ -33,7 +32,7 @@ CMD=(
 )
 
 # Execute the command, allowing stderr for error visibility
-if ! "${CMD[@]}"; then
+if ! SKIP_JAX_PRECOMPILE=1 "${CMD[@]}"; then
     echo "Error: lm_eval command failed. See output above for details."
     exit 1
 fi
