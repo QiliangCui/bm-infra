@@ -40,8 +40,8 @@ echo "./scripts/scheduler/create_job.sh ./cases/daily_deepseek_tpu7x_8.csv \"\" 
 ./scripts/scheduler/create_job.sh ./cases/daily_deepseek_tpu7x_8.csv "" $TAG DAILY TPU_INFERENCE "JAX_RANDOM_WEIGHTS=true;VLLM_MLA_DISABLE=1;NEW_MODEL_DESIGN=True;TPU_BACKEND_TYPE=jax"
 
 # Ironwood Deepseek Accuracy
-echo "./scripts/scheduler/create_job.sh ./cases/accuracy_jax.csv \"\" $TAG JAX_ACCURACY TPU_INFERENCE \"VLLM_MLA_DISABLE=1;NEW_MODEL_DESIGN=True;TPU_BACKEND_TYPE=jax;\""
-./scripts/scheduler/create_job.sh ./cases/accuracy_jax.csv "" $TAG JAX_ACCURACY TPU_INFERENCE "VLLM_MLA_DISABLE=1;NEW_MODEL_DESIGN=True;TPU_BACKEND_TYPE=jax;"
+echo "./scripts/scheduler/create_job.sh ./cases/accuracy_jax_v7x.csv \"\" $TAG JAX_ACCURACY TPU_INFERENCE \"VLLM_MLA_DISABLE=1;NEW_MODEL_DESIGN=True;TPU_BACKEND_TYPE=jax;\""
+./scripts/scheduler/create_job.sh ./cases/accuracy_jax_v7x.csv "" $TAG JAX_ACCURACY TPU_INFERENCE "VLLM_MLA_DISABLE=1;NEW_MODEL_DESIGN=True;TPU_BACKEND_TYPE=jax;"
 
 # GPT OSS
 echo "./scripts/scheduler/create_job.sh ./cases/daily_gpt_oss_120b_tpu7x_8.csv \"\" $TAG DAILY TPU_INFERENCE \"USE_MOE_EP_KERNEL=0;MODEL_IMPL_TYPE=vllm\""
