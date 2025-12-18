@@ -44,7 +44,7 @@ INPUT_CSV="$1"
 CODE_HASH="${2:-}"  # optional
 JOB_REFERENCE="${3:-}"
 RUN_TYPE="${4:-"MANUAL"}"
-REPO="${5:-"DEFAULT"}"
+REPO="${5:-"DEFAULT"}" # optional - NOT USED
 EXTRA_ENVS="${6:-}"
 
 # ==============================================================================
@@ -72,11 +72,6 @@ if [[ -n "${REPO_MAP:-}" ]]; then
   done
 fi
 # ==============================================================================
-
-if [[ "$REPO" != "DEFAULT" && "$REPO" != "TPU_INFERENCE" && "$REPO" != "TPU_INFERENCE_TORCHAX" ]]; then
-  echo "Error: REPO must be one of: DEFAULT, TPU_INFERENCE, or TPU_INFERENCE_TORCHAX, but got '$REPO'"
-  exit 1
-fi
 
 IFS='-' read -r VLLM_HASH TPU_INFERENCE_HASH TORCHAX_HASH _ <<< "$CODE_HASH"
 
@@ -147,33 +142,17 @@ if [[ "${SKIP_BUILD_IMAGE:-0}" != "1" ]]; then
     popd
   fi
 
-  echo "./scripts/scheduler/build_image.sh $VLLM_HASH"
-  ./scripts/scheduler/build_image.sh "$VLLM_HASH"
-
   CODE_HASH=$VLLM_HASH
 
-  # If additional image is needed
-  if [ "$REPO" = "TPU_INFERENCE_TORCHAX" ]; then
-    echo "build image for TPU_INFERENCE_TORCHAX"
+  echo "build image for TPU_INFERENCE"
 
-    TPU_INFERENCE_HASH=$(clone_and_get_hash "https://github.com/vllm-project/tpu-inference.git" "artifacts/tpu-inference" "$TPU_INFERENCE_HASH")
-    echo "resolved TPU_INFERENCE_HASH: $TPU_INFERENCE_HASH"
+  TPU_INFERENCE_HASH=$(clone_and_get_hash "https://github.com/vllm-project/tpu-inference.git" "artifacts/tpu-inference" "$TPU_INFERENCE_HASH")
+  echo "resolved TPU_INFERENCE_HASH: $TPU_INFERENCE_HASH"
 
-    TORCHAX_HASH=$(clone_and_get_hash "https://github.com/pytorch/xla.git" "artifacts/xla" "$TORCHAX_HASH")
-    echo "resolved TORCHAX_HASH: $TORCHAX_HASH"
+  ./scripts/scheduler/build_tpu_inference_image.sh "$VLLM_HASH" "$TPU_INFERENCE_HASH" ""
+  CODE_HASH="${VLLM_HASH}-${TPU_INFERENCE_HASH}-"
 
-    ./scripts/scheduler/build_tpu_inference_image.sh "$VLLM_HASH" "$TPU_INFERENCE_HASH" "$TORCHAX_HASH"
-    CODE_HASH="${VLLM_HASH}-${TPU_INFERENCE_HASH}-${TORCHAX_HASH}"
-  elif [ "$REPO" = "TPU_INFERENCE" ]; then
-    echo "build image for TPU_INFERENCE only"
-
-    TPU_INFERENCE_HASH=$(clone_and_get_hash "https://github.com/vllm-project/tpu-inference.git" "artifacts/tpu-inference" "$TPU_INFERENCE_HASH")
-    echo "resolved TPU_INFERENCE_HASH: $TPU_INFERENCE_HASH"
-
-    ./scripts/scheduler/build_tpu_inference_image.sh "$VLLM_HASH" "$TPU_INFERENCE_HASH" ""
-    CODE_HASH="${VLLM_HASH}-${TPU_INFERENCE_HASH}-"
-
-  fi
+  
 else
   echo "Skipping build image"
 fi
