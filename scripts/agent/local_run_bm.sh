@@ -193,7 +193,7 @@ echo "Throughput: $throughput"
 # Parse Token throughput (tok/s)
 output_token_throughput=$(grep 'Output token throughput (tok/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
 echo "OutputTokenThroughput: $output_token_throughput"
-total_token_throughput=$(grep 'Total Token throughput (tok/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
+total_token_throughput=$(grep 'Total token throughput (tok/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
 echo "TotalTokenThroughput: $total_token_throughput"
 
 # Check throughput
