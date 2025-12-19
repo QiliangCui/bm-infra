@@ -154,7 +154,7 @@ docker exec "$CONTAINER_NAME" chmod +x "/workspace/vllm/run_bm.sh"
 
 echo "run script..."
 echo
-docker exec "$CONTAINER_NAME" /bin/bash -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled && ./run_bm.sh"
+docker exec -w /workspace/vllm "$CONTAINER_NAME" /bin/bash -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled && ./run_bm.sh"
 
 echo "copy results and logs back..."
 VLLM_LOG="$LOG_ROOT/$TEST_NAME"_vllm_log.txt
