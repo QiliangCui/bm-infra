@@ -9,4 +9,5 @@ v6e-8,Qwen/Qwen2.5-32B,128,1024,8,2048,sonnet,1800,128,,1000
 v6e-1,meta-llama/Llama-3.1-8B-Instruct,256,1024,1,2048,sonnet,1800,128,,1000
 v6e-8,meta-llama/Llama-3.1-70B-Instruct,128,1024,8,2048,sonnet,1800,128,,1000
 v6e-8,meta-llama/Llama-3.3-70B-Instruct,128,1024,8,2048,sonnet,1800,128,,1000
-v6e-1,Qwen/Qwen2.5-VL-3B-Instruct,128,98304,1,98304,hf,1800,128,,10
+v6e-1,Qwen/Qwen2.5-VL-7B-Instruct,140,16384,1,1597,bench-custom-mm,1024,110,,1000
+v6e-8,Qwen/Qwen2.5-VL-32B-Instruct,256,8192,8,4096,bench-custom-mm,1024,110,,1000

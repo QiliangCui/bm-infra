@@ -95,7 +95,7 @@ docker run \
 
 # =============== temp solution start ===============
 
-DATASETS=("custom-token" "mmlu" "mlperf" "bench-custom-token" "math500")
+DATASETS=("custom-token" "mmlu" "mlperf" "bench-custom-token" "math500" "bench-custom-mm")
 if [[ " ${DATASETS[*]} " == *" $DATASET "* ]]; then
   echo "Temp solution: Syncing dataset for $DATASET"
 
@@ -111,7 +111,7 @@ if [[ " ${DATASETS[*]} " == *" $DATASET "* ]]; then
   elif [ "$DATASET" = "mlperf" ]; then
     # Download single jsonl file for MLPerf
     gsutil -m cp gs://vllm-cb-storage2/dataset/mlperf/mlperf_shuffled.jsonl "$DATASET_DOWNLOAD_DIR/mlperf.jsonl"
-  elif [ "$DATASET" = "bench-custom-token" ]; then
+  elif [[ "$DATASET" == "bench-custom-token" || "$DATASET" == "bench-custom-mm" ]]; then
     # Download flat files for custom-token
     gsutil -m cp -r gs://$GCS_BUCKET/bench-dataset/* "$DATASET_DOWNLOAD_DIR/"
   elif [ "$DATASET" = "math500" ]; then
