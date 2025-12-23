@@ -89,7 +89,7 @@ if [[ "$MODEL" == "google/gemma-3-27b-it" ]]; then
   echo "google/gemma-3-27b-it"
   EXTRA_ARGS="--limit-mm-per-prompt {\"image\":0}"
 elif [[ "$MODEL" == "Qwen/Qwen2.5-VL-7B-Instruct" || "$MODEL" == "Qwen/Qwen2.5-VL-32B-Instruct" ]]; then
-  echo "Qwen/Qwen2.5-VL-7B-Instruct"
+  echo "$MODEL"
   EXTRA_ARGS="--limit-mm-per-prompt {\"image\":1} --mm-processor-kwargs {\"max_pixels\":1024000}"
 fi
 
@@ -185,14 +185,17 @@ run_benchmark(){
       ;;
     bench-custom-mm)
       DATA_DIR="$WORKSPACE/dataset/${MODEL##*/}"
-      local dataset_path=$(find "$DATA_DIR" -name "inlen${INPUT_LEN}_outlen${OUTPUT_LEN}_prefixlen${PREFIX_LEN}*.jsonl" | head -n 1)
-      if [ -z "$dataset_path" ]; then
-        echo "Error: No matching dataset found in $DATA_DIR"
+      local dataset_files=($(find "$DATA_DIR" -name "inlen${INPUT_LEN}_outlen${OUTPUT_LEN}_prefixlen${PREFIX_LEN}*.jsonl"))
+      if [ ${#dataset_files[@]} -ne 1 ]; then
+        echo "Error: Found ${#dataset_files[@]} matching datasets in $DATA_DIR, but expected 1."
+        echo "Matching files:"
+        printf " - %s\n" "${dataset_files[@]}"
         exit 1
       fi
+      local dataset_path="${dataset_files[0]}"
       echo "multimodal dataset_path: $dataset_path"
-      ARGS[1]="openai-chat"
-      ARGS[7]="custom"
+      ARGS[1]="openai-chat" # Replaces --backend value
+      ARGS[7]="custom"      # Replaces --dataset-name value
       ARGS+=(--dataset-path "$dataset_path" --custom-output-len "$OUTPUT_LEN" --custom-skip-chat-template --endpoint /v1/chat/completions)
       ;;
     sharegpt)

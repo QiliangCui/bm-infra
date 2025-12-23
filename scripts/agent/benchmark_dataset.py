@@ -775,7 +775,6 @@ class CustomDataset(BenchmarkDataset):
                 break
             prompt = item["prompt"]
 
-            mm_content = None
             mm_content = item.get("multi_modal_data")
 
             # apply template
