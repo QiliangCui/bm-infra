@@ -27,26 +27,44 @@ if docker image inspect "$IMAGE_TAG" &>/dev/null; then
     exit 0
 fi
 
-# 3. Determine Dockerfile
-if [ -z "$TORCHAX_HASH" ]; then
+if [[ "${LOCAL_PATCH:-0}" == "1" ]]; then
+  echo "Use old way to build image for DisAgg."  
   DOCKERFILE="../docker/DockerfileTPUInference.tpu"
+
+  pushd artifacts
+
+  VLLM_TARGET_DEVICE=tpu DOCKER_BUILDKIT=1 docker build \
+  --build-arg max_jobs=16 \
+  --build-arg USE_SCCACHE=1 \
+  --build-arg GIT_REPO_CHECK=0 \
+  --build-arg BASE_IMAGE=$BASE_IMAGE \
+  --tag $IMAGE_TAG \
+  --progress plain \
+  -f "$DOCKERFILE" .
+
+  popd
+
+else  
+  echo "Use new image base without torch xla."
+
+  DOCKERFILE="../../docker/DockerfileNoTorchXla"
   echo "Building without torchax"
-else
-  DOCKERFILE="../docker/DockerfileTPUInferenceTorchax.tpu"
-  echo "Building with torchax"
+
+  pushd artifacts/tpu-inference
+
+  VLLM_TARGET_DEVICE=tpu DOCKER_BUILDKIT=1 docker build \
+  --build-arg max_jobs=16 \
+  --build-arg USE_SCCACHE=1 \
+  --build-arg GIT_REPO_CHECK=0 \
+  --build-arg BASE_IMAGE="python:3.12-slim-bookworm" \
+  --build-arg VLLM_COMMIT_HASH="$VLLM_HASH" \
+  --tag $IMAGE_TAG \
+  --progress plain \
+  -f "$DOCKERFILE" .
+
+  popd
 fi
 
-pushd artifacts
 
-VLLM_TARGET_DEVICE=tpu DOCKER_BUILDKIT=1 docker build \
- --build-arg max_jobs=16 \
- --build-arg USE_SCCACHE=1 \
- --build-arg GIT_REPO_CHECK=0 \
- --build-arg BASE_IMAGE=$BASE_IMAGE \
- --tag $IMAGE_TAG \
- --progress plain \
- -f "$DOCKERFILE" .
-
-popd
 
 docker push "$IMAGE_TAG"
