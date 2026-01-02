@@ -17,7 +17,7 @@ pip install datasets || true
 pip install evaluate==0.4.5 || true
 pip install rouge-score==0.1.2 || true
 # Install lm_eval with dependencies, version is same as https://github.com/vllm-project/vllm/blob/main/.buildkite/scripts/hardware_ci/run-tpu-v1-test.sh#L64
-pip install "lm-eval[all]>=0.4.9.2" || true
+pip install "lm-eval[api,vllm,math]>=0.4.9.2"
 
 
 VLLM_LOG="$WORKSPACE/vllm_log.txt"
