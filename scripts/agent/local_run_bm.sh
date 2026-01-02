@@ -111,51 +111,63 @@ BM_LOG="$LOG_ROOT/${TEST_NAME}_bm_log.txt"
 cp "$TMP_WORKSPACE/vllm_log.txt" "$VLLM_LOG"
 cp "$TMP_WORKSPACE/bm_log.txt" "$BM_LOG"
 
-# Parse throughput
-throughput=$(grep 'Request throughput (req/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
-echo "Throughput: $throughput"
-
 # Upload to GCS
 gsutil cp "$LOG_ROOT"/* "$REMOTE_LOG_ROOT"
 
-# Check throughput
-if [[ -z "$throughput" || ! "$throughput" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
-  echo "Failed to parse throughput"
-  exit 0
-fi
-
-if [[ -n "${EXPECTED_THROUGHPUT:-}" ]]; then
-  if (( $(echo "$throughput < $EXPECTED_THROUGHPUT" | bc -l) )); then
-    echo "Error: Throughput ($throughput) < Expected ($EXPECTED_THROUGHPUT)"
-    exit 0
-  fi
+if [[ "$RUN_TYPE" == *"ACCURACY"* ]]; then
+    # Accuracy run logic
+    echo "Accuracy run ($RUN_TYPE) detected. Parsing accuracy metrics."
+    AccuracyMetricsJSON=$(grep -a "AccuracyMetrics:" "$BM_LOG" | sed 's/AccuracyMetrics: //')
+    if [ -n "$AccuracyMetricsJSON" ]; then
+        echo "AccuracyMetrics=$AccuracyMetricsJSON" > "artifacts/$RECORD_ID.result"
+    else
+        echo "Error: Accuracy run but no AccuracyMetrics found."
+        exit 1
+    fi
 else
-  echo "No EXPECTED_THROUGHPUT set, skipping threshold check."
-fi
+    # Performance run logic
+    # Parse throughput
+    throughput=$(grep 'Request throughput (req/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
+    echo "Throughput: $throughput"
 
-# Write result file
-echo "Throughput=$throughput" > "artifacts/$RECORD_ID.result"
+    # Check throughput
+    if [[ -z "$throughput" || ! "$throughput" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+      echo "Failed to parse throughput"
+      exit 1
+    fi
 
-extract_value() {
-  local section="$1"
-  local label="$2"  # Mean, Median, or P99
-  grep "$section (ms):" "$BM_LOG" | \
-    awk -v label="$label" '$0 ~ label { print $NF }'
-}
+    if [[ -n "${EXPECTED_THROUGHPUT:-}" ]]; then
+      if (( $(echo "$throughput < $EXPECTED_THROUGHPUT" | bc -l) )); then
+        echo "Error: Throughput ($throughput) < Expected ($EXPECTED_THROUGHPUT)"
+        exit 1
+      fi
+    else
+      echo "No EXPECTED_THROUGHPUT set, skipping threshold check."
+    fi
 
-# Median values
-MedianITL=$(extract_value "ITL" "Median")
-MedianTPOT=$(extract_value "TPOT" "Median")
-MedianTTFT=$(extract_value "TTFT" "Median")
-MedianETEL=$(extract_value "E2EL" "Median")
+    # Write result file
+    echo "Throughput=$throughput" > "artifacts/$RECORD_ID.result"
 
-# P99 values
-P99ITL=$(extract_value "ITL" "P99")
-P99TPOT=$(extract_value "TPOT" "P99")
-P99TTFT=$(extract_value "TTFT" "P99")
-P99ETEL=$(extract_value "E2EL" "P99")
+    extract_value() {
+      local section="$1"
+      local label="$2"  # Mean, Median, or P99
+      grep "$section (ms):" "$BM_LOG" | \
+        awk -v label="$label" '$0 ~ label { print $NF }'
+    }
 
-cat <<EOF >> "artifacts/$RECORD_ID.result"
+    # Median values
+    MedianITL=$(extract_value "ITL" "Median")
+    MedianTPOT=$(extract_value "TPOT" "Median")
+    MedianTTFT=$(extract_value "TTFT" "Median")
+    MedianETEL=$(extract_value "E2EL" "Median")
+
+    # P99 values
+    P99ITL=$(extract_value "ITL" "P99")
+    P99TPOT=$(extract_value "TPOT" "P99")
+    P99TTFT=$(extract_value "TTFT" "P99")
+    P99ETEL=$(extract_value "E2EL" "P99")
+
+    cat <<EOF >> "artifacts/$RECORD_ID.result"
 MedianITL=$MedianITL
 MedianTPOT=$MedianTPOT
 MedianTTFT=$MedianTTFT
@@ -165,3 +177,4 @@ P99TPOT=$P99TPOT
 P99TTFT=$P99TTFT
 P99ETEL=$P99ETEL
 EOF
+fi
