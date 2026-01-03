@@ -46,11 +46,12 @@ done < "$RESULT_FILE"
 # Clean up trailing comma+space
 assignments="${assignments%, }"
 
-# Add status, RunBy, and timestamp
-assignments="${assignments}, Status='COMPLETED', RunBy='${GCP_INSTANCE_NAME}', LastUpdate=CURRENT_TIMESTAMP()"
-
-# Build SQL
-SQL="UPDATE RunRecord SET ${assignments} WHERE RecordId = '${RECORD_ID}';"
+if [ -z "$assignments" ]; then
+  echo "Result file was empty. Marking status as FAILED."
+  SQL="UPDATE RunRecord SET Status='FAILED', RunBy='${GCP_INSTANCE_NAME}', LastUpdate=CURRENT_TIMESTAMP() WHERE RecordId = '${RECORD_ID}';"
+else
+  SQL="UPDATE RunRecord SET ${assignments}, Status='COMPLETED', RunBy='${GCP_INSTANCE_NAME}', LastUpdate=CURRENT_TIMESTAMP() WHERE RecordId = '${RECORD_ID}';"
+fi
 
 echo "Executing SQL:"
 echo "$SQL"
