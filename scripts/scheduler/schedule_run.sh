@@ -59,7 +59,8 @@ tail -n +2 "$CSV_FILE" | while read -r line || [ -n "${line}" ]; do
     NUM_PROMPTS \
     MODELTAG \
     PREFIX_LEN \
-    ADDITIONAL_CONFIG <<< "$line"
+    ADDITIONAL_CONFIG \
+    EXTRA_ARGS <<< "$line"
 
   RECORD_ID=$(uuidgen | tr 'A-Z' 'a-z')
 
@@ -81,7 +82,7 @@ tail -n +2 "$CSV_FILE" | while read -r line || [ -n "${line}" ]; do
       RecordId, Status, CreatedTime, Device, Model, RunType, CodeHash,
       MaxNumSeqs, MaxNumBatchedTokens, TensorParallelSize, MaxModelLen,
       Dataset, InputLen, OutputLen, LastUpdate, CreatedBy,JobReference, ExpectedETEL, NumPrompts, ModelTag, PrefixLen, ExtraEnvs,
-      AdditionalConfig
+      AdditionalConfig, ExtraArgs
     ) VALUES (
       '$RECORD_ID', 'CREATED', PENDING_COMMIT_TIMESTAMP(), '$DEVICE', '$MODEL', '$RUN_TYPE', '$CODEHASH',
       $MAX_NUM_SEQS,
@@ -99,7 +100,8 @@ tail -n +2 "$CSV_FILE" | while read -r line || [ -n "${line}" ]; do
       '${MODELTAG:-PROD}',
       ${PREFIX_LEN:-0},
       '$EXTRA_ENVS',
-      $ADDITIONAL_CONFIG
+      $ADDITIONAL_CONFIG,
+      $EXTRA_ARGS
     );"
   
   # If insert failed, just continue without publishing
