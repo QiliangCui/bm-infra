@@ -721,6 +721,8 @@ class CustomDataset(BenchmarkDataset):
     ```
     """
     IS_MULTIMODAL = True
+    # TODO: Refactor to a dedicated multimodal subclass if multimodal complexity grows.
+
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.load_data()
@@ -775,7 +777,7 @@ class CustomDataset(BenchmarkDataset):
                 break
             prompt = item["prompt"]
 
-            mm_content = item.get("multi_modal_data")
+            mm_content = item.get("multi_modal_data", None)
 
             # apply template
             if not skip_chat_template:
