@@ -37,7 +37,7 @@ CMD=(
 )
 
 # Execute the command, allowing stderr for error visibility
-if ! "${CMD[@]}"; then
+if ! SKIP_JAX_PRECOMPILE=1 "${CMD[@]}"; then
     echo "Error: lm_eval command failed. See output above for details."
     exit 1
 fi

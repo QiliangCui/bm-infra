@@ -145,10 +145,14 @@ if [[ "${SKIP_BUILD_IMAGE:-0}" != "1" ]]; then
     # RealHash_BaseHash
     VLLM_HASH="${NEW_VLLM_HASH}_${VLLM_HASH}"
     popd
-  fi
 
-  echo "./scripts/scheduler/build_image.sh $VLLM_HASH"
-  ./scripts/scheduler/build_image.sh "$VLLM_HASH"
+    echo "./scripts/scheduler/build_image.sh $VLLM_HASH"
+    ./scripts/scheduler/build_image.sh "$VLLM_HASH"
+  else
+    echo "============================================"
+    echo "skip vllm image build since LOCAL_PATCH != 1"
+    echo "============================================"
+  fi
 
   CODE_HASH=$VLLM_HASH
 

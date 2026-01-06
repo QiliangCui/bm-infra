@@ -47,7 +47,7 @@ if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
   $CONDA run -n "$ENV_NAME" pip install --upgrade pip
   $CONDA run -n "$ENV_NAME" pip install pandas datasets
   # Install lm_eval with math dependencies, commit is same as https://github.com/vllm-project/vllm/blob/main/.buildkite/scripts/hardware_ci/run-tpu-v1-test.sh#L64
-  $CONDA run -n "$ENV_NAME" pip install "lm-eval[math] @ git+https://github.com/EleutherAI/lm-evaluation-harness.git@206b7722158f58c35b7ffcd53b035fdbdda5126d"
+  $CONDA run -n "$ENV_NAME" pip install "lm-eval[api,vllm,math]>=0.4.9.2"
   $CONDA run -n "$ENV_NAME" bash -c "cd '$VLLM_FOLDER' && pip install -r requirements/tpu.txt"
   $CONDA run -n "$ENV_NAME" bash -c "cd '$VLLM_FOLDER' && VLLM_TARGET_DEVICE='tpu' python -m pip install -e ."
 
@@ -186,56 +186,68 @@ else
   echo "bm_log.txt not found in workspace."
 fi
 
-# Parse throughput
-throughput=$(grep 'Request throughput (req/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
-echo "Throughput: $throughput"
-
-# Parse Token throughput (tok/s)
-output_token_throughput=$(grep 'Output token throughput (tok/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
-echo "OutputTokenThroughput: $output_token_throughput"
-total_token_throughput=$(grep 'Total token throughput (tok/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
-echo "TotalTokenThroughput: $total_token_throughput"
-
-# Check throughput
-if [[ -z "$throughput" || ! "$throughput" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
-  echo "Failed to parse throughput"
-  exit 0
-fi
-
-if [[ -n "${EXPECTED_THROUGHPUT:-}" ]]; then
-  if (( $(echo "$throughput < $EXPECTED_THROUGHPUT" | bc -l) )); then
-    echo "Error: Throughput ($throughput) < Expected ($EXPECTED_THROUGHPUT)"
-    exit 0
-  fi
+if [[ "$RUN_TYPE" == *"ACCURACY"* ]]; then
+    # Accuracy run logic
+    echo "Accuracy run ($RUN_TYPE) detected. Parsing accuracy metrics."
+    AccuracyMetricsJSON=$(grep -a "AccuracyMetrics:" "$BM_LOG" | sed 's/AccuracyMetrics: //')
+    if [ -n "$AccuracyMetricsJSON" ]; then
+        echo "AccuracyMetrics=$AccuracyMetricsJSON" > "artifacts/$RECORD_ID.result"
+    else
+        echo "Error: Accuracy run but no AccuracyMetrics found."
+        exit 1
+    fi
 else
-  echo "No EXPECTED_THROUGHPUT set, skipping threshold check."
-fi
+    # Performance run logic
+    # Parse throughput
+    throughput=$(grep 'Request throughput (req/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
+    echo "Throughput: $throughput"
+    
+    # Parse Token throughput (tok/s)
+    output_token_throughput=$(grep 'Output token throughput (tok/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
+    echo "OutputTokenThroughput: $output_token_throughput"
+    total_token_throughput=$(grep 'Total token throughput (tok/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
+    echo "TotalTokenThroughput: $total_token_throughput"
 
-# Write result file
-echo "Throughput=$throughput" > "artifacts/$RECORD_ID.result"
-echo "OutputTokenThroughput=$output_token_throughput" >> "artifacts/$RECORD_ID.result"
-echo "TotalTokenThroughput=$total_token_throughput" >> "artifacts/$RECORD_ID.result"
+    # Check throughput
+    if [[ -z "$throughput" || ! "$throughput" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+      echo "Failed to parse throughput"
+      exit 1
+    fi
 
-extract_value() {
-  local section="$1"
-  local label="$2"  # Mean, Median, or P99
-  grep "$section (ms):" "$BM_LOG" | \
-    awk -v label="$label" '$0 ~ label { print $NF }'
-}
+    if [[ -n "${EXPECTED_THROUGHPUT:-}" ]]; then
+      if (( $(echo "$throughput < $EXPECTED_THROUGHPUT" | bc -l) )); then
+        echo "Error: Throughput ($throughput) < Expected ($EXPECTED_THROUGHPUT)"
+      fi
+    else
+      echo "No EXPECTED_THROUGHPUT set, skipping threshold check."
+    fi
 
-# Median values
-MedianITL=$(extract_value "ITL" "Median")
-MedianTPOT=$(extract_value "TPOT" "Median")
-MedianTTFT=$(extract_value "TTFT" "Median")
-MedianETEL=$(extract_value "E2EL" "Median")
+    # Write result file
+    echo "Throughput=$throughput" > "artifacts/$RECORD_ID.result"
+    echo "OutputTokenThroughput=$output_token_throughput" >> "artifacts/$RECORD_ID.result"
+    echo "TotalTokenThroughput=$total_token_throughput" >> "artifacts/$RECORD_ID.result"
 
-# P99 values
-P99ITL=$(extract_value "ITL" "P99")
-P99TPOT=$(extract_value "TPOT" "P99")
-P99TTFT=$(extract_value "TTFT" "P99")
-P99ETEL=$(extract_value "E2EL" "P99")
+    extract_value() {
+      local section="$1"
+      local label="$2"  # Mean, Median, or P99
+      grep "$section (ms):" "$BM_LOG" | \
+        awk -v label="$label" '$0 ~ label { print $NF }'
+    }
 
-cat <<EOF >> "artifacts/$RECORD_ID.result"
+    # Median values
+    MedianITL=$(extract_value "ITL" "Median")
+    MedianTPOT=$(extract_value "TPOT" "Median")
+    MedianTTFT=$(extract_value "TTFT" "Median")
+    MedianETEL=$(extract_value "E2EL" "Median")
+
+    # P99 values
+    P99ITL=$(extract_value "ITL" "P99")
+    P99TPOT=$(extract_value "TPOT" "P99")
+    P99TTFT=$(extract_value "TTFT" "P99")
+    P99ETEL=$(extract_value "E2EL" "P99")
+
+    cat <<EOF >> "artifacts/$RECORD_ID.result"
+
 MedianITL=$MedianITL
 MedianTPOT=$MedianTPOT
 MedianTTFT=$MedianTTFT
@@ -245,3 +257,4 @@ P99TPOT=$P99TPOT
 P99TTFT=$P99TTFT
 P99ETEL=$P99ETEL
 EOF
+fi

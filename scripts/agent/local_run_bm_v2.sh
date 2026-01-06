@@ -48,8 +48,8 @@ if [ ! -d "$ENV_PATH" ]; then
   uv pip install -p "$ENV_PATH/bin/python" --upgrade pip
   uv pip install -p "$ENV_PATH/bin/python" pandas datasets
 
-  # Install lm_eval with math dependencies, commit is same as https://github.com/vllm-project/vllm/blob/main/.buildkite/scripts/hardware_ci/run-tpu-v1-test.sh#L64
-  uv pip install -p "$ENV_PATH/bin/python" "lm-eval[math] @ git+https://github.com/EleutherAI/lm-evaluation-harness.git@206b7722158f58c35b7ffcd53b035fdbdda5126d"
+  # Install lm_eval with dependencies, version is same as https://github.com/vllm-project/vllm/blob/main/.buildkite/scripts/hardware_ci/run-tpu-v1-test.sh#L64
+  uv pip install -p "$ENV_PATH/bin/python" "lm-eval[api,vllm,math]>=0.4.9.2"
 
   echo "Installing vllm and dependencies..."
   echo VLLM_USE_PRECOMPILED=1 uv pip install -p "$ENV_PATH/bin/python" -e "$VLLM_FOLDER" --torch-backend=cu128
