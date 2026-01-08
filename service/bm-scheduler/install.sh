@@ -25,6 +25,7 @@ login $GITHUB_USERNAME
 password $GITHUB_PERSONAL_ACCESS_TOKEN" | tee -a /home/bm-scheduler/.netrc
 
 echo "git clone https://github.com/QiliangCui/bm-infra.git"
+git clone https://github.com/QiliangCui/bm-infra.git
 
 EOF
 

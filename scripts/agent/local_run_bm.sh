@@ -34,7 +34,6 @@ IFS='-' read -r VLLM_HASH TPU_INFERENCE_HASH TORCHAX_HASH _ <<< "$CODE_HASH"
 
 pushd "$VLLM_FOLDER"
 git fetch origin
-git fetch --all --tags
 git reset --hard "$VLLM_HASH"
 popd
 
@@ -63,7 +62,6 @@ if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
     echo "Checking out correct tpu_inference commit..."
     pushd "$TPU_INFERENCE_FOLDER"
     git fetch origin
-    git fetch --all --tags
     git reset --hard "$TPU_INFERENCE_HASH"
     popd
 
@@ -84,7 +82,6 @@ fi
 clean_up() {
    pkill -f vllm || true
    pkill -f VLLM || true
-   pkill -f "vllm serve" || true
    ./scripts/agent/clean_old_vllm_envs.sh || true
 }
 
