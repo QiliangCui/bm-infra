@@ -5,9 +5,6 @@ set -euo pipefail
 # Datasets using lm-evaluation-harness `lm_eval`.
 LM_EVAL_DATASETS=("math500" "mmlu" "mlperf")
 
-# Datasets that use the internal python performance benchmark script `python benchmark_serving.py`.
-BM_INFRA_DATASETS=("custom-token" "bench-custom-token")
-
 # All other datasets will use the standard `vllm bench serve` command.
 
 # TODO: Move to image building.
@@ -164,14 +161,6 @@ run_benchmark(){
   local command_to_run
   local ARGS=()
 
-  # Determine benchmark command to use
-  if contains_element "$DATASET" "${BM_INFRA_DATASETS[@]}"; then
-    command_to_run=("python" "benchmarks/benchmark_serving.py")
-  else
-    command_to_run=("vllm" "bench" "serve")
-  fi
-
-  # TODO: Remove this hardcoding before merging to mains.
   command_to_run=("vllm" "bench" "serve")
 
   # Common arguments
