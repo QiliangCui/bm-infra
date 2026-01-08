@@ -87,19 +87,20 @@ if [[ -z "${EXTRA_ARGS:-}" ]]; then
   EXTRA_ARGS=""
 fi
 
+if [[ "$MODEL" == "google/gemma-3-27b-it" ]]; then
+  echo "google/gemma-3-27b-it"
+  EXTRA_ARGS+="--limit-mm-per-prompt {\"image\":0}"
+elif [[ "$MODEL" == "Qwen/Qwen2.5-VL-7B-Instruct" || "$MODEL" == "Qwen/Qwen2.5-VL-32B-Instruct" ]]; then
+  echo "$MODEL"
+  EXTRA_ARGS+="--limit-mm-per-prompt {\"image\":1} --mm-processor-kwargs {\"max_pixels\":1024000}"
+elif [[ "$MODEL" == "deepseek-ai/DeepSeek-R1" ]]; then
+  echo "deepseek-ai/DeepSeek-R1"
+  EXTRA_ARGS+=" --hf-config=deepseek-ai/DeepSeek-R1 --hf_overrides '{\"architectures\": [\"DeepseekV3ForCausalLM\"]}' --gpu-memory-utilization 0.91"
+fi
+
 if [[ -n "${ADDITIONAL_CONFIG:-}" ]]; then
   echo "Adding --additional_config=${ADDITIONAL_CONFIG} to EXTRA_ARGS for running vllm serve ..."
   EXTRA_ARGS+=" --additional_config='${ADDITIONAL_CONFIG}'"
-fi
-
-if [[ "$MODEL" == "google/gemma-3-27b-it" ]]; then
-  echo "google/gemma-3-27b-it"
-  EXTRA_ARGS+=" --limit-mm-per-prompt {\"image\":0}"
-fi
-
-if [[ "$MODEL" == "deepseek-ai/DeepSeek-R1" ]]; then
-  echo "deepseek-ai/DeepSeek-R1"
-  EXTRA_ARGS+=" --hf-config=deepseek-ai/DeepSeek-R1 --hf_overrides '{\"architectures\": [\"DeepseekV3ForCausalLM\"]}' --gpu-memory-utilization 0.91"
 fi
 
 echo "Printing the vllm serve command used to start the server:"
@@ -199,6 +200,21 @@ run_benchmark(){
       # The original script set dataset-name to 'custom' for this case
       ARGS[7]="custom" # This replaces the --dataset-name value in the array
       ARGS+=(--dataset-path "$dataset_path" --custom-output-len "$OUTPUT_LEN" --skip-chat-template)
+      ;;
+    bench-custom-mm)
+      DATA_DIR="$WORKSPACE/dataset/${MODEL##*/}"
+      local dataset_files=($(find "$DATA_DIR" -name "inlen${INPUT_LEN}_outlen${OUTPUT_LEN}_prefixlen${PREFIX_LEN}*.jsonl"))
+      if [ ${#dataset_files[@]} -ne 1 ]; then
+        echo "Error: Found ${#dataset_files[@]} matching datasets in $DATA_DIR, but expected 1."
+        echo "Matching files:"
+        printf " - %s\n" "${dataset_files[@]}"
+        exit 1
+      fi
+      local dataset_path="${dataset_files[0]}"
+      echo "multimodal dataset_path: $dataset_path"
+      ARGS[1]="openai-chat" # Replaces --backend value
+      ARGS[7]="custom"      # Replaces --dataset-name value
+      ARGS+=(--dataset-path "$dataset_path" --custom-output-len "$OUTPUT_LEN" --custom-skip-chat-template --endpoint /v1/chat/completions)
       ;;
     sharegpt)
       local dataset_path="$WORKSPACE/dataset/ShareGPT_V3_unfiltered_cleaned_split.json"

@@ -720,6 +720,8 @@ class CustomDataset(BenchmarkDataset):
     {"prompt": "What is the capital of China?"}
     ```
     """
+    IS_MULTIMODAL = True
+    # TODO: Refactor to a dedicated multimodal subclass if multimodal complexity grows.
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -775,6 +777,8 @@ class CustomDataset(BenchmarkDataset):
                 break
             prompt = item["prompt"]
 
+            mm_content = item.get("multi_modal_data", None)
+
             # apply template
             if not skip_chat_template:
                 prompt = tokenizer.apply_chat_template(
@@ -789,6 +793,7 @@ class CustomDataset(BenchmarkDataset):
                     prompt=prompt,
                     prompt_len=prompt_len,
                     expected_output_len=output_len,
+                    multi_modal_data=mm_content,
                 )
             )
         self.maybe_oversample_requests(sampled_requests, num_requests)

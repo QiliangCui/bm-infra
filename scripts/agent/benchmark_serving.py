@@ -470,7 +470,7 @@ async def benchmark(
         input_requests[0].multi_modal_data,
     )
 
-    assert test_mm_content is None or isinstance(test_mm_content, dict)
+    assert test_mm_content is None or isinstance(test_mm_content, (dict, list))
     test_input = RequestFuncInput(
         model=model_id,
         model_name=model_name,
@@ -661,7 +661,7 @@ async def benchmark(
             "Total Token throughput (tok/s):", metrics.total_token_throughput
         )
     )
-    
+
     if metrics.accuracy_metrics:
         print("{s:{c}^{n}}".format(s=" Accuracy Metrics ", n=50, c="-"))
         for metric_name, metric_value in metrics.accuracy_metrics.items():
