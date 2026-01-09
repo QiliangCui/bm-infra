@@ -99,8 +99,9 @@ elif [[ "$MODEL" == "deepseek-ai/DeepSeek-R1" ]]; then
 fi
 
 if [[ -n "${ADDITIONAL_CONFIG:-}" ]]; then
-  echo "Adding --additional_config=${ADDITIONAL_CONFIG} to EXTRA_ARGS for running vllm serve ..."
-  EXTRA_ARGS+=" --additional_config='${ADDITIONAL_CONFIG}'"
+  printf -v quoted_config "%q" "$ADDITIONAL_CONFIG"
+  echo "Adding --additional_config=${quoted_config} to EXTRA_ARGS for running vllm serve ..."
+  EXTRA_ARGS+=" --additional_config=${quoted_config}"
 fi
 
 echo "Printing the vllm serve command used to start the server:"
