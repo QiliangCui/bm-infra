@@ -50,5 +50,9 @@ echo "./scripts/scheduler/create_job.sh ./cases/daily_gpt_oss_120b_tpu7x.csv \"\
 echo "./scripts/scheduler/create_job.sh ./cases/daily_qwen3_480B_FP8_tpu7x_8.csv \"\" $TAG DAILY TPU_INFERENCE"
 ./scripts/scheduler/create_job.sh ./cases/daily_qwen3_480B_FP8_tpu7x_8.csv "" $TAG DAILY TPU_INFERENCE
 
+# Qwen 3-480B
+echo "./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_qwen3_480B_FP8_tpu7x_8.csv \"\" $TAG DAILY TPU_INFERENCE"
+./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_qwen3_480B_FP8_tpu7x_8.csv "" $TAG DAILY TPU_INFERENCE
+
 echo "./scripts/cleanup_docker.sh"
 ./scripts/cleanup_docker.sh
