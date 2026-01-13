@@ -1,0 +1,12 @@
+# 1. Create the Topic
+gcloud pubsub topics create moe-tasks \
+  --project=cloud-tpu-inference-test
+
+# 2. Create Subscription with a 60-second timeout (Ack Deadline)
+# If a worker doesn't respond in 60s, the task is re-delivered.
+gcloud pubsub subscriptions create moe-tasks-sub \
+    --project=cloud-tpu-inference-test \
+    --topic=moe-tasks \
+    --ack-deadline=600 \
+    --min-retry-delay=10s \
+    --max-retry-delay=600s

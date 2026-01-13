@@ -1,0 +1,19 @@
+[Unit]
+Description=Benchmark Tune Agent Service
+After=network.target
+
+[Service]
+Type=simple
+User=bm-agent
+WorkingDirectory=/home/bm-agent/bm-infra
+ExecStart=/home/bm-agent/bm-infra/scripts/agent/docker_tune_moe.sh
+Restart=on-failure
+RestartSec=5s
+EnvironmentFile=/etc/environment
+StandardOutput=journal
+StandardError=journal
+KillSignal=SIGTERM
+TimeoutStopSec=1800
+
+[Install]
+WantedBy=multi-user.target

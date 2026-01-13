@@ -1,0 +1,86 @@
+-- 1. Parent Table (Updated with tracking columns)
+CREATE TABLE CaseSet (
+  ID STRING(128) NOT NULL,
+  Description STRING(1024),
+  Status STRING(32),        -- "CREATING", "COMPLETED", "FAILED"
+  ScanSpace INT64,          -- Total combinations checked
+  Valid INT64,              -- Total valid cases inserted
+  Invalid INT64,            -- Total invalid cases skipped
+  DurationSeconds FLOAT64,  -- How long the insertion took
+) PRIMARY KEY (ID);
+
+-- 2. Child Table (Renamed CaseSetID to ID to match parent)
+CREATE TABLE Cases (
+  ID STRING(128) NOT NULL,
+  CaseId INT64 NOT NULL,
+  EP INT64,
+  NumTokens INT64,
+  HiddenSize INT64,
+  IntermediateSize INT64,
+  NumExpertes INT64,
+  TopK INT64,
+  DType STRING(8),
+  BT INT64,
+  BTC INT64,
+  BF INT64,
+  BFC INT64,
+  BD1 INT64,
+  BD1C INT64,
+  BD2 INT64,
+  BD2C INT64,
+) PRIMARY KEY (ID, CaseId),
+INTERLEAVE IN PARENT CaseSet ON DELETE CASCADE;
+
+-- 3. Secondary Indexes
+CREATE INDEX CasesByEP ON Cases(EP);
+CREATE INDEX CasesByNumTokens ON Cases(NumTokens);
+CREATE INDEX CasesByHiddenSize ON Cases(HiddenSize);
+CREATE INDEX CasesByIntermediateSize ON Cases(IntermediateSize);
+CREATE INDEX CasesByNumExpertes ON Cases(NumExpertes);
+CREATE INDEX CasesByTopK ON Cases(TopK);
+CREATE INDEX CasesByDType ON Cases(DType);
+CREATE INDEX CasesByBT ON Cases(BT);
+CREATE INDEX CasesByBTC ON Cases(BTC);
+CREATE INDEX CasesByBF ON Cases(BF);
+CREATE INDEX CasesByBFC ON Cases(BFC);
+CREATE INDEX CasesByBD1 ON Cases(BD1);
+CREATE INDEX CasesByBD1C ON Cases(BD1C);
+CREATE INDEX CasesByBD2 ON Cases(BD2);
+CREATE INDEX CasesByBD2C ON Cases(BD2C);
+
+
+-- Track the output and state of each case
+CREATE TABLE CaseResults (
+  ID STRING(128) NOT NULL,
+  RunId STRING(128) NOT NULL,
+  CaseId INT64 NOT NULL,
+  ProcessedStatus STRING(32), -- "SUCCESS", "FAILED"
+  WorkerID STRING(128),      
+  Latency INT64,              -- Result stored as INT (e.g., microseconds)
+  ProcessedAt TIMESTAMP OPTIONS (allow_commit_timestamp=true),
+) PRIMARY KEY (ID, RunId, CaseId),
+INTERLEAVE IN PARENT CaseSet ON DELETE CASCADE;
+
+CREATE INDEX CasesByLatency 
+ON CaseResults(ID, RunId, Latency) 
+STORING (WorkerID), -- <--- Comma added here
+INTERLEAVE IN CaseSet;
+
+-- Checkpoint table now tracks by ID and RunId
+CREATE TABLE FeederCheckpoint (
+  ID STRING(128) NOT NULL,
+  RunId STRING(128) NOT NULL,
+  LastProcessedCaseId INT64 NOT NULL,
+) PRIMARY KEY (ID, RunId);
+
+CREATE TABLE WorkBuckets (
+  ID STRING(128) NOT NULL,
+  RunId STRING(128) NOT NULL,
+  BucketId INT64 NOT NULL,
+  StartCaseId INT64 NOT NULL,
+  EndCaseId INT64 NOT NULL,
+  Status STRING(32), -- "PENDING", "IN_PROGRESS", "COMPLETED"
+  WorkerID STRING(128),
+  UpdatedAt TIMESTAMP OPTIONS (allow_commit_timestamp=true),
+) PRIMARY KEY (ID, RunId, BucketId),
+INTERLEAVE IN PARENT CaseSet ON DELETE CASCADE;
