@@ -7,7 +7,7 @@ variable "region" {
 }
 
 variable "tpu_zone" {
-    default = "us-central1-b"
+    default = "southamerica-west1-a"
 }
 
 variable "purpose" {

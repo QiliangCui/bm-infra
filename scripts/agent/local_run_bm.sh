@@ -44,7 +44,7 @@ if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
   $CONDA run -n "$ENV_NAME" pip install --upgrade pip
   $CONDA run -n "$ENV_NAME" pip install pandas datasets
   # Install lm_eval with dependencies, version is same as https://github.com/vllm-project/vllm/blob/main/.buildkite/scripts/hardware_ci/run-tpu-v1-test.sh#L64
-  $CONDA run -n "$ENV_NAME" pip install "lm-eval[api,vllm,math]>=0.4.9.2"
+  $CONDA run -n "$ENV_NAME" pip install "lm-eval[api,math]>=0.4.9.2"
   $CONDA run -n "$ENV_NAME" bash -c "cd '$VLLM_FOLDER' && VLLM_USE_PRECOMPILED=1 pip install --editable ."
 fi
 
