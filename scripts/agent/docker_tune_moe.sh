@@ -61,6 +61,7 @@ docker run --rm \
             --project_id='$PROJECT_ID' \
             --subscription_id='$SUBSCRIPTION_ID' \
             --instance_id='$INSTANCE_ID' \
-            --database_id='$DATABASE_ID' \
+            --database_id='$GCP_INSTANCE_NAME' \
+            --worker_id='$DATABASE_ID' \
             --debug
     "
