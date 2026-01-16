@@ -1,4 +1,6 @@
-data "google_project" "current" {}
+data "google_project" "current" {
+  provider = google-beta
+}
 
 resource "google_tpu_v2_vm" "tpu_v7" {
   provider = google-beta

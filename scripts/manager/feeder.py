@@ -13,7 +13,7 @@ _BUCKET_SIZE = flags.DEFINE_integer('bucket_size', 100, 'Number of CaseIds per P
 PROJECT_ID = "cloud-tpu-inference-test"
 SPANNER_INSTANCE = 'vllm-bm-inst'
 SPANNER_DATABASE = 'tune-moe'
-TOPIC_ID = "moe-tasks"
+TOPIC_ID = "vllm-tune-queue-tpu7x-8"
 
 def get_total_valid_cases(database, case_set_id):
     """Fetches the Valid case count from the CaseSet table."""
