@@ -16,7 +16,7 @@ IMAGE_NAME="vllm/vllm-tpu:nightly-ironwood-20260115-8b93316-4c1c501"
 # Since the machine definition clones the repo to /home/bm-agent/bm-infra,
 # we locate the script relative to that path.
 # Assuming the script is at: scripts/agent/moe_worker.py
-LOCAL_INFRA_PATH="/home/bm-agent/bm-infra"
+LOCAL_INFRA_PATH="/home/$USER/bm-infra"
 LOCAL_SCRIPT_PATH="$LOCAL_INFRA_PATH/scripts/agent/moe_worker.py"
 CONTAINER_DEST_PATH="/workspace/moe_worker.py"
 
@@ -36,6 +36,8 @@ docker pull "$IMAGE_NAME"
 # containerized python script can see them if needed.
 echo "Launching TPU Worker Container for Run..."
 docker run --rm \
+    --name "tpu-tune" \
+    -e PYTHONUNBUFFERED=1 \
     --privileged \
     --network host \
     --shm-size=16gb \
