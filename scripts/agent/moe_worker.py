@@ -9,18 +9,21 @@ from google.cloud import spanner, pubsub_v1
 from tpu_inference.kernels.fused_moe.v1.kernel import fused_ep_moe
 
 
+_HOSTNAME = socket.gethostname()
+
 # --- Flags Definition ---
 _PROJECT_ID = flags.DEFINE_string('project_id', "cloud-tpu-inference-test", 'GCP Project ID')
 _SUBSCRIPTION_ID = flags.DEFINE_string('subscription_id', "moe-tasks-sub", 'Pub/Sub Subscription ID')
 _INSTANCE_ID = flags.DEFINE_string('instance_id', 'vllm-bm-inst', 'Spanner Instance ID')
 _DATABASE_ID = flags.DEFINE_string('database_id', 'tune-moe', 'Spanner Database ID')
+_WORKER_ID = flags.DEFINE_string('worker_id', _HOSTNAME, 'The worker id')
 _DEBUG = flags.DEFINE_bool('debug', False, 'If true, prints results after each case iteration.')
+
 
 # --- Global JAX Initialization ---
 # Import your kernel here
 # from tpu_inference.kernels.fused_moe.v1.kernel import fused_ep_moe
 
-WORKER_ID = socket.gethostname()
 DEVICES = jax.local_devices()
 MESH_CACHE = {}
 
@@ -90,7 +93,7 @@ def process_on_tpu(config_row):
 
 class SpannerManager:
     def __init__(self):
-        self.client = spanner.Client(disable_builtin_metrics=True)
+        self.client = spanner.Client(project=_PROJECT_ID.value, disable_builtin_metrics=True)
         self.instance = self.client.instance(_INSTANCE_ID.value)
         self.db = self.instance.database(_DATABASE_ID.value)
 
@@ -99,7 +102,7 @@ class SpannerManager:
             transaction.execute_update(
                 "UPDATE WorkBuckets SET Status = 'IN_PROGRESS', WorkerID = @wid, UpdatedAt = PENDING_COMMIT_TIMESTAMP() "
                 "WHERE ID = @id AND RunId = @rid AND BucketId = @bid",
-                params={'id': case_set_id, 'rid': run_id, 'bid': bucket_id, 'wid': WORKER_ID},
+                params={'id': case_set_id, 'rid': run_id, 'bid': bucket_id, 'wid': _WORKER_ID.value},
                 param_types={'id': spanner.param_types.STRING, 'rid': spanner.param_types.STRING, 
                              'bid': spanner.param_types.INT64, 'wid': spanner.param_types.STRING}
             )
@@ -159,7 +162,7 @@ def get_callback(spanner_mgr):
             data = message.data.decode("utf-8").split("|")
             case_set_id, run_id, bucket_id, start, end = data[0], data[1], int(data[2]), int(data[3]), int(data[4])
             
-            print(f"[{WORKER_ID}] Claimed Bucket {bucket_id} ({start}-{end})")
+            print(f"[{_WORKER_ID.value}] Claimed Bucket {bucket_id} ({start}-{end})")
             spanner_mgr.mark_bucket_in_progress(case_set_id, run_id, bucket_id)
 
             processed_ids = spanner_mgr.get_already_processed_ids(case_set_id, run_id, start, end)
@@ -177,7 +180,7 @@ def get_callback(spanner_mgr):
                 status = "SUCCESS" if latency != sys.maxsize else "FAILED_OOM"
                 
                 results_buffer.append(
-                    (case_set_id, run_id, cid, status, WORKER_ID, latency, spanner.COMMIT_TIMESTAMP)
+                    (case_set_id, run_id, cid, status, _WORKER_ID.value, latency, spanner.COMMIT_TIMESTAMP)
                 )
 
                 if _DEBUG.value:
@@ -191,7 +194,7 @@ def get_callback(spanner_mgr):
             spanner_mgr.save_results_batch(results_buffer)
             spanner_mgr.mark_bucket_completed(case_set_id, run_id, bucket_id)
             message.ack()
-            print(f"[{WORKER_ID}] Bucket {bucket_id} COMPLETED.")
+            print(f"[{_WORKER_ID.value}] Bucket {bucket_id} COMPLETED.")
 
         except Exception as e:
             print(f"!!! Fatal Worker Error: {e}")
@@ -213,7 +216,7 @@ def main(argv):
         sub_path, callback=get_callback(spanner_mgr), flow_control=flow_control
     )
 
-    print(f"TPU Worker {WORKER_ID} ready (DEBUG={_DEBUG.value})")
+    print(f"TPU Worker {_WORKER_ID.value} ready (DEBUG={_DEBUG.value})")
     with subscriber:
         try:
             streaming_pull_future.result()
