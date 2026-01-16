@@ -19,7 +19,7 @@ variable "spanner_instance" {
 }
 
 variable "spanner_db" {
-  default = "vllm-bm-runs"
+  default = "tune-moe"
 }
 
 variable "gcs_bucket" {
@@ -27,7 +27,7 @@ variable "gcs_bucket" {
 }
 
 variable "v7x_8_count" {
-  default     = 0
+  default     = 1
 }
 
 variable "instance_name_offset" {
