@@ -18,10 +18,10 @@ apt-get install -y curl build-essential jq
 
 curl -o- https://get.docker.com/ | bash -
 
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-/root/.cargo/bin/cargo install minijinja-cli
-cp /root/.cargo/bin/minijinja-cli /usr/bin/minijinja-cli
-chmod 777 /usr/bin/minijinja-cli
+# curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+# /root/.cargo/bin/cargo install minijinja-cli
+# cp /root/.cargo/bin/minijinja-cli /usr/bin/minijinja-cli
+# chmod 777 /usr/bin/minijinja-cli
 
 systemctl stop docker
 systemctl daemon-reload
