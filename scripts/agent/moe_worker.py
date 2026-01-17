@@ -8,7 +8,6 @@ from absl import app, flags
 from google.cloud import spanner, pubsub_v1
 from tpu_inference.kernels.fused_moe.v1.kernel import fused_ep_moe
 
-
 _HOSTNAME = socket.gethostname()
 
 # --- Flags Definition ---
@@ -19,11 +18,7 @@ _DATABASE_ID = flags.DEFINE_string('database_id', 'tune-moe', 'Spanner Database 
 _WORKER_ID = flags.DEFINE_string('worker_id', _HOSTNAME, 'The worker id')
 _DEBUG = flags.DEFINE_bool('debug', False, 'If true, prints results after each case iteration.')
 
-
 # --- Global JAX Initialization ---
-# Import your kernel here
-# from tpu_inference.kernels.fused_moe.v1.kernel import fused_ep_moe
-
 DEVICES = jax.local_devices()
 MESH_CACHE = {}
 
@@ -38,8 +33,8 @@ def get_mesh(ep_size):
 
 def process_on_tpu(config_row):
     """
-    Executes TPU computation. Catches XLA VMEM OOM errors 
-    and returns sys.maxsize as a sentinel value.
+    Executes TPU computation. Catches XLA VMEM OOM errors.
+    Returns: (avg_latency_us, warmup_time_us, total_case_time_us)
     """
     (case_set_id, case_id, ep, tokens_count, h_size, inter_size, 
      experts_count, top_k, dtype_name, bt, btc, bf, bfc, 
@@ -48,7 +43,6 @@ def process_on_tpu(config_row):
     dtype = jnp.dtype(dtype_name)
     mesh = get_mesh(ep)
     
-    # Use random data to prevent JAX compiler from over-optimizing zero-tensors
     key = jax.random.PRNGKey(int(time.time()))
     tokens = jax.random.normal(key, (tokens_count, h_size), dtype=dtype)
     w1 = jax.random.normal(key, (experts_count, 2, h_size, inter_size), dtype=dtype)
@@ -62,29 +56,31 @@ def process_on_tpu(config_row):
         'bd2': bd2, 'bd2c': bd2c if bd2c != -1 else bd2,
     }
 
+    start_case = time.perf_counter()
     try:
-        # Warm-up (Ensures HLO Compilation is not part of the timing)
-        fused_ep_moe(
-            mesh, tokens, w1, w2, gating_output, top_k, **kwargs
-        ).block_until_ready()
+        # 1. Warm-up (Includes HLO Compilation)
+        warmup_start = time.perf_counter()
+        fused_ep_moe(mesh, tokens, w1, w2, gating_output, top_k, **kwargs).block_until_ready()
+        warmup_end = time.perf_counter()
+        warmup_time_us = int((warmup_end - warmup_start) * 1_000_000)
 
-        # Measured Run
+        # 2. Measured Run
         num_iters = 10
-        start = time.perf_counter()
+        iter_start = time.perf_counter()
         for _ in range(num_iters):
-            fused_ep_moe(
-                mesh, tokens, w1, w2, gating_output, top_k, **kwargs
-            ).block_until_ready()
-        end = time.perf_counter()
+            fused_ep_moe(mesh, tokens, w1, w2, gating_output, top_k, **kwargs).block_until_ready()
+        iter_end = time.perf_counter()
         
-        avg_latency_us = int(((end - start) / num_iters) * 1_000_000)
-        return avg_latency_us
+        avg_latency_us = int(((iter_end - iter_start) / num_iters) * 1_000_000)
+        total_case_time_us = int((time.perf_counter() - start_case) * 1_000_000)
+        
+        return avg_latency_us, warmup_time_us, total_case_time_us
 
     except Exception as e:
         error_msg = str(e)
-        # Handle XLA VMEM OOM specifically: "RESOURCE_EXHAUSTED: Ran out of memory in vmem"
         if "RESOURCE_EXHAUSTED" in error_msg or "vmem" in error_msg:
-            return sys.maxsize 
+            # Sentinel for OOM
+            return sys.maxsize, 0, int((time.perf_counter() - start_case) * 1_000_000)
         
         print(f"!!! Fatal Kernel Error on Case {case_id}: {e}")
         raise e
@@ -108,13 +104,14 @@ class SpannerManager:
             )
         self.db.run_in_transaction(_do_update)
 
-    def mark_bucket_completed(self, case_set_id, run_id, bucket_id):
+    def mark_bucket_completed(self, case_set_id, run_id, bucket_id, bucket_total_time_us):
         def _do_update(transaction):
             transaction.execute_update(
-                "UPDATE WorkBuckets SET Status = 'COMPLETED', UpdatedAt = PENDING_COMMIT_TIMESTAMP() "
+                "UPDATE WorkBuckets SET Status = 'COMPLETED', TotalTime = @tt, UpdatedAt = PENDING_COMMIT_TIMESTAMP() "
                 "WHERE ID = @id AND RunId = @rid AND BucketId = @bid",
-                params={'id': case_set_id, 'rid': run_id, 'bid': bucket_id},
-                param_types={'id': spanner.param_types.STRING, 'rid': spanner.param_types.STRING, 'bid': spanner.param_types.INT64}
+                params={'id': case_set_id, 'rid': run_id, 'bid': bucket_id, 'tt': bucket_total_time_us},
+                param_types={'id': spanner.param_types.STRING, 'rid': spanner.param_types.STRING, 
+                             'bid': spanner.param_types.INT64, 'tt': spanner.param_types.INT64}
             )
         self.db.run_in_transaction(_do_update)
 
@@ -150,7 +147,7 @@ class SpannerManager:
         with self.db.batch() as b:
             b.insert_or_update(
                 table='CaseResults',
-                columns=('ID', 'RunId', 'CaseId', 'ProcessedStatus', 'WorkerID', 'Latency', 'ProcessedAt'),
+                columns=('ID', 'RunId', 'CaseId', 'ProcessedStatus', 'WorkerID', 'Latency', 'WarmupTime', 'TotalTime', 'ProcessedAt'),
                 values=results_list
             )
 
@@ -159,6 +156,7 @@ class SpannerManager:
 def get_callback(spanner_mgr):
     def callback(message):
         try:
+            bucket_start_perf = time.perf_counter()
             data = message.data.decode("utf-8").split("|")
             case_set_id, run_id, bucket_id, start, end = data[0], data[1], int(data[2]), int(data[3]), int(data[4])
             
@@ -174,27 +172,31 @@ def get_callback(spanner_mgr):
                 config = all_configs.get(cid)
                 if not config: continue
 
-                latency = process_on_tpu(config)
-                
-                # Assign status based on sentinel
+                latency, warmup, total_case = process_on_tpu(config)
                 status = "SUCCESS" if latency != sys.maxsize else "FAILED_OOM"
                 
                 results_buffer.append(
-                    (case_set_id, run_id, cid, status, _WORKER_ID.value, latency, spanner.COMMIT_TIMESTAMP)
+                    (case_set_id, run_id, cid, status, _WORKER_ID.value, latency, warmup, total_case, spanner.COMMIT_TIMESTAMP)
                 )
 
                 if _DEBUG.value:
-                    out = "OOM" if latency == sys.maxsize else f"{latency}us"
-                    print(f"  [DEBUG] Run {run_id}, CaseSet {case_set_id}, Bucket {bucket_id}, Case {cid}: {out}")
+                    if latency == sys.maxsize:
+                        print(f"  [DEBUG] Case {cid}: AvgLat=OOM, Warmup={warmup:,}us, Total={total_case:,}us")
+                    else:
+                        # Apply comma formatting to the integer latency before printing
+                        print(f"  [DEBUG] Case {cid}: AvgLat={latency:,}us, Warmup={warmup:,}us, Total={total_case:,}us")
 
                 if len(results_buffer) >= 10:
                     spanner_mgr.save_results_batch(results_buffer)
                     results_buffer = []
 
             spanner_mgr.save_results_batch(results_buffer)
-            spanner_mgr.mark_bucket_completed(case_set_id, run_id, bucket_id)
+            
+            bucket_total_time_us = int((time.perf_counter() - bucket_start_perf) * 1_000_000)
+            spanner_mgr.mark_bucket_completed(case_set_id, run_id, bucket_id, bucket_total_time_us)
+            
             message.ack()
-            print(f"[{_WORKER_ID.value}] Bucket {bucket_id} COMPLETED.")
+            print(f"[{_WORKER_ID.value}] Bucket {bucket_id} COMPLETED in {bucket_total_time_us/1e6:.2f}s.")
 
         except Exception as e:
             print(f"!!! Fatal Worker Error: {e}")
