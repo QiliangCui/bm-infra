@@ -4,6 +4,11 @@ import sys
 import numpy as np
 import jax
 import jax.numpy as jnp
+from jax.sharding import NamedSharding 
+from jax.sharding import PartitionSpec as P
+from functools import partial
+
+
 from absl import app, flags
 from google.cloud import spanner, pubsub_v1
 from tpu_inference.kernels.fused_moe.v1.kernel import fused_ep_moe
@@ -43,11 +48,28 @@ def process_on_tpu(config_row):
     dtype = jnp.dtype(dtype_name)
     mesh = get_mesh(ep)
     
+    @partial(jax.jit, out_shardings=NamedSharding(mesh, P(None, None)))
+    def gen_tokens(k):
+        return jax.random.normal(k, (tokens_count, h_size), dtype=dtype)
+
+    # Define sharded generation functions
+    # (experts_count, 2, h_size, inter_size)
+    @partial(jax.jit, out_shardings=NamedSharding(mesh, P('model', None, None, None)))
+    def gen_w1(k): return jax.random.normal(k, (experts_count, 2, h_size, inter_size), dtype=dtype)
+
+    # (experts_count, inter_size, h_size)
+    @partial(jax.jit, out_shardings=NamedSharding(mesh, P('model', None, None)))
+    def gen_w2(k): return jax.random.normal(k, (experts_count, inter_size, h_size), dtype=dtype)
+
+    # (tokens_count, experts_count),
+    @partial(jax.jit, out_shardings=NamedSharding(mesh, P(None, 'model')))
+    def gen_gating(k): return jax.random.normal(k, (tokens_count, experts_count), dtype=dtype)
+    
     key = jax.random.PRNGKey(int(time.time()))
-    tokens = jax.random.normal(key, (tokens_count, h_size), dtype=dtype)
-    w1 = jax.random.normal(key, (experts_count, 2, h_size, inter_size), dtype=dtype)
-    w2 = jax.random.normal(key, (experts_count, inter_size, h_size), dtype=dtype)
-    gating_output = jax.random.normal(key, (tokens_count, experts_count), dtype=dtype)
+    tokens = gen_tokens(key)
+    w1 = gen_w1(key)
+    w2 = gen_w2(key)
+    gating_output = gen_gating(key)
 
     kwargs = {
         'bt': bt, 'btc': btc if btc != -1 else bt,
