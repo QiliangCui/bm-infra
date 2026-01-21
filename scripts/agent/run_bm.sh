@@ -164,8 +164,7 @@ run_benchmark(){
   local ARGS=()
 
   if [[ "$MODEL" == "BCCard/Qwen3-Coder-480B-A35B-Instruct-FP8-Dynamic" ]]; then
-    git clone https://github.com/kimbochen/bench_serving.git
-    command_to_run=("python3" "bench_serving/benchmark_serving.py")
+    command_to_run=("python3" "./scripts/agent/bench_serving/benchmark_serving.py")
   else
     command_to_run=("vllm" "bench" "serve")
   fi
