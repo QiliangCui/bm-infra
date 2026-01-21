@@ -22,6 +22,10 @@ _INTERMEDIATE_SIZE_LIST = flags.DEFINE_list('intermediate_size_list', ['3072'], 
 _NUM_EXPERTS_LIST = flags.DEFINE_list('num_experts_list', ['128'], 'Experts')
 _TOP_K_LIST = flags.DEFINE_list('top_k_list', ['4'], 'Top K')
 _DTYPE_LIST = flags.DEFINE_list('dtype_list', ['bfloat16'], 'Dtypes')
+# New Columns Added Here
+_SQW1_LIST = flags.DEFINE_list('sqw1_list', ['0'], 'Sub-channel quantization size for W1 (SQW1)')
+_SQW2_LIST = flags.DEFINE_list('sqw2_list', ['0'], 'Sub-channel quantization size for W2 (SQW2)')
+_RENORMALIZE_TOPK_LOGITS_LIST = flags.DEFINE_list('renormalize_topk_logits_list', ['False'], 'Renormalize MoE gating (True/False)')
 
 # --- Tiling Search Space Flags ---
 _BT_LST = flags.DEFINE_list('bt_lst', ['16', '32', '64', '128', '256'], 'bt')
@@ -36,13 +40,12 @@ _BD2C_LST = flags.DEFINE_list('bd2c_lst', ['-1'], 'Chunk sizes for hidden dim 2 
 # --- Spanner Connection Config ---
 SPANNER_INSTANCE = 'vllm-bm-inst'
 SPANNER_DATABASE = 'tune-moe'
-BATCH_SIZE = 1000  # Number of rows per batch mutation
+BATCH_SIZE = 1000  
 
 # --- Spanner Management ---
 
 class SpannerBatchInserter:
     def __init__(self, instance_id, database_id):
-        # We only initialize the client/database if not a dry run
         if not _DRY_RUN.value:
             self.client = spanner.Client(disable_builtin_metrics=True)
             self.instance = self.client.instance(instance_id)
@@ -59,7 +62,7 @@ class SpannerBatchInserter:
         """Writes current buffer to Spanner Cases table."""
         if not self.buffer:
             return
-        
+
         # SKIP network call if dry run
         if _DRY_RUN.value:
             self.buffer = []
@@ -71,7 +74,8 @@ class SpannerBatchInserter:
                 columns=(
                     'ID', 'CaseId', 'EP', 'NumTokens', 'HiddenSize', 'IntermediateSize', 
                     'NumExpertes', 'TopK', 'DType', 'BT', 'BTC', 'BF', 'BFC', 
-                    'BD1', 'BD1C', 'BD2', 'BD2C'
+                    'BD1', 'BD1C', 'BD2', 'BD2C', 
+                    'SQW1', 'SQW2', 'RenormalizeTopKLogits' # Added to columns
                 ),
                 values=self.buffer
             )
@@ -136,8 +140,9 @@ def get_dtype_packing(dtype):
     return 32 // bits
 
 def is_valid_config(c, num_tokens, ep_size, t_packing, hidden_size, intermediate_size):
-    local_num_tokens = num_tokens // ep_size
-    if local_num_tokens < t_packing * 8 or local_num_tokens < c['bt']: return False
+    # local_num_tokens = num_tokens // ep_size
+    # search  # Override bt in kernel.py for why.
+    # if local_num_tokens < t_packing * 8 or local_num_tokens < c['bt']: return False
     if c['btc'] > c['bt'] or c['bt'] % c['btc'] != 0: return False
     if c['bfc'] > c['bf'] or c['bf'] % c['bfc'] != 0 or c['bfc'] % 128 != 0: return False
     if c['bd1c'] > c['bd1'] or c['bd1c'] % (t_packing * 128) != 0 or c['bd1'] % c['bd1c'] != 0: return False
@@ -158,7 +163,9 @@ def main(argv):
         [int(x) for x in _EP_SIZES.value], [int(x) for x in _NUM_TOKENS_LIST.value],
         [int(x) for x in _HIDDEN_SIZE_LIST.value], [int(x) for x in _INTERMEDIATE_SIZE_LIST.value],
         [int(x) for x in _NUM_EXPERTS_LIST.value], [int(x) for x in _TOP_K_LIST.value],
-        [jnp.dtype(s) for s in _DTYPE_LIST.value]
+        [jnp.dtype(s) for s in _DTYPE_LIST.value],
+        [int(x) for x in _SQW1_LIST.value], [int(x) for x in _SQW2_LIST.value], # Added SQW1/2
+        [(x.lower() == 'true') for x in _RENORMALIZE_TOPK_LOGITS_LIST.value] # Added Renormalize
     ]
     tiling_params = [
         [int(x) for x in _BT_LST.value], [int(x) for x in _BF_LST.value],
@@ -186,10 +193,9 @@ def main(argv):
             pbar.update(1)
             
             # Unpack values
-            ep, tokens, h, inter, experts, top_k, dtype = vals[0:7]
-            bt, bf, bd1, bd2, btc, bfc, bd1c, bd2c = vals[7:15]
+            ep, tokens, h, inter, experts, top_k, dtype, sqw1, sqw2, renorm = vals[0:10]
+            bt, bf, bd1, bd2, btc, bfc, bd1c, bd2c = vals[10:18]
 
-            # Logic for -1 (copy base block size)
             if bfc == -1: bfc = bf
             if bd1c == -1: bd1c = bd1
             if bd2c == -1: bd2c = bd2
@@ -201,7 +207,8 @@ def main(argv):
                 row = (
                     _CASE_SET_ID.value, inserter.current_case_id,
                     ep, tokens, h, inter, experts, top_k, str(dtype.name),
-                    bt, btc, bf, bfc, bd1, bd1c, bd2, bd2c
+                    bt, btc, bf, bfc, bd1, bd1c, bd2, bd2c,
+                    sqw1, sqw2, renorm
                 )
                 inserter.add_row(row)
             else:
