@@ -8,7 +8,6 @@ from jax.sharding import NamedSharding
 from jax.sharding import PartitionSpec as P
 from functools import partial
 
-
 from absl import app, flags
 from google.cloud import spanner, pubsub_v1
 from tpu_inference.kernels.fused_moe.v1.kernel import fused_ep_moe
@@ -41,16 +40,23 @@ def process_on_tpu(config_row):
     Executes TPU computation. Catches XLA VMEM OOM errors.
     Returns: (avg_latency_us, warmup_time_us, total_case_time_us)
     """
+    # Unpack config including the 3 new columns [SQW1, SQW2, RenormalizeTopKLogits]
+    if _DEBUG.value:
+        print(f"  [DEBUG] Processing Config Row: {config_row}")
     (case_set_id, case_id, ep, tokens_count, h_size, inter_size, 
      experts_count, top_k, dtype_name, bt, btc, bf, bfc, 
-     bd1, bd1c, bd2, bd2c) = config_row
+     bd1, bd1c, bd2, bd2c, sqw1, sqw2, renorm) = config_row
 
     dtype = jnp.dtype(dtype_name)
     mesh = get_mesh(ep)
     
-    @partial(jax.jit, out_shardings=NamedSharding(mesh, P(None, None)))
+    # Static types as requested: scales are float32, tokens/gating are bfloat16
+    scale_dtype = jnp.float32
+    default_dtype = jnp.bfloat16
+
+    # --- Sharded Generation Functions ---
     def gen_tokens(k):
-        return jax.random.normal(k, (tokens_count, h_size), dtype=dtype)
+        return jax.random.normal(k, (tokens_count, h_size), dtype=default_dtype)
 
     # Define sharded generation functions
     # (experts_count, 2, h_size, inter_size)
@@ -63,30 +69,57 @@ def process_on_tpu(config_row):
 
     # (tokens_count, experts_count),
     @partial(jax.jit, out_shardings=NamedSharding(mesh, P(None, 'model')))
-    def gen_gating(k): return jax.random.normal(k, (tokens_count, experts_count), dtype=dtype)
-    
+    def gen_gating(k): return jax.random.normal(k, (tokens_count, experts_count), dtype=default_dtype)
+
+
+    @partial(jax.jit, out_shardings=NamedSharding(mesh, P('model', None, None, None, None)))
+    def gen_scale_w1(k): return jax.random.normal(k, (experts_count, 2, h_size // sqw1, 1, inter_size), dtype=scale_dtype)
+
+    @partial(jax.jit, out_shardings=NamedSharding(mesh, P('model', None, None, None)))
+    def gen_scale_w2(k): return jax.random.normal(k, (experts_count, inter_size // sqw2, 1, h_size), dtype=scale_dtype)
+
     key = jax.random.PRNGKey(int(time.time()))
+    
+    # 1. Generate core tensors
     tokens = gen_tokens(key)
     w1 = gen_w1(key)
     w2 = gen_w2(key)
     gating_output = gen_gating(key)
+
+    # 2. Handle Quantization Scales
+    w1_scale = None
+    subc_quant_w1_sz = None
+    if sqw1 > 0:
+        subc_quant_w1_sz = sqw1
+        w1_scale = gen_scale_w1(key)
+
+    w2_scale = None
+    subc_quant_w2_sz = None
+    if sqw2 > 0:
+        subc_quant_w2_sz = sqw2        
+        w2_scale = gen_scale_w2(key)
 
     kwargs = {
         'bt': bt, 'btc': btc if btc != -1 else bt,
         'bf': bf, 'bfc': bfc if bfc != -1 else bf,
         'bd1': bd1, 'bd1c': bd1c if bd1c != -1 else bd1,
         'bd2': bd2, 'bd2c': bd2c if bd2c != -1 else bd2,
+        'subc_quant_w1_sz': subc_quant_w1_sz,
+        'subc_quant_w2_sz': subc_quant_w2_sz,
+        'w1_scale': w1_scale,
+        'w2_scale': w2_scale,
+        'renormalize_topk_logits': renorm,
     }
 
     start_case = time.perf_counter()
     try:
-        # 1. Warm-up (Includes HLO Compilation)
+        # Warm-up
         warmup_start = time.perf_counter()
         fused_ep_moe(mesh, tokens, w1, w2, gating_output, top_k, **kwargs).block_until_ready()
         warmup_end = time.perf_counter()
         warmup_time_us = int((warmup_end - warmup_start) * 1_000_000)
 
-        # 2. Measured Run
+        # Measured Run
         num_iters = 10
         iter_start = time.perf_counter()
         for _ in range(num_iters):
@@ -105,7 +138,7 @@ def process_on_tpu(config_row):
             return sys.maxsize, 0, int((time.perf_counter() - start_case) * 1_000_000)
         
         print(f"!!! Fatal Kernel Error on Case {case_id}: {e}")
-        raise e
+        raise
 
 # --- Spanner Management ---
 
@@ -150,9 +183,11 @@ class SpannerManager:
             return {row[0] for row in results}
 
     def get_bucket_configs(self, case_set_id, start, end):
+        # Updated query to include SQW1, SQW2, RenormalizeTopKLogits
         query = (
             "SELECT ID, CaseId, EP, NumTokens, HiddenSize, IntermediateSize, "
-            "NumExpertes, TopK, DType, BT, BTC, BF, BFC, BD1, BD1C, BD2, BD2C "
+            "NumExpertes, TopK, DType, BT, BTC, BF, BFC, BD1, BD1C, BD2, BD2C, "
+            "SQW1, SQW2, RenormalizeTopKLogits "
             "FROM Cases WHERE ID = @id AND CaseId BETWEEN @s AND @e "
             "ORDER BY CaseId ASC"
         )
@@ -182,7 +217,7 @@ def get_callback(spanner_mgr):
             data = message.data.decode("utf-8").split("|")
             case_set_id, run_id, bucket_id, start, end = data[0], data[1], int(data[2]), int(data[3]), int(data[4])
             
-            print(f"[{_WORKER_ID.value}] Claimed Bucket {bucket_id} ({start}-{end})")
+            print(f"[{_WORKER_ID.value}] Claimed CaseSetId: {case_set_id}, RunId: {run_id}, Bucket {bucket_id} ({start}-{end})")
             spanner_mgr.mark_bucket_in_progress(case_set_id, run_id, bucket_id)
 
             processed_ids = spanner_mgr.get_already_processed_ids(case_set_id, run_id, start, end)
