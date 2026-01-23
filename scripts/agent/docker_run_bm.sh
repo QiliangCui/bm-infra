@@ -146,8 +146,8 @@ if [[ "$DATASET" == "math500" || "$DATASET" == "mmlu" || "$DATASET" == "mlperf" 
 fi
 
 echo "Copying bench_serving directory to container..."
-docker exec "$CONTAINER_NAME" mkdir -p /workspace/vllm/scripts/agent
-docker cp scripts/agent/bench_serving "$CONTAINER_NAME:/workspace/vllm/scripts/agent/"
+docker exec "$CONTAINER_NAME" mkdir -p /workspace/vllm/scripts/agent/bench_serving
+docker cp scripts/agent/bench_serving/. "$CONTAINER_NAME:/workspace/vllm/scripts/agent/bench_serving/"
 
 echo "copy script run_bm.sh to container..."
 docker cp scripts/agent/run_bm.sh "$CONTAINER_NAME:/workspace/vllm/run_bm.sh"
