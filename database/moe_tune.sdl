@@ -63,7 +63,7 @@ INTERLEAVE IN PARENT CaseSet ON DELETE CASCADE;
 
 CREATE INDEX CasesByLatency 
 ON CaseResults(ID, RunId, Latency) 
-STORING (WorkerID), -- <--- Comma added here
+STORING (WorkerID),
 INTERLEAVE IN CaseSet;
 
 -- Checkpoint table now tracks by ID and RunId

@@ -11,6 +11,7 @@ DATABASE_ID=${GCP_DATABASE_ID:-"tune-moe"}
 # The subscription name is usually the queue name + "-agent" based on your Terraform
 SUBSCRIPTION_ID="${GCP_QUEUE}-agent"
 
+# TODO(Qiliang Cui): 1) change the image name to parameter. 2) record the image in result.
 IMAGE_NAME="vllm/vllm-tpu:nightly-ironwood-20260115-8b93316-4c1c501"
 
 # Since the machine definition clones the repo to /home/bm-agent/bm-infra,

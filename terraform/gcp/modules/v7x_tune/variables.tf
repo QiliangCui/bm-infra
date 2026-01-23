@@ -42,7 +42,7 @@ variable "accelerator_type" {
 
 variable "purpose" {
   type        = string
-  description = "Path to shared startup script template"
+  description = "The purpose of the resource (e.g. 'tune', 'test')"
 }
 
 variable "mnt_disk_gb" {
