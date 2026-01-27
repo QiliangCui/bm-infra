@@ -26,13 +26,8 @@ pip install pandas || true
 pip install datasets || true
 pip install evaluate==0.4.5 || true
 pip install rouge-score==0.1.2 || true
-# TODO(b/477962568 change to v7 variable if confirmed to be culprit)
-if [[ "$MODEL" == "BCCard/Qwen3-Coder-480B-A35B-Instruct-FP8-Dynamic" ]]; then
-  echo "Debug: skip install of 'lm-eval[api,vllm,math]>=0.4.9.2' for $DEVICE"
-else
-  # Install lm_eval with dependencies, version is same as https://github.com/vllm-project/vllm/blob/main/.buildkite/scripts/hardware_ci/run-tpu-v1-test.sh#L64
-  pip install "lm-eval[api,vllm,math]>=0.4.9.2" || true
-fi
+# Install lm_eval with dependencies, version is same as https://github.com/vllm-project/vllm/blob/main/.buildkite/scripts/hardware_ci/run-tpu-v1-test.sh#L64
+pip install "lm-eval[api,math]>=0.4.9.2" || true
 
 VLLM_LOG="$WORKSPACE/vllm_log.txt"
 BM_LOG="$WORKSPACE/bm_log.txt"
