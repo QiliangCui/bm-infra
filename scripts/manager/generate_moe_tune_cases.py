@@ -11,8 +11,8 @@ from jax._src import dtypes
 
 # --- Experiment Metadata Flags ---
 _CASE_SET_ID = flags.DEFINE_string('case_set_id', 'test1', 'Unique ID for this experiment run.')
-_CASE_SET_DESC = flags.DEFINE_string('case_set_desc', '', 'Manual description (if empty, auto-generates from flags).')
-_DRY_RUN = flags.DEFINE_boolean('dry_run', False, 'If True, skip all Spanner operations.')
+_CASE_SET_DESC = flags.DEFINE_string('case_set_desc', '', 'Manual description.')
+_DRY_RUN = flags.DEFINE_boolean('dry_run', False, 'Skip Spanner operations.')
 
 # --- Model Configuration Flags ---
 _EP_SIZES = flags.DEFINE_list('ep_sizes', ['4'], 'EP sizes')
@@ -22,10 +22,9 @@ _INTERMEDIATE_SIZE_LIST = flags.DEFINE_list('intermediate_size_list', ['3072'], 
 _NUM_EXPERTS_LIST = flags.DEFINE_list('num_experts_list', ['128'], 'Experts')
 _TOP_K_LIST = flags.DEFINE_list('top_k_list', ['4'], 'Top K')
 _DTYPE_LIST = flags.DEFINE_list('dtype_list', ['bfloat16'], 'Dtypes')
-# New Columns Added Here
-_SQW1_LIST = flags.DEFINE_list('sqw1_list', ['0'], 'Sub-channel quantization size for W1 (SQW1)')
-_SQW2_LIST = flags.DEFINE_list('sqw2_list', ['0'], 'Sub-channel quantization size for W2 (SQW2)')
-_RENORMALIZE_TOPK_LOGITS_LIST = flags.DEFINE_list('renormalize_topk_logits_list', ['False'], 'Renormalize MoE gating (True/False)')
+_SQW1_LIST = flags.DEFINE_list('sqw1_list', ['0'], 'SQW1')
+_SQW2_LIST = flags.DEFINE_list('sqw2_list', ['0'], 'SQW2')
+_RENORMALIZE_TOPK_LOGITS_LIST = flags.DEFINE_list('renormalize_topk_logits_list', ['False'], 'Renormalize')
 
 # --- Tiling Search Space Flags ---
 _BT_LST = flags.DEFINE_list('bt_lst', ['16', '32', '64', '128', '256'], 'bt')
@@ -33,105 +32,14 @@ _BF_LST = flags.DEFINE_list('bf_lst', ['1280', '1536'], 'bf')
 _BD1_LST = flags.DEFINE_list('bd1_lst', ['1280', '1536'], 'bd1')
 _BD2_LST = flags.DEFINE_list('bd2_lst', ['1280', '1536'], 'bd2')
 _BTC_LST = flags.DEFINE_list('btc_lst', ['16', '32', '64', '128', '256'], 'btc')
-_BFC_LST = flags.DEFINE_list('bfc_lst', ['-1'], 'Chunk sizes for features (-1 to copy bf).')
-_BD1C_LST = flags.DEFINE_list('bd1c_lst', ['-1'], 'Chunk sizes for hidden dim 1 (-1 to copy bd1).')
-_BD2C_LST = flags.DEFINE_list('bd2c_lst', ['-1'], 'Chunk sizes for hidden dim 2 (-1 to copy bd2).')
 
-# --- Spanner Connection Config ---
+# Logic flag for chunk generation
+_SIMPLE_TUNE = flags.DEFINE_boolean('simple_tune', False, 'If True, chunks = tiles. If False, chunks = n * 256.')
+
+# --- Spanner Config ---
 SPANNER_INSTANCE = 'vllm-bm-inst'
 SPANNER_DATABASE = 'tune-moe'
 BATCH_SIZE = 1000  
-
-# --- Spanner Management ---
-
-class SpannerBatchInserter:
-    def __init__(self, instance_id, database_id):
-        if not _DRY_RUN.value:
-            self.client = spanner.Client(disable_builtin_metrics=True)
-            self.instance = self.client.instance(instance_id)
-            self.database = self.instance.database(database_id)
-        else:
-            self.database = None
-        
-        self.current_case_id = 0
-        self.invalid_count = 0
-        self.buffer = []
-
-    @retry.Retry(predicate=retry.if_transient_error)
-    def flush(self):
-        """Writes current buffer to Spanner Cases table."""
-        if not self.buffer:
-            return
-
-        # SKIP network call if dry run
-        if _DRY_RUN.value:
-            self.buffer = []
-            return
-
-        with self.database.batch() as b:
-            b.insert(
-                table='Cases',
-                columns=(
-                    'ID', 'CaseId', 'EP', 'NumTokens', 'HiddenSize', 'IntermediateSize', 
-                    'NumExpertes', 'TopK', 'DType', 'BT', 'BTC', 'BF', 'BFC', 
-                    'BD1', 'BD1C', 'BD2', 'BD2C', 
-                    'SQW1', 'SQW2', 'RenormalizeTopKLogits' # Added to columns
-                ),
-                values=self.buffer
-            )
-        self.buffer = []
-
-    def add_row(self, row):
-        self.buffer.append(row)
-        self.current_case_id += 1
-        if len(self.buffer) >= BATCH_SIZE:
-            self.flush()
-
-def generate_summary_desc():
-    """Generates a summary string of all flags defined in this script."""
-    summary_parts = []
-    current_module_flags = flags.FLAGS.get_key_flags_for_module(__name__)
-    for flag in sorted(current_module_flags, key=lambda f: f.name):
-        if flag.name in ['case_set_id', 'case_set_desc']:
-            continue
-        val = flag.value
-        val_str = ",".join(map(str, val)) if isinstance(val, list) else str(val)
-        summary_parts.append(f"{flag.name}={val_str}")
-    return " | ".join(summary_parts)
-
-def init_parent_creating(database, case_set_id, scan_space):
-    """Initializes the CaseSet record as 'CREATING'. Fails if ID exists."""
-    if _DRY_RUN.value: return # SKIP for dry run
-
-    final_desc = _CASE_SET_DESC.value or generate_summary_desc()
-    def _do_insert(transaction):
-        row = transaction.execute_sql(
-            "SELECT ID FROM CaseSet WHERE ID = @id",
-            params={'id': case_set_id},
-            param_types={'id': spanner.param_types.STRING}
-        ).one_or_none()
-        
-        if row:
-            raise exceptions.AlreadyExists(f"CaseSet ID '{case_set_id}' already exists.")
-        
-        transaction.execute_update(
-            "INSERT INTO CaseSet (ID, Description, Status, ScanSpace) VALUES (@id, @desc, 'CREATING', @ss)",
-            params={'id': case_set_id, 'desc': final_desc, 'ss': scan_space},
-            param_types={'id': spanner.param_types.STRING, 'desc': spanner.param_types.STRING, 'ss': spanner.param_types.INT64}
-        )
-    database.run_in_transaction(_do_insert)
-
-def finish_parent_completed(database, case_set_id, valid, invalid, duration):
-    """Finalizes CaseSet record with stats and 'COMPLETED' status."""
-    if _DRY_RUN.value: return # SKIP for dry run
-
-    def _do_update(transaction):
-        transaction.execute_update(
-            "UPDATE CaseSet SET Status = 'COMPLETED', Valid = @v, Invalid = @i, DurationSeconds = @d WHERE ID = @id",
-            params={'id': case_set_id, 'v': valid, 'i': invalid, 'd': duration},
-            param_types={'id': spanner.param_types.STRING, 'v': spanner.param_types.INT64, 'i': spanner.param_types.INT64, 'd': spanner.param_types.FLOAT64}
-        )
-    database.run_in_transaction(_do_update)
 
 # --- Logic & Constraints ---
 
@@ -139,92 +47,141 @@ def get_dtype_packing(dtype):
     bits = (dtypes.bit_width(dtype) if hasattr(dtypes, "bit_width") else dtypes.itemsize_bits(dtype))
     return 32 // bits
 
-def is_valid_config(c, num_tokens, ep_size, t_packing, hidden_size, intermediate_size):
-    # local_num_tokens = num_tokens // ep_size
-    # search  # Override bt in kernel.py for why.
-    # if local_num_tokens < t_packing * 8 or local_num_tokens < c['bt']: return False
+def filter_out_invalid_bd1(arr, hidden_size):
+    return [x for x in arr if x % 128 == 0 and hidden_size % x == 0]
+
+def filter_out_invalid_bd2(arr, hidden_size):
+    return [x for x in arr if x % 128 == 0 and hidden_size % x == 0]
+
+def filter_out_invalid_bf(arr, intermediate_size):
+    return [x for x in arr if x % 128 == 0 and intermediate_size % x == 0]
+
+def get_chunk_candidates(full_size):
+    """Generates chunk candidates based on simple_tune flag."""
+    if _SIMPLE_TUNE.value:
+        return [full_size]
+    # Candidates are multiples of 256 that divide the tile size evenly
+    candidates = [val for val in range(256, full_size + 1, 256) if full_size % val == 0]
+    return candidates if candidates else [full_size]
+
+def is_valid_config(c, t_packing):
+    """Validates tiling and chunking logic."""
     if c['btc'] > c['bt'] or c['bt'] % c['btc'] != 0: return False
-    if c['bfc'] > c['bf'] or c['bf'] % c['bfc'] != 0 or c['bfc'] % 128 != 0: return False
-    if c['bd1c'] > c['bd1'] or c['bd1c'] % (t_packing * 128) != 0 or c['bd1'] % c['bd1c'] != 0: return False
-    if c['bd2c'] > c['bd2'] or c['bd2c'] % (t_packing * 128) != 0 or c['bd2'] % c['bd2c'] != 0: return False
-    if hidden_size % c['bd1'] != 0 or hidden_size % c['bd2'] != 0 or intermediate_size % c['bf'] != 0: return False
+    # Additional constraints for chunk alignment
+    if c['bd1c'] % (t_packing * 128) != 0: return False
+    if c['bd2c'] % (t_packing * 128) != 0: return False
     return True
+
+# --- Spanner Management ---
+
+class SpannerManager:
+    def __init__(self, instance_id, database_id):
+        self.current_case_id = 0
+        self.invalid_count = 0
+        self.buffer = []
+        if not _DRY_RUN.value:
+            self.client = spanner.Client(disable_builtin_metrics=True)
+            self.instance = self.client.instance(instance_id)
+            self.database = self.instance.database(database_id)
+        else:
+            self.database = None
+
+    def init_case_set(self, case_set_id):
+        if _DRY_RUN.value: return
+        desc = _CASE_SET_DESC.value or "Auto-generated MoE Tune Set"
+        def _do_insert(tx):
+            row = tx.execute_sql("SELECT ID FROM CaseSet WHERE ID = @id", 
+                                 params={'id': case_set_id}, 
+                                 param_types={'id': spanner.param_types.STRING}).one_or_none()
+            if row: raise exceptions.AlreadyExists(f"ID '{case_set_id}' exists.")
+            tx.execute_update(
+                "INSERT INTO CaseSet (ID, Description, Status) VALUES (@id, @desc, 'CREATING')",
+                params={'id': case_set_id, 'desc': desc},
+                param_types={'id': spanner.param_types.STRING, 'desc': spanner.param_types.STRING}
+            )
+        self.database.run_in_transaction(_do_insert)
+
+    def finish_case_set(self, case_set_id, valid, invalid, duration):
+        if _DRY_RUN.value: return
+        def _do_update(tx):
+            tx.execute_update(
+                "UPDATE CaseSet SET Status = 'COMPLETED', Valid = @v, Invalid = @i, DurationSeconds = @d WHERE ID = @id",
+                params={'id': case_set_id, 'v': valid, 'i': invalid, 'd': duration},
+                param_types={'id': spanner.param_types.STRING, 'v': spanner.param_types.INT64, 
+                             'i': spanner.param_types.INT64, 'd': spanner.param_types.FLOAT64}
+            )
+        self.database.run_in_transaction(_do_update)
+
+    @retry.Retry(predicate=retry.if_transient_error)
+    def flush(self):
+        if not self.buffer or _DRY_RUN.value:
+            self.buffer = []
+            return
+        with self.database.batch() as b:
+            b.insert(table='Cases', columns=(
+                'ID', 'CaseId', 'EP', 'NumTokens', 'HiddenSize', 'IntermediateSize', 
+                'NumExpertes', 'TopK', 'DType', 'BT', 'BTC', 'BF', 'BFC', 
+                'BD1', 'BD1C', 'BD2', 'BD2C', 'SQW1', 'SQW2', 'RenormalizeTopKLogits'
+            ), values=self.buffer)
+        self.buffer = []
+
+    def add_row(self, row):
+        self.buffer.append(row)
+        self.current_case_id += 1
+        if len(self.buffer) >= BATCH_SIZE: self.flush()
 
 # --- Main ---
 
 def main(argv):
-    if _DRY_RUN.value:
-        print(">>> DRY RUN MODE ENABLED: No data will be written to Spanner. <<<")
-
-    inserter = SpannerBatchInserter(SPANNER_INSTANCE, SPANNER_DATABASE)
-
-    # 1. Setup flat parameter space
-    input_params = [
+    mgr = SpannerManager(SPANNER_INSTANCE, SPANNER_DATABASE)
+    mgr.init_case_set(_CASE_SET_ID.value)
+    
+    # Pre-parse lists
+    model_params = list(itertools.product(
         [int(x) for x in _EP_SIZES.value], [int(x) for x in _NUM_TOKENS_LIST.value],
         [int(x) for x in _HIDDEN_SIZE_LIST.value], [int(x) for x in _INTERMEDIATE_SIZE_LIST.value],
         [int(x) for x in _NUM_EXPERTS_LIST.value], [int(x) for x in _TOP_K_LIST.value],
-        [jnp.dtype(s) for s in _DTYPE_LIST.value],
-        [int(x) for x in _SQW1_LIST.value], [int(x) for x in _SQW2_LIST.value], # Added SQW1/2
-        [(x.lower() == 'true') for x in _RENORMALIZE_TOPK_LOGITS_LIST.value] # Added Renormalize
-    ]
-    tiling_params = [
-        [int(x) for x in _BT_LST.value], [int(x) for x in _BF_LST.value],
-        [int(x) for x in _BD1_LST.value], [int(x) for x in _BD2_LST.value],
-        [int(x) for x in _BTC_LST.value], [int(x) for x in _BFC_LST.value],
-        [int(x) for x in _BD1C_LST.value], [int(x) for x in _BD2C_LST.value]
-    ]
-    all_param_lists = input_params + tiling_params
-    total_combinations = math.prod(len(lst) for lst in all_param_lists)
+        [jnp.dtype(s) for s in _DTYPE_LIST.value], [int(x) for x in _SQW1_LIST.value],
+        [int(x) for x in _SQW2_LIST.value], [(x.lower() == 'true') for x in _RENORMALIZE_TOPK_LOGITS_LIST.value]
+    ))
 
-    # 2. Check existence and set status to CREATING
-    try:
-        init_parent_creating(inserter.database, _CASE_SET_ID.value, total_combinations)
-        if not _DRY_RUN.value:
-            print(f"Initialized CaseSet: {_CASE_SET_ID.value} (Status: CREATING)")
-    except exceptions.AlreadyExists as e:
-        print(f"\n[ERROR] {e}")
-        sys.exit(1)
+    bt_raw = [int(x) for x in _BT_LST.value]
+    bf_raw = [int(x) for x in _BF_LST.value]
+    bd1_raw = [int(x) for x in _BD1_LST.value]
+    bd2_raw = [int(x) for x in _BD2_LST.value]
+    btc_raw = [int(x) for x in _BTC_LST.value]
 
     start_time = time.time()
 
-    # 3. Stream through the flat product
-    with tqdm(total=total_combinations, desc="Processing Cases", unit="cfg") as pbar:
-        for vals in itertools.product(*all_param_lists):
-            pbar.update(1)
+    for m in tqdm(model_params, desc="Generating Cases"):
+        ep, tokens, h, inter, expert, tk, dt, s1, s2, rn = m
+        t_packing = get_dtype_packing(dt)       
+        
+        # Apply top-level filtering based on model dims
+        valid_bf = filter_out_invalid_bf(bf_raw, inter)
+        valid_bd1 = filter_out_invalid_bd1(bd1_raw, h)
+        valid_bd2 = filter_out_invalid_bd2(bd2_raw, h)
+
+        for bt, bf, bd1, bd2, btc in itertools.product(bt_raw, valid_bf, valid_bd1, valid_bd2, btc_raw):            
             
-            # Unpack values
-            ep, tokens, h, inter, experts, top_k, dtype, sqw1, sqw2, renorm = vals[0:10]
-            bt, bf, bd1, bd2, btc, bfc, bd1c, bd2c = vals[10:18]
+            bfc_list = get_chunk_candidates(bf)            
+            bd1c_list = get_chunk_candidates(bd1)
+            bd2c_list = get_chunk_candidates(bd2)            
+            for bfc, bd1c, bd2c in itertools.product(bfc_list, bd1c_list, bd2c_list):
+                cfg = {'bt':bt, 'btc':btc, 'bfc':bfc, 'bd1c':bd1c, 'bd2c':bd2c}
+                
+                if is_valid_config(cfg, t_packing):
+                    mgr.add_row((
+                        _CASE_SET_ID.value, mgr.current_case_id, ep, tokens, h, inter, 
+                        expert, tk, str(dt.name), bt, btc, bf, bfc, bd1, bd1c, bd2, bd2c, s1, s2, rn
+                    ))
+                else:
+                    mgr.invalid_count += 1
 
-            if bfc == -1: bfc = bf
-            if bd1c == -1: bd1c = bd1
-            if bd2c == -1: bd2c = bd2
-
-            kwargs = {'bt':bt, 'bf':bf, 'bd1':bd1, 'bd2':bd2, 'btc':btc, 'bfc':bfc, 'bd1c':bd1c, 'bd2c':bd2c}
-            t_packing = get_dtype_packing(dtype)
-
-            if is_valid_config(kwargs, tokens, ep, t_packing, h, inter):
-                row = (
-                    _CASE_SET_ID.value, inserter.current_case_id,
-                    ep, tokens, h, inter, experts, top_k, str(dtype.name),
-                    bt, btc, bf, bfc, bd1, bd1c, bd2, bd2c,
-                    sqw1, sqw2, renorm
-                )
-                inserter.add_row(row)
-            else:
-                inserter.invalid_count += 1
-
-    # 4. Final flush and update status
-    inserter.flush()
+    mgr.flush()
     duration = time.time() - start_time
-    finish_parent_completed(inserter.database, _CASE_SET_ID.value, inserter.current_case_id, inserter.invalid_count, duration)
-
-    if _DRY_RUN.value:
-        print(f"\n[DRY RUN COMPLETE]")
-    else:
-        print(f"\nDone! CaseSet '{_CASE_SET_ID.value}' Status updated to COMPLETED.")
-    
-    print(f"Stats: Valid={inserter.current_case_id:,} | Invalid={inserter.invalid_count:,} | Duration={duration:.2f}s")
+    mgr.finish_case_set(_CASE_SET_ID.value, mgr.current_case_id, mgr.invalid_count, duration)
+    print(f"\nDone. Valid: {mgr.current_case_id} | Invalid: {mgr.invalid_count} | {duration:.2f}s")
 
 if __name__ == '__main__':
     app.run(main)
