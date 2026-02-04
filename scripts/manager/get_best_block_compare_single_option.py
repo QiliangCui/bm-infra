@@ -88,7 +88,7 @@ def fetch_best_configs(database):
     return results
 
 def main(argv):
-    # Load existing dictionary just to preserve data not covered by this run
+    # Load existing dictionary
     local_dict = {}
     try:
         from tuned_block_sizes import TUNED_BLOCK_SIZES
@@ -104,12 +104,14 @@ def main(argv):
         print("No benchmark results found. Exiting.")
         return
 
-    print(f"\n--- Benchmark Winner vs. Fixed Baseline ({FIXED_BLOCK}) ---")
+    print(f"\n--- Benchmark Winner vs. Fixed Baseline ---")
+    # Added 'Baseline Tiling' column as requested
     header = (f"{'Key (H, I, E, K, TP, WP, Tok, EP)':<50} | "
               f"{'Best Tiling Found':<45} | "
+              f"{'Baseline Tiling (Fixed)':<45} | "
               f"{'Best Lat':<10} | "
               f"{'Base Lat':<10} | "
-              f"{'Speedup':<8}")
+              f"{'Improv (%)':<10}")
     print(header)
     print("-" * len(header))
 
@@ -123,19 +125,21 @@ def main(argv):
         # 1. Compare best with fixed block latency
         baseline_lat = get_baseline_latency(db, model_key)
         
-        speedup = "N/A"
-        if isinstance(baseline_lat, int) and lat > 0:
-            speedup = f"{(baseline_lat / lat):.2f}x"
+        improv_str = "N/A"
+        if isinstance(baseline_lat, int) and baseline_lat > 0:
+            improvement = ((baseline_lat - lat) / baseline_lat) * 100
+            improv_str = f"{improvement:+.2f}%"
         
         base_lat_str = f"{baseline_lat:,}" if isinstance(baseline_lat, int) else "N/A"
 
+        # Explicitly printing FIXED_BLOCK as the "Old Tiling"
         print(f"{str(model_key):<50} | {str(new_val):<45} | "
-              f"{lat:<10,} | {base_lat_str:<10} | {speedup:<8}")
+              f"{str(FIXED_BLOCK):<45} | "
+              f"{lat:<10,} | {base_lat_str:<10} | {improv_str:<10}")
 
-        # Update the local dictionary with the winner
         local_dict[model_key] = new_val
 
-    # Write merged dictionary to file
+    # 2. Write merged dictionary to file (remains the same)
     with open(_OUTPUT_PATH.value, 'w') as f:
         f.write("# Auto-generated Tuned Block Sizes\n")
         f.write("TUNED_BLOCK_SIZES = {\n")
@@ -148,6 +152,5 @@ def main(argv):
         f.write("}\n")
 
     print(f"\nUpdate complete. Total entries in { _OUTPUT_PATH.value}: {len(local_dict)}")
-
 if __name__ == '__main__':
     app.run(main)

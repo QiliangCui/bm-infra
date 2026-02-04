@@ -102,12 +102,14 @@ def main(argv):
         return
 
     print(f"\n--- Merged Benchmark Report ---")
+    # Added 'Improv' column at the end
     header = (f"{'Action':<8} | "
               f"{'Key (Hidden, Inter, Exp, TopK, TPack, WPack, Toks, EP)':<60} | "
               f"{'New Tiling (BT,BF,BD1,BD2,BTC,BFC,BD1C,BD2C)':<45} | "
               f"{'Old Tiling':<45} | "
               f"{'Lat':<8} | "
-              f"{'OldLat':<8}")
+              f"{'OldLat':<8} | "
+              f"{'Improv':<8}")
     print(header)
     print("-" * len(header))
 
@@ -121,13 +123,22 @@ def main(argv):
 
         old_lat_str = ""
         old_tiling_str = "None"
+        improv_str = ""
         
         if model_key in local_dict:
             old_val = local_dict[model_key]
             if old_val != new_val:
                 action = "update"
                 old_lat = get_old_latency(db, model_key, old_val)
-                old_lat_str = f"{old_lat:,}" if isinstance(old_lat, int) else ""
+                
+                # Calculate Improvement Percentage
+                if isinstance(old_lat, (int, float)) and old_lat > 0:
+                    improvement = ((old_lat - lat) / old_lat) * 100
+                    improv_str = f"{improvement:.2f}%"
+                    old_lat_str = f"{old_lat:,}"
+                else:
+                    old_lat_str = str(old_lat) if old_lat else ""
+                
                 old_tiling_str = str(old_val)
             else:
                 action = "keep"
@@ -136,7 +147,7 @@ def main(argv):
 
         if action != "keep":
             print(f"{action:<8} | {str(model_key):<60} | {str(new_val):<45} | "
-                  f"{old_tiling_str:<45} | {lat:<8,} | {old_lat_str:<8}")
+                  f"{old_tiling_str:<45} | {lat:<8,} | {old_lat_str:<8} | {improv_str:<8}")
 
         # Update the local dictionary with the winner
         local_dict[model_key] = new_val
@@ -145,7 +156,6 @@ def main(argv):
     with open(_OUTPUT_PATH.value, 'w') as f:
         f.write("# Auto-generated Tuned Block Sizes\n")
         f.write("TUNED_BLOCK_SIZES = {\n")
-        # Sort keys for deterministic file output
         for k in sorted(local_dict.keys()):
             v = local_dict[k]
             f.write(f"    {k}: (\n")
