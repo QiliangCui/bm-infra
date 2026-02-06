@@ -1,6 +1,4 @@
 import itertools
-import math
-import sys
 import time
 from absl import app, flags
 from google.cloud import spanner
@@ -13,6 +11,9 @@ from jax._src import dtypes
 _CASE_SET_ID = flags.DEFINE_string('case_set_id', 'test1', 'Unique ID for this experiment run.')
 _CASE_SET_DESC = flags.DEFINE_string('case_set_desc', '', 'Manual description.')
 _DRY_RUN = flags.DEFINE_boolean('dry_run', False, 'Skip Spanner operations.')
+
+# --- Memory Constraint Flag ---
+_PER_CHIP_MEM_LIMIT = flags.DEFINE_integer('per_chip_memory_limit', 64, 'Memory limit per core in MiB.')
 
 # --- Model Configuration Flags ---
 _EP_SIZES = flags.DEFINE_list('ep_sizes', ['4'], 'EP sizes')
@@ -42,6 +43,13 @@ SPANNER_DATABASE = 'tune-moe'
 BATCH_SIZE = 1000  
 
 # --- Logic & Constraints ---
+def cdiv(a, b):
+    return (a + b - 1) // b
+
+def get_dtype_size(dtype):
+    """Returns size in bytes."""
+    bits = (dtypes.bit_width(dtype) if hasattr(dtypes, "bit_width") else dtypes.itemsize_bits(dtype))
+    return bits // 8
 
 def get_dtype_packing(dtype):
     bits = (dtypes.bit_width(dtype) if hasattr(dtypes, "bit_width") else dtypes.itemsize_bits(dtype))
@@ -64,12 +72,37 @@ def get_chunk_candidates(full_size):
     candidates = [val for val in range(256, full_size + 1, 256) if full_size % val == 0]
     return candidates if candidates else [full_size]
 
-def is_valid_config(c, t_packing):
+def estimate_vmem_usage(c, dtype_size):
+    """
+    Estimates the memory usage of the tiles in VMEM.
+    Based on the error: f8e4m3fn[2,2,3072,2560] ~ 30MB.
+    Heuristic: (ActTile + WeightTile1 + WeightTile2 + Scratch)
+    We assume double buffering (2x) for many of these scratchpads.
+    """
+    bt, bf, bd1, bd2 = c['bt'], c['bf'], c['bd1'], c['bd2']
+    
+    # https://github.com/vllm-project/tpu-inference/blob/main/tpu_inference/kernels/fused_moe/v1/kernel.py#L1551  
+    # https://paste.googleplex.com/4732772704976896
+    
+    return (2 * bd1 * bf * dtype_size     # b_w1_x2_vmem
+            + 2 * bd1 * bf * dtype_size    # b_w3_x2_vmem
+            + 2 * bd1 * bf * dtype_size  # b_w2_x2_vmem            
+            )
+
+def is_valid_config(c, t_packing, dtype_size, mem_limit_mib):
     """Validates tiling and chunking logic."""
     if c['btc'] > c['bt'] or c['bt'] % c['btc'] != 0: return False
     # Additional constraints for chunk alignment
     if c['bd1c'] % (t_packing * 128) != 0: return False
     if c['bd2c'] % (t_packing * 128) != 0: return False
+    
+    # OOM Estimation
+    est_bytes = estimate_vmem_usage(c, dtype_size)
+    limit_bytes = mem_limit_mib * 1024 * 1024
+    
+    if est_bytes > limit_bytes:
+        return False
+    
     return True
 
 # --- Spanner Management ---
@@ -151,11 +184,13 @@ def main(argv):
     bd2_raw = [int(x) for x in _BD2_LST.value]
     btc_raw = [int(x) for x in _BTC_LST.value]
 
+    mem_limit = _PER_CHIP_MEM_LIMIT.value
     start_time = time.time()
 
     for m in tqdm(model_params, desc="Generating Cases"):
         ep, tokens, h, inter, expert, tk, dt, s1, s2, rn = m
         t_packing = get_dtype_packing(dt)       
+        dt_size = get_dtype_size(dt)
         
         # Apply top-level filtering based on model dims
         valid_bf = filter_out_invalid_bf(bf_raw, inter)
@@ -168,9 +203,9 @@ def main(argv):
             bd1c_list = get_chunk_candidates(bd1)
             bd2c_list = get_chunk_candidates(bd2)            
             for bfc, bd1c, bd2c in itertools.product(bfc_list, bd1c_list, bd2c_list):
-                cfg = {'bt':bt, 'btc':btc, 'bfc':bfc, 'bd1c':bd1c, 'bd2c':bd2c}
-                
-                if is_valid_config(cfg, t_packing):
+                # cfg = {'bt':bt, 'btc':btc, 'bfc':bfc, 'bd1c':bd1c, 'bd2c':bd2c}
+                cfg = {'bt':bt, 'btc':btc, 'bf':bf, 'bfc':bfc, 'bd1':bd1, 'bd1c':bd1c, 'bd2':bd2, 'bd2c':bd2c}
+                if is_valid_config(cfg, t_packing, dt_size, mem_limit):
                     mgr.add_row((
                         _CASE_SET_ID.value, mgr.current_case_id, ep, tokens, h, inter, 
                         expert, tk, str(dt.name), bt, btc, bf, bfc, bd1, bd1c, bd2, bd2c, s1, s2, rn
