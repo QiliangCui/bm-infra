@@ -72,32 +72,62 @@ def get_chunk_candidates(full_size):
     candidates = [val for val in range(256, full_size + 1, 256) if full_size % val == 0]
     return candidates if candidates else [full_size]
 
-def estimate_vmem_usage(c, dtype_size):
+def estimate_vmem_usage(c):
     """
     Estimates the memory usage of the tiles in VMEM.
     Based on the error: f8e4m3fn[2,2,3072,2560] ~ 30MB.
     Heuristic: (ActTile + WeightTile1 + WeightTile2 + Scratch)
     We assume double buffering (2x) for many of these scratchpads.
     """
+    t_packing = c['t_packing']
+    w_packing = c['w_packing']
+    
+    t_type_size = 4 // t_packing
+    w_type_size = 4 // w_packing
+    assert t_type_size > 0
+    assert w_type_size > 0
+    
     bt, bf, bd1, bd2 = c['bt'], c['bf'], c['bd1'], c['bd2']
+    num_devices = c['ep']
+    
+    hidden_size = c['h']
+    top_k = c['tk']
     
     # https://github.com/vllm-project/tpu-inference/blob/main/tpu_inference/kernels/fused_moe/v1/kernel.py#L1551  
     # https://paste.googleplex.com/4732772704976896
+    # https://paste.googleplex.com/6688117367111680
     
-    return (2 * bd1 * bf * dtype_size     # b_w1_x2_vmem
-            + 2 * bd1 * bf * dtype_size    # b_w3_x2_vmem
-            + 2 * bd1 * bf * dtype_size  # b_w2_x2_vmem            
+    memory = (2 * bt * num_devices * hidden_size * t_type_size # a2a_s_x2_vmem
+            , 2 * bt * num_devices * hidden_size * t_type_size# a2a_s_acc_x2_vmem
+            , top_k * bt * hidden_size * t_type_size # a2a_g_acc_vmem
+            , 0  # b_gating_x2_vmem
+            , 2 * bt * hidden_size * t_type_size   # b_output_x2_vmem
+            , 2 * bd1 * bf * w_type_size     # b_w1_x2_vmem
+            , 2 * bd1 * bf * w_type_size          # b_w3_x2_vmem
+            , 2 * bd2 * bf * w_type_size          # b_w2_x2_vmem
+            , 0 # b_w1_scale_x2_vmem
+            , 0 # b_w3_scale_x2_vmem
+            , 0 # b_w2_scale_x2_vmem
+            , 0 # b_b1_x2_vmem
+            , 0 # b_b3_x2_vmem
+            , 0 # b_b2_x2_vmem
+            , 2 * bt * num_devices* bf * get_dtype_size(jnp.float32) # b_acc_vmem
             )
+    return sum(memory)
 
-def is_valid_config(c, t_packing, dtype_size, mem_limit_mib):
+def is_valid_config(c, mem_limit_mib):
+    assert c['t_packing'] == 2
     """Validates tiling and chunking logic."""
     if c['btc'] > c['bt'] or c['bt'] % c['btc'] != 0: return False
     # Additional constraints for chunk alignment
-    if c['bd1c'] % (t_packing * 128) != 0: return False
-    if c['bd2c'] % (t_packing * 128) != 0: return False
+    # todo: use following logic below. use 128*4 to reduce the size.
+    if c['bd1c'] % (c['t_packing'] * 128) != 0: return False
+    if c['bd2c'] % (c['t_packing'] * 128) != 0: return False
+    # if c['bd1c'] % (4 * 128) != 0: return False
+    # if c['bd2c'] % (4 * 128) != 0: return False
     
     # OOM Estimation
-    est_bytes = estimate_vmem_usage(c, dtype_size)
+    est_bytes = estimate_vmem_usage(c)
     limit_bytes = mem_limit_mib * 1024 * 1024
     
     if est_bytes > limit_bytes:
@@ -171,11 +201,16 @@ def main(argv):
     
     # Pre-parse lists
     model_params = list(itertools.product(
-        [int(x) for x in _EP_SIZES.value], [int(x) for x in _NUM_TOKENS_LIST.value],
-        [int(x) for x in _HIDDEN_SIZE_LIST.value], [int(x) for x in _INTERMEDIATE_SIZE_LIST.value],
-        [int(x) for x in _NUM_EXPERTS_LIST.value], [int(x) for x in _TOP_K_LIST.value],
-        [jnp.dtype(s) for s in _DTYPE_LIST.value], [int(x) for x in _SQW1_LIST.value],
-        [int(x) for x in _SQW2_LIST.value], [(x.lower() == 'true') for x in _RENORMALIZE_TOPK_LOGITS_LIST.value]
+        [int(x) for x in _EP_SIZES.value], 
+        [int(x) for x in _NUM_TOKENS_LIST.value],
+        [int(x) for x in _HIDDEN_SIZE_LIST.value], 
+        [int(x) for x in _INTERMEDIATE_SIZE_LIST.value],
+        [int(x) for x in _NUM_EXPERTS_LIST.value], 
+        [int(x) for x in _TOP_K_LIST.value],
+        [jnp.dtype(s) for s in _DTYPE_LIST.value],
+        [int(x) for x in _SQW1_LIST.value],
+        [int(x) for x in _SQW2_LIST.value],
+        [(x.lower() == 'true') for x in _RENORMALIZE_TOPK_LOGITS_LIST.value]
     ))
 
     bt_raw = [int(x) for x in _BT_LST.value]
@@ -189,8 +224,9 @@ def main(argv):
 
     for m in tqdm(model_params, desc="Generating Cases"):
         ep, tokens, h, inter, expert, tk, dt, s1, s2, rn = m
-        t_packing = get_dtype_packing(dt)       
-        dt_size = get_dtype_size(dt)
+        # todo: consider the tokens. now, tokens are bf16
+        t_packing = get_dtype_packing(jnp.bfloat16)  # activation tiles are always bf16
+        w_packing = get_dtype_packing(dt)
         
         # Apply top-level filtering based on model dims
         valid_bf = filter_out_invalid_bf(bf_raw, inter)
@@ -202,10 +238,25 @@ def main(argv):
             bfc_list = get_chunk_candidates(bf)            
             bd1c_list = get_chunk_candidates(bd1)
             bd2c_list = get_chunk_candidates(bd2)            
-            for bfc, bd1c, bd2c in itertools.product(bfc_list, bd1c_list, bd2c_list):
-                # cfg = {'bt':bt, 'btc':btc, 'bfc':bfc, 'bd1c':bd1c, 'bd2c':bd2c}
-                cfg = {'bt':bt, 'btc':btc, 'bf':bf, 'bfc':bfc, 'bd1':bd1, 'bd1c':bd1c, 'bd2':bd2, 'bd2c':bd2c}
-                if is_valid_config(cfg, t_packing, dt_size, mem_limit):
+            for bfc, bd1c, bd2c in itertools.product(bfc_list, bd1c_list, bd2c_list):                
+                cfg = {
+                    'bt': bt,
+                    'btc': btc,
+                    'bf': bf,
+                    'bfc': bfc,
+                    'bd1': bd1,
+                    'bd1c': bd1c,
+                    'bd2': bd2,
+                    'bd2c': bd2c,
+                    'ep': ep,
+                    'tk': tk,
+                    'h': h,
+                    'inter': inter,
+                    'expert': expert,
+                    't_packing': t_packing,
+                    'w_packing': w_packing,
+                }
+                if is_valid_config(cfg, mem_limit):
                     mgr.add_row((
                         _CASE_SET_ID.value, mgr.current_case_id, ep, tokens, h, inter, 
                         expert, tk, str(dt.name), bt, btc, bf, bfc, bd1, bd1c, bd2, bd2c, s1, s2, rn
@@ -216,7 +267,7 @@ def main(argv):
     mgr.flush()
     duration = time.time() - start_time
     mgr.finish_case_set(_CASE_SET_ID.value, mgr.current_case_id, mgr.invalid_count, duration)
-    print(f"\nDone. Valid: {mgr.current_case_id} | Invalid: {mgr.invalid_count} | {duration:.2f}s")
+    print(f"\nDone. Valid: {mgr.current_case_id:,} | Invalid: {mgr.invalid_count:,} | {duration:.2f}s")
 
 if __name__ == '__main__':
     app.run(main)

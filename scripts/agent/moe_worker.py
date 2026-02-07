@@ -12,6 +12,9 @@ from absl import app, flags
 from google.cloud import spanner, pubsub_v1
 from tpu_inference.kernels.fused_moe.v1.kernel import fused_ep_moe
 
+_FAILED_OOM = -1
+_UNKNOWN_ERROR = -100
+
 _HOSTNAME = socket.gethostname()
 
 # --- Flags Definition ---
@@ -135,10 +138,10 @@ def process_on_tpu(config_row):
         error_msg = str(e)
         if "RESOURCE_EXHAUSTED" in error_msg or "vmem" in error_msg:
             # Sentinel for OOM
-            return sys.maxsize, 0, int((time.perf_counter() - start_case) * 1_000_000)
+            return _FAILED_OOM, 0, int((time.perf_counter() - start_case) * 1_000_000)
         
         print(f"!!! Fatal Kernel Error on Case {case_id}: {e}")
-        raise
+        return _UNKNOWN_ERROR, 0, int((time.perf_counter() - start_case) * 1_000_000)
 
 # --- Spanner Management ---
 
@@ -230,7 +233,13 @@ def get_callback(spanner_mgr):
                 if not config: continue
 
                 latency, warmup, total_case = process_on_tpu(config)
-                status = "SUCCESS" if latency != sys.maxsize else "FAILED_OOM"
+                
+                if latency == _FAILED_OOM:
+                    status = "FAILED_OOM"
+                elif latency == _UNKNOWN_ERROR:
+                    status = "UNKNOWN_ERROR"
+                else:
+                    status = "SUCCESS" 
                 
                 results_buffer.append(
                     (case_set_id, run_id, cid, status, _WORKER_ID.value, latency, warmup, total_case, spanner.COMMIT_TIMESTAMP)
