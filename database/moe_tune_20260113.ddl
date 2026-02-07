@@ -1,0 +1,1 @@
+ALTER TABLE CaseSet ALTER COLUMN Description STRING(MAX);

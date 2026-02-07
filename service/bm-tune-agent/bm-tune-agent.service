@@ -1,0 +1,29 @@
+[Unit]
+Description=Benchmark Tune Agent Service
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=bm-agent
+WorkingDirectory=/home/bm-agent/bm-infra
+
+# Cleanup: Stop and remove any existing container before starting a new one
+# The '-' prefix tells systemd to ignore errors if the container doesn't exist
+ExecStartPre=-/usr/bin/docker stop tpu-tune
+ExecStartPre=-/usr/bin/docker rm tpu-tune
+
+ExecStart=/bin/bash /home/bm-agent/bm-infra/scripts/agent/docker_tune_moe.sh
+
+# Restart logic: Wait 10s and retry regardless of exit code
+Restart=always
+RestartSec=10s
+
+EnvironmentFile=/etc/environment
+StandardOutput=journal
+StandardError=journal
+KillSignal=SIGTERM
+TimeoutStopSec=1800
+
+[Install]
+WantedBy=multi-user.target
