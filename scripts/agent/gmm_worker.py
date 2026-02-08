@@ -28,15 +28,15 @@ def clear_tensor_cache():
 def process_on_tpu(config_row):
     global _LAST_STRUCTURAL_CONFIG
     (cs_id, case_id, m, k, n, tg, cg, ldt, rdt, q_block, tm, tk, tn) = config_row
-    structural_config = (m, k, n, cg, ldt, rdt, q_block)
     
     if _DEBUG.value:
         print(f"  [DEBUG] Processing Config Row: {config_row}")
-        
+
+    structural_config = (m, k, n, cg, ldt, rdt, q_block)
+    
     if structural_config != _LAST_STRUCTURAL_CONFIG:
         if _DEBUG.value:
             print(f"  [DEBUG] Structural config changed: {_LAST_STRUCTURAL_CONFIG} -> {structural_config}. Re-generating tensors.")
-
         clear_tensor_cache()
         _LAST_STRUCTURAL_CONFIG = structural_config
         key = jax.random.PRNGKey(int(time.time()))
@@ -59,20 +59,30 @@ def process_on_tpu(config_row):
     tiling = (tm, tk, tn)
     start_case = time.perf_counter()
     try:
-        # preferred_element_type=lhs.dtype
-        # reason: https://github.com/vllm-project/tpu-inference/blob/main/tpu_inference/layers/common/fused_moe_gmm.py#L139
+        # Warm-up
+        warmup_start = time.perf_counter()
         gmm(lhs, rhs, group_sizes, preferred_element_type=lhs.dtype, 
             rhs_scale=rhs_scale, tiling=tiling, group_offset=group_offset).block_until_ready()
-        warmup_time = int((time.perf_counter() - start_case) * 1_000_000)
+        warmup_end = time.perf_counter()
+        warmup_time_us = int((warmup_end - warmup_start) * 1_000_000)
+
+        # Measured Run
         num_iters = 10
         iter_start = time.perf_counter()
         for _ in range(num_iters):
             gmm(lhs, rhs, group_sizes, preferred_element_type=lhs.dtype, 
                 rhs_scale=rhs_scale, tiling=tiling, group_offset=group_offset).block_until_ready()
-        avg_latency = int(((time.perf_counter() - iter_start) / num_iters) * 1_000_000)
-        return avg_latency, warmup_time, int((time.perf_counter() - start_case) * 1_000_000)
+        iter_end = time.perf_counter()
+        
+        avg_latency = int(((iter_end - iter_start) / num_iters) * 1_000_000)
+        total_case_time_us = int((time.perf_counter() - start_case) * 1_000_000)
+        return avg_latency, warmup_time_us, total_case_time_us
+
     except Exception as e:
-        if "RESOURCE_EXHAUSTED" in str(e).lower() or "vmem" in str(e).lower():
+        error_msg = str(e).lower()
+        if "resource_exhausted" in error_msg or "vmem" in error_msg:
+            if _DEBUG.value:
+                print(f"  [DEBUG] Case {case_id} FAILED with VMEM OOM.")
             return sys.maxsize, 0, int((time.perf_counter() - start_case) * 1_000_000)
         raise e
 
@@ -109,33 +119,53 @@ class SpannerManager:
 def get_callback(spanner_mgr):
     def callback(message):
         try:
-            start_perf = time.perf_counter()
+            bucket_start_perf = time.perf_counter()
             cs_id, r_id, b_id, start, end = message.data.decode("utf-8").split("|")
             b_id, start, end = int(b_id), int(start), int(end)
+            
+            if _DEBUG.value:
+                print(f"[{_WORKER_ID.value}] Claimed Bucket {b_id} ({start}-{end}) for CaseSet: {cs_id}")
+            
             spanner_mgr.mark_bucket_in_progress(cs_id, r_id, b_id)
             processed_ids = spanner_mgr.get_already_processed_ids(cs_id, r_id, start, end)
             all_configs = spanner_mgr.get_bucket_configs(cs_id, start, end)
             results = []
+            
             for cid in range(start, end + 1):
                 if cid in processed_ids: continue
                 config = all_configs.get(cid)
                 if not config: continue
+                
                 latency, warmup, total = process_on_tpu(config)
-                results.append((cs_id, r_id, cid, "SUCCESS" if latency != sys.maxsize else "FAILED_OOM", _WORKER_ID.value, latency, warmup, total, spanner.COMMIT_TIMESTAMP))
+                status = "SUCCESS" if latency != sys.maxsize else "FAILED_OOM"
+                
+                results.append((cs_id, r_id, cid, status, _WORKER_ID.value, latency, warmup, total, spanner.COMMIT_TIMESTAMP))
+                
+                if _DEBUG.value:
+                    lat_str = "OOM" if latency == sys.maxsize else f"{latency:,}us"
+                    print(f"  [DEBUG] Case {cid}: AvgLat={lat_str}, Warmup={warmup:,}us, Total={total:,}us")
+
                 if len(results) >= 10:
                     spanner_mgr.save_results_batch(results)
                     results = []
+            
             spanner_mgr.save_results_batch(results)
-            spanner_mgr.mark_bucket_completed(cs_id, r_id, b_id, int((time.perf_counter() - start_perf) * 1_000_000))
+            bucket_tt_us = int((time.perf_counter() - bucket_start_perf) * 1_000_000)
+            spanner_mgr.mark_bucket_completed(cs_id, r_id, b_id, bucket_tt_us)
+            
+            if _DEBUG.value:
+                print(f"[{_WORKER_ID.value}] Bucket {b_id} COMPLETED in {bucket_tt_us/1e6:.2f}s.")
+            
             message.ack()
         except Exception as e:
-            print(f"!!! Error: {e}"); message.nack()
+            print(f"!!! Error in callback: {e}"); message.nack()
     return callback
 
 def main(argv):
-    mgr = SpannerManager()
+    spanner_mgr = SpannerManager()
     sub = pubsub_v1.SubscriberClient()
-    streaming_pull_future = sub.subscribe(sub.subscription_path(_PROJECT_ID.value, _SUBSCRIPTION_ID.value), callback=get_callback(mgr), flow_control=pubsub_v1.types.FlowControl(max_messages=1, max_lease_duration=21600))
+    streaming_pull_future = sub.subscribe(sub.subscription_path(_PROJECT_ID.value, _SUBSCRIPTION_ID.value), callback=get_callback(spanner_mgr), flow_control=pubsub_v1.types.FlowControl(max_messages=1, max_lease_duration=21600))
+    print(f"GMM Worker {_WORKER_ID.value} ready (DB={_DATABASE_ID.value}, DEBUG={_DEBUG.value})")
     with sub:
         try: streaming_pull_future.result()
         except KeyboardInterrupt: streaming_pull_future.cancel()
