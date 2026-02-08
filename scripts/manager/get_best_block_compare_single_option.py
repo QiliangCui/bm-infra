@@ -91,7 +91,7 @@ def main(argv):
     # Load existing dictionary
     local_dict = {}
     try:
-        from tuned_block_sizes import TUNED_BLOCK_SIZES
+        from scripts.manager.tuned_moe_block_sizes import TUNED_BLOCK_SIZES
         local_dict = TUNED_BLOCK_SIZES.copy()
     except ImportError:
         pass

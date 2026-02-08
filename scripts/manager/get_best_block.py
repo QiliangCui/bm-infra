@@ -86,7 +86,7 @@ def main(argv):
     # 1. Load existing data
     local_dict = {}
     try:
-        from tuned_block_sizes import TUNED_BLOCK_SIZES
+        from scripts.manager.tuned_moe_block_sizes import TUNED_BLOCK_SIZES
         local_dict = TUNED_BLOCK_SIZES.copy()
         print(f"Loaded {len(local_dict)} existing entries from tuned_block_sizes.py")
     except ImportError:
