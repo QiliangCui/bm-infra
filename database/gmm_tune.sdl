@@ -1,0 +1,84 @@
+-- 1. Parent Table for Experiment Sets
+CREATE TABLE CaseSet (
+  ID STRING(128) NOT NULL,
+  Description STRING(1024),
+  Status STRING(32),        -- "CREATING", "COMPLETED", "FAILED"
+  ScanSpace INT64,          -- Total combinations checked
+  Valid INT64,              -- Total valid cases inserted
+  Invalid INT64,            -- Total invalid cases skipped
+  DurationSeconds FLOAT64,
+) PRIMARY KEY (ID);
+
+-- 2. GMM Tiling configurations
+CREATE TABLE Cases (
+  ID STRING(128) NOT NULL,
+  CaseId INT64 NOT NULL,
+  -- Problem Dimensions
+  M INT64,
+  K INT64,
+  N INT64,
+  NumTotalGroups INT64,
+  NumCurrentGroups INT64,
+  LhsDType STRING(32),
+  RhsDType STRING(32),
+  QuantBlockSize INT64,
+  -- Tiling Parameters to tune
+  TM INT64,
+  TK INT64,
+  TN INT64,
+) PRIMARY KEY (ID, CaseId),
+INTERLEAVE IN PARENT CaseSet ON DELETE CASCADE;
+
+-- 3. Secondary Indexes for Cases (Following MoE pattern)
+CREATE INDEX CasesByM ON Cases(M);
+CREATE INDEX CasesByK ON Cases(K);
+CREATE INDEX CasesByN ON Cases(N);
+CREATE INDEX CasesByNumTotalGroups ON Cases(NumTotalGroups);
+CREATE INDEX CasesByNumCurrentGroups ON Cases(NumCurrentGroups);
+CREATE INDEX CasesByLhsDType ON Cases(LhsDType);
+CREATE INDEX CasesByRhsDType ON Cases(RhsDType);
+CREATE INDEX CasesByQuantBlockSize ON Cases(QuantBlockSize);
+CREATE INDEX CasesByTM ON Cases(TM);
+CREATE INDEX CasesByTK ON Cases(TK);
+CREATE INDEX CasesByTN ON Cases(TN);
+
+-- 4. Results tracking
+CREATE TABLE CaseResults (
+  ID STRING(128) NOT NULL,
+  RunId STRING(128) NOT NULL,
+  CaseId INT64 NOT NULL,
+  ProcessedStatus STRING(32), -- "SUCCESS", "FAILED_OOM", "FAILED_ERROR"
+  WorkerID STRING(128),      
+  Latency INT64,              -- Average latency in microseconds
+  WarmupTime INT64,           -- Warmup time in microseconds
+  TotalTime INT64,            -- Total execution time for the case
+  ProcessedAt TIMESTAMP OPTIONS (allow_commit_timestamp=true),
+) PRIMARY KEY (ID, RunId, CaseId),
+INTERLEAVE IN PARENT CaseSet ON DELETE CASCADE;
+
+-- 5. Secondary Index for Latency (Following MoE pattern)
+CREATE INDEX CasesByLatency 
+ON CaseResults(ID, RunId, Latency) 
+STORING (WorkerID),
+INTERLEAVE IN CaseSet;
+
+-- 6. Work distribution
+CREATE TABLE WorkBuckets (
+  ID STRING(128) NOT NULL,
+  RunId STRING(128) NOT NULL,
+  BucketId INT64 NOT NULL,
+  StartCaseId INT64 NOT NULL,
+  EndCaseId INT64 NOT NULL,
+  Status STRING(32), -- "PENDING", "IN_PROGRESS", "COMPLETED"
+  WorkerID STRING(128),
+  TotalTime INT64,
+  UpdatedAt TIMESTAMP OPTIONS (allow_commit_timestamp=true),
+) PRIMARY KEY (ID, RunId, BucketId),
+INTERLEAVE IN PARENT CaseSet ON DELETE CASCADE;
+
+-- 7. Progress Checkpoint
+CREATE TABLE FeederCheckpoint (
+  ID STRING(128) NOT NULL,
+  RunId STRING(128) NOT NULL,
+  LastProcessedCaseId INT64 NOT NULL,
+) PRIMARY KEY (ID, RunId);

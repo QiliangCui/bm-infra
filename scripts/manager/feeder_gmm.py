@@ -4,15 +4,15 @@ from absl import app, flags
 from google.cloud import spanner, pubsub_v1
 
 # --- Flags ---
-_CASE_SET_ID = flags.DEFINE_string('case_set_id', 'simple_qwen_set1', 'Target CaseSet ID.')
+_CASE_SET_ID = flags.DEFINE_string('case_set_id', 'gmm_qwen3_v1', 'Target CaseSet ID for GMM tuning.')
 _RUN_ID = flags.DEFINE_string('run_id', 'run_001', 'Unique Run ID for this benchmark pass.')
 _BUCKET_SIZE = flags.DEFINE_integer('bucket_size', 100, 'Number of CaseIds per Pub/Sub message.')
 
 # --- Config ---
 PROJECT_ID = "cloud-tpu-inference-test"
 SPANNER_INSTANCE = 'vllm-bm-inst'
-SPANNER_DATABASE = 'tune-moe'
-TOPIC_ID = "vllm-tune-queue-tpu7x-8"
+SPANNER_DATABASE = 'tune-gmm'
+TOPIC_ID = "vllm-tune-queue-tpu7x-2"
 
 def get_total_valid_cases(database, case_set_id):
     """Fetches the Valid case count from the CaseSet table."""
@@ -34,15 +34,14 @@ def create_buckets_in_spanner(database, case_set_id, run_id, total_cases, bucket
         bucket_id = i // bucket_size
         start = i
         end = min(i + bucket_size - 1, total_cases - 1)
-        # (ID, RunId, BucketId, Start, End, Status, WorkerID, UpdatedAt)
-        buckets.append((case_set_id, run_id, bucket_id, start, end, "PENDING", None, spanner.COMMIT_TIMESTAMP))
+        # Format: (ID, RunId, BucketId, StartCaseId, EndCaseId, Status, WorkerID, TotalTime, UpdatedAt)
+        # Matches the GMM SDL: ID, RunId, BucketId, StartCaseId, EndCaseId, Status, WorkerID, TotalTime, UpdatedAt
+        buckets.append((case_set_id, run_id, bucket_id, start, end, "PENDING", None, None, spanner.COMMIT_TIMESTAMP))
 
-    # Batch insert buckets (Spanner handles ~80k mutations per commit)
-    # 100k buckets = 800k mutations (8 columns each), so we batch the batching.
     def write_batches(transaction, bucket_slice):
         transaction.insert(
             table='WorkBuckets',
-            columns=('ID', 'RunId', 'BucketId', 'StartCaseId', 'EndCaseId', 'Status', 'WorkerID', 'UpdatedAt'),
+            columns=('ID', 'RunId', 'BucketId', 'StartCaseId', 'EndCaseId', 'Status', 'WorkerID', 'TotalTime', 'UpdatedAt'),
             values=bucket_slice
         )
 
@@ -77,18 +76,17 @@ def main(argv):
     database = instance.database(SPANNER_DATABASE)
 
     try:
-        # 1. Get total count
+        # 1. Get total valid case count from CaseSet
         total_valid = get_total_valid_cases(database, _CASE_SET_ID.value)
         print(f"Found {total_valid:,} valid cases for '{_CASE_SET_ID.value}'.")
 
-        # 2. Register Work in Spanner
-        # Using a sub-id to allow re-runs
+        # 2. Register Work Buckets in Spanner for tracking
         create_buckets_in_spanner(database, _CASE_SET_ID.value, _RUN_ID.value, total_valid, _BUCKET_SIZE.value)
 
-        # 3. Queue the work
+        # 3. Queue the work in Pub/Sub for workers to consume
         publish_to_pubsub(_CASE_SET_ID.value, _RUN_ID.value, total_valid, _BUCKET_SIZE.value)
 
-        print("\nFeeder setup complete. Workers can now begin processing.")
+        print("\nGMM Feeder setup complete. TPU Workers can now begin processing.")
 
     except Exception as e:
         print(f"Feeder failed: {e}")
