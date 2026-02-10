@@ -36,7 +36,7 @@ gcloud auth configure-docker ${region}-docker.pkg.dev --quiet
 rm -rf bm-infra
 git clone https://github.com/QiliangCui/bm-infra.git
 pushd bm-infra
-git checkout moe
+git checkout gmm
 # git pull
 # git reset --hard ${branch_hash}
 popd
