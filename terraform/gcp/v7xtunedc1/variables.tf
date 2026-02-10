@@ -6,12 +6,12 @@ variable "region" {
     default = "southamerica-west1"
 }
 
-variable "zone" {
-    default = "southamerica-west1-a"
+variable "tpu_zone" {
+    default = "us-central1-c"
 }
 
 variable "purpose" {
-  default = "bm"
+  default = "tune"
 }
 
 variable "spanner_instance" {
@@ -19,26 +19,24 @@ variable "spanner_instance" {
 }
 
 variable "spanner_db" {
-  default = "vllm-bm-runs"
+  default = "tune-moe"
 }
 
 variable "gcs_bucket" {
   default = "vllm-cb-storage2"
 }
 
-variable "v6e_1_count" {
-  default     = 0
+variable "v7x_8_count" {
+  default     = 20
 }
 
-variable "v6e_4_count" {
+variable "instance_name_offset" {
+  type        = number
   default     = 0
-}
-
-variable "v6e_8_count" {
-  default     = 0
+  description = "instance name offset so that we can distinguish machines from different project or region."
 }
 
 variable "branch_hash" {
-  default     = "4c00a9a03e0bfc5edd1322663cdb6c912b814b8f"
+  default     = "3bf5bd18f5551bb4b4a90ec6aab698650bdff2a5"
   description = "commit hash of bm-infra branch."
 }

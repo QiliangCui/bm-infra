@@ -7,7 +7,7 @@ variable "region" {
 }
 
 variable "tpu_zone" {
-    default = "us-central1-b"
+    default = "southamerica-west1-a"
 }
 
 variable "purpose" {
@@ -45,6 +45,6 @@ variable "instance_name_offset" {
 }
 
 variable "branch_hash" {
-  default     = "3bf5bd18f5551bb4b4a90ec6aab698650bdff2a5"
+  default     = "4c00a9a03e0bfc5edd1322663cdb6c912b814b8f"
   description = "commit hash of bm-infra branch."
 }

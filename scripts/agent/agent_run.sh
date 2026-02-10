@@ -99,4 +99,8 @@ while true; do
 
   echo "./scripts/cleanup_docker.sh"
   ./scripts/cleanup_docker.sh
+
+  echo "Cleaning up old vllm envs..."
+  ./scripts/agent/clean_old_vllm_envs.sh || true
+  ./scripts/agent/clean_old_vllm_envs_v2.sh || true
 done
