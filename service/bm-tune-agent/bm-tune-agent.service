@@ -13,7 +13,7 @@ WorkingDirectory=/home/bm-agent/bm-infra
 ExecStartPre=-/usr/bin/docker stop tpu-tune
 ExecStartPre=-/usr/bin/docker rm tpu-tune
 
-ExecStart=/bin/bash /home/bm-agent/bm-infra/scripts/agent/docker_tune_moe.sh
+ExecStart=/bin/bash /home/bm-agent/bm-infra/scripts/agent/docker_tune_gmm.sh
 
 # Restart logic: Wait 10s and retry regardless of exit code
 Restart=always
