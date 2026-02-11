@@ -75,7 +75,7 @@ rm -rf bm-infra
 # echo "Cloning branch '${branch_name}' from bm-infra..."
 git clone --branch "${branch_name}" https://github.com/QiliangCui/bm-infra.git
 
-INPUT_TEMPLATE="./startup_tpu7x.sh.tpl"
+INPUT_TEMPLATE="bm-infra/terraform/gcp/scripts/startup_tpu7x.sh.tpl"
 ALLOWED_VARS='${project_id} ${spanner_instance} ${spanner_db} ${region} ${purpose} ${instance_name} ${gcs_bucket} ${accelerator_type} ${branch_name} ${persistent_device_name}'
 
 echo "Startup script template: $INPUT_TEMPLATE"

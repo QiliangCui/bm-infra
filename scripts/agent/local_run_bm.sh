@@ -67,7 +67,8 @@ if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
 
     # Install tpu-inference in the new conda environment
     echo "Installing tpu_inference package into '$ENV_NAME'..."
-    $CONDA run -n "$ENV_NAME" bash -c "cd '$TPU_INFERENCE_FOLDER' && pip install -r requirements.txt -r requirements_benchmarking.txt -r requirements_v7x.txt && pip install numba && pip install -e ."
+    $CONDA run -n "$ENV_NAME" bash -c "cd '$TPU_INFERENCE_FOLDER' && pip install -r requirements.txt -r requirements_benchmarking.txt"
+    $CONDA run -n "$ENV_NAME" bash -c "cd '$TPU_INFERENCE_FOLDER' && pip install -r requirements_v7x.txt && pip install numba && pip install -e ."
     echo "tpu-inference installation complete."
 
     echo "Local v7x changes complete."
