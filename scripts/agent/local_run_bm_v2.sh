@@ -95,6 +95,10 @@ echo "Copying and chmod-ing run_bm.sh..."
 cp scripts/agent/run_bm.sh "$VLLM_FOLDER/run_bm.sh"
 chmod +x "$VLLM_FOLDER/run_bm.sh"
 
+echo "Copying bench_serving directory..."
+mkdir -p "$VLLM_FOLDER/scripts/agent"
+cp -r scripts/agent/bench_serving "$VLLM_FOLDER/scripts/agent/"
+
 # prepare datasets
 if [ "$DATASET" = "sharegpt" ]; then
   echo "Copying dataset to container..."

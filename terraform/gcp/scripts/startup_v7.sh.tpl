@@ -60,6 +60,7 @@ git clone https://github.com/QiliangCui/bm-infra.git
 pushd bm-infra
 git pull
 git reset --hard ${branch_hash}
+git submodule update --init --recursive
 popd
 EOBM
 cp /home/bm-agent/bm-infra/service/bm-agent/bm-agent.service /etc/systemd/system/bm-agent.service
