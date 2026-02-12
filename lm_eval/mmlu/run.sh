@@ -21,7 +21,7 @@ echo "Output will be timestamped in: $LOG_DIR"
 mkdir -p "$LOG_DIR"
 
 # Default model arguments
-MODEL_ARGS="pretrained=$MODEL_NAME,tensor_parallel_size=${TP_SIZE:-8},dtype=auto,max_model_len=2048"
+MODEL_ARGS="pretrained=$MODEL_NAME,tensor_parallel_size=${TP_SIZE:-8},dtype=auto,max_model_len=2048,gpu_memory_utilization=0.98"
 
 # Check if running on v7x-8 hardware
 if [[ "$DEVICE" == v7x-8 ]]; then
