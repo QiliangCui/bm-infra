@@ -130,7 +130,7 @@ fi
 #   echo "./scripts/scheduler/create_job.sh ./cases/autotune_ali.csv \"\" $TAG AUTOTUNE"
 #   ./scripts/scheduler/create_job.sh ./cases/autotune_ali.csv "" $TAG AUTOTUNE
 # fi
-
-echo LOCAL_PATCH=1 ./scripts/scheduler/create_job.sh ./cases/hourly_disagg.csv "" $TAG HOURLY_DISAGG TPU_INFERENCE "PREFILL_SLICES=2;DECODE_SLICES=2;TPU_BACKEND_TYPE=jax"
-LOCAL_PATCH=1 ./scripts/scheduler/create_job.sh ./cases/hourly_disagg.csv "" $TAG HOURLY_DISAGG TPU_INFERENCE "PREFILL_SLICES=2;DECODE_SLICES=2;TPU_BACKEND_TYPE=jax"
-
+if [[ "$HOUR_NOW" == "05" ]]; then
+  echo LOCAL_PATCH=1 ./scripts/scheduler/create_job.sh ./cases/hourly_disagg.csv "" $TAG HOURLY_DISAGG TPU_INFERENCE "PREFILL_SLICES=4;DECODE_SLICES=4;TPU_BACKEND_TYPE=jax"
+  LOCAL_PATCH=1 ./scripts/scheduler/create_job.sh ./cases/hourly_disagg.csv "" $TAG HOURLY_DISAGG TPU_INFERENCE "PREFILL_SLICES=4;DECODE_SLICES=4;TPU_BACKEND_TYPE=jax"
+fi

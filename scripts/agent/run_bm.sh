@@ -233,6 +233,13 @@ run_benchmark(){
   echo "$throughput $p99_e2el"
 }
 
+# If REQUEST_RATE is provided, run the benchmark once with it and exit.
+if [[ -n "${REQUEST_RATE:-}" ]]; then
+  echo "REQUEST_RATE is set to '$REQUEST_RATE'. Running benchmark once."
+  run_benchmark "$REQUEST_RATE"
+  exit 0
+fi
+
 read throughput p99_e2el < <(run_benchmark "inf" | tail -n 1)
 
 echo "throughput:$throughput"

@@ -1,2 +1,6 @@
-Device,Model,MaxNumSeqs,MaxNumBatchedTokens,TensorParallelSize,MaxModelLen,Dataset,InputLen,OutputLen,ExpectedETEL,NumPrompts
-v6e-8,meta-llama/Llama-3.1-8B-Instruct,128,1024,2,2048,sonnet,1800,128,,1000
+Device,Model,MaxNumSeqs,MaxNumBatchedTokens,TensorParallelSize,MaxModelLen,Dataset,InputLen,OutputLen,ExpectedETEL,NumPrompts,MODELTAG,PREFIX_LEN,RequestRate
+v6e-8,meta-llama/Llama-3.1-8B-Instruct,512,8192,4,2048,mlperf,1024,1024,,10000,,,inf
+v6e-8,meta-llama/Llama-3.1-8B-Instruct,512,8192,4,2048,mlperf,1024,1024,,10000,,,50
+v6e-8,meta-llama/Llama-3.1-8B-Instruct,512,8192,4,2048,mlperf,1024,1024,,10000,,,60
+v6e-8,Qwen/Qwen3-32B,128,8192,4,2048,mlperf,1024,1024,,5000,,,inf
+v6e-8,Qwen/Qwen3-32B,128,8192,4,2048,mlperf,1024,1024,,5000,,,20
