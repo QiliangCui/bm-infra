@@ -1,0 +1,46 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+ARG BASE_IMAGE="southamerica-west1-docker.pkg.dev/cloud-tpu-inference-test/vllm-tpu-bm/tt:latest"
+
+FROM $BASE_IMAGE
+
+# The vllm's tag: v0.13.0
+ARG VLLM_COMMIT_HASH="72506c983"
+
+# Build vLLM
+WORKDIR /workspace/vllm
+ARG VLLM_REPO=https://github.com/vllm-project/vllm.git
+
+RUN git clone $VLLM_REPO . && \
+    if [ -n "$VLLM_COMMIT_HASH" ]; then \
+        git checkout $VLLM_COMMIT_HASH; \
+    fi
+
+RUN --mount=type=cache,target=/root/.cache/pip pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements/tpu.txt --retries 3
+RUN --mount=type=cache,target=/root/.cache/pip VLLM_TARGET_DEVICE="tpu" pip install -e .
+
+# Install TorchTPU vllm
+WORKDIR /workspace/torchtpu_vllm
+# Install requirements first and cache so we don't need to re-install on code change.
+COPY requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt --retries 3
+
+COPY . .
+RUN --mount=type=cache,target=/root/.cache/pip pip install -e .
+
+# go back to vllm folder
+WORKDIR /workspace/vllm
+
+CMD ["/bin/bash"]
