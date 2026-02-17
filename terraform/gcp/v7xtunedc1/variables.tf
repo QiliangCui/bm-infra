@@ -19,7 +19,7 @@ variable "spanner_instance" {
 }
 
 variable "spanner_db" {
-  default = "tune-moe"
+  default = "tune-gmm"
 }
 
 variable "gcs_bucket" {
