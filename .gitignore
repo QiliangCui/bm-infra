@@ -4,3 +4,4 @@ terraform.tfstate.backup
 repos/
 __pycache__/
 *.pyc
+**/.terraform.lock.hcl
