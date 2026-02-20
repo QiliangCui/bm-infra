@@ -12,46 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG BASE_IMAGE="python:3.12-slim-bookworm"
+ARG BASE_IMAGE="southamerica-west1-docker.pkg.dev/cloud-tpu-inference-test/vllm-tpu-bm/tt:latest"
 
 FROM $BASE_IMAGE
 
 # The vllm's tag: v0.13.0
 ARG VLLM_COMMIT_HASH="72506c983"
-ARG GOOGLE_ACCESS_TOKEN
-
-#
-# Update pip
-#
-RUN pip install --upgrade pip
-
-#
-# Install basic utilities
-#
-RUN apt-get update && apt-get install -y \
-    git \
-    libopenblas-dev \
-    libopenmpi-dev \
-    libomp-dev \
-    procps \
-    curl \
-    gnupg \
-    netcat-openbsd \
-    rclone \
-    wget \
-    bc \
-    ca-certificates \
-    vim-common \
-    && rm -rf /var/lib/apt/lists/*
-
-#
-# Install TORCH TPU
-#
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install \
-    --pre \
-    --index-url "https://oauth2accesstoken:${GOOGLE_ACCESS_TOKEN}@us-python.pkg.dev/ml-oss-artifacts-transient/torch-tpu-virtual-registry/simple/" \
-    torch_tpu
 
 # Build vLLM
 WORKDIR /workspace/vllm
