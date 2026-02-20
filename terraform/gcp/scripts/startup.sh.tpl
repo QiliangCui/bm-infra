@@ -29,14 +29,19 @@ chmod 777 /usr/bin/minijinja-cli
 
 sudo mkdir -p /mnt/disks/persist
 
+DISK=/dev/nvme0n2
+if [[ "${accelerator_type}" == "tpu7x-2" || "${accelerator_type}" == "tpu7x-8" ]]; then
+  DISK=/dev/nvme1n1
+fi
+
 # Format if not already formatted
-if ! blkid /dev/nvme0n2; then
-  echo "Formatting /dev/nvme0n2 as ext4..."
-  sudo mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/nvme0n2
+if ! blkid "${DISK}"; then
+  echo "Formatting ${DISK} as ext4..."
+  sudo mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard "${DISK}"
 fi
 
 # Add to /etc/fstab using UUID
-disk_uuid=$(blkid -s UUID -o value /dev/nvme0n2)
+disk_uuid=$(blkid -s UUID -o value "${DISK}")
 if ! grep -q "/mnt/disks/persist" /etc/fstab; then
   echo "UUID=$disk_uuid /mnt/disks/persist ext4 defaults,discard 0 2" | sudo tee -a /etc/fstab
 fi
@@ -62,6 +67,7 @@ git clone https://github.com/QiliangCui/bm-infra.git
 pushd bm-infra
 git pull
 git reset --hard ${branch_hash}
+git submodule update --init --recursive
 popd
 EOBM
 cp /home/bm-agent/bm-infra/service/bm-agent/bm-agent.service /etc/systemd/system/bm-agent.service

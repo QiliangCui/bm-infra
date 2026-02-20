@@ -32,11 +32,19 @@ EOF
 echo "sudo cp /home/bm-scheduler/bm-infra/service/bm-scheduler/bm-scheduler.service /etc/systemd/system/bm-scheduler.service"
 sudo cp /home/bm-scheduler/bm-infra/service/bm-scheduler/bm-scheduler.service /etc/systemd/system/bm-scheduler.service
 
+echo "sudo cp /home/bm-scheduler/bm-infra/service/bm-scheduler/bm-scheduler-daily.service /etc/systemd/system/bm-scheduler-daily.service"
+sudo cp /home/bm-scheduler/bm-infra/service/bm-scheduler/bm-scheduler-daily.service /etc/systemd/system/bm-scheduler-daily.service
+
 echo "sudo systemctl daemon-reload"
 sudo systemctl daemon-reload
 
 echo "sudo systemctl stop bm-scheduler.service"
 sudo systemctl stop bm-scheduler.service
 
+echo "sudo systemctl stop bm-scheduler-daily.service"
+sudo systemctl stop bm-scheduler-daily.service
+
 # add to crontab
-(crontab -l 2>/dev/null | grep -v 'bm-scheduler.service'; echo "0 * * * * sudo /bin/systemctl restart bm-scheduler.service") | crontab -
+(crontab -l 2>/dev/null | (grep -v 'bm-scheduler.service' || true); echo "0 * * * * sudo /bin/systemctl restart bm-scheduler.service") | crontab -
+(crontab -l 2>/dev/null | (grep -v 'bm-scheduler-daily.service' || true); echo "0 0 * * * sudo /bin/systemctl restart bm-scheduler-daily.service") | crontab -
+echo "Successfully added crontab"

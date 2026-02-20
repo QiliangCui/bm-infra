@@ -125,6 +125,10 @@ if [[ "$HOUR_NOW" == "02" ]]; then
   ./scripts/scheduler/create_job.sh ./cases/autotune_b200.csv "" $TAG AUTOTUNE
 fi
 
+# Qwen 3-480B
+echo "./scripts/scheduler/create_job.sh ./cases/daily_qwen3_480B_FP8_tpu7x_8.csv \"\" $TAG HOURLY TPU_INFERENCE"
+./scripts/scheduler/create_job.sh ./cases/daily_qwen3_480B_FP8_tpu7x_8.csv "" $TAG HOURLY TPU_INFERENCE
+
 # if [[ "$HOUR_NOW" == "14" ]]; then
 #   # Run ali tunes.
 #   echo "./scripts/scheduler/create_job.sh ./cases/autotune_ali.csv \"\" $TAG AUTOTUNE"
