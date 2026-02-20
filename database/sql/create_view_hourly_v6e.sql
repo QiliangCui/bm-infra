@@ -29,7 +29,7 @@ SELECT
 FROM
   RunRecord
 WHERE
-  RunRecord.RunType in('HOURLY', 'HOURLY_JAX', 'HOURLY_TORCHAX','HOURLY_AX_JAX','HOURLY_DISAGG')
+  RunRecord.RunType in('HOURLY', 'HOURLY_JAX', 'HOURLY_TORCHAX','HOURLY_AX_JAX','HOURLY_DISAGG','HOURLY_TT')
   AND RunRecord.Status IN ('COMPLETED',
     'FAILED')
   AND RunRecord.Device LIKE 'v6e-%'
