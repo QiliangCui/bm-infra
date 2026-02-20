@@ -48,7 +48,7 @@ if ! $CONDA env list | grep -Fq "$ENV_NAME"; then
   # Install lm_eval with math dependencies, commit is same as https://github.com/vllm-project/vllm/blob/main/.buildkite/scripts/hardware_ci/run-tpu-v1-test.sh#L64
   $CONDA run -n "$ENV_NAME" pip install "lm-eval[api,math]>=0.4.9.2"
   $CONDA run -n "$ENV_NAME" bash -c "cd '$VLLM_FOLDER' && pip install -r requirements/tpu.txt"
-  $CONDA run -n "$ENV_NAME" bash -c "cd '$VLLM_FOLDER' && VLLM_VERSION_OVERRIDE='0.0.0' VLLM_TARGET_DEVICE='tpu' python -m pip install -e ."
+  $CONDA run -n "$ENV_NAME" bash -c "cd '$VLLM_FOLDER' && VLLM_TARGET_DEVICE='tpu' python -m pip install -e ."
 
   # Check if TPU_INFERENCE_HASH is set and not empty
   if [[ -n "$TPU_INFERENCE_HASH" ]]; then
