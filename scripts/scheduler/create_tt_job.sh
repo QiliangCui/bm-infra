@@ -126,15 +126,15 @@ else
   echo "Skipping build image"
 fi
 
-# echo "./scripts/scheduler/schedule_run.sh $INPUT_CSV $CODE_HASH $JOB_REFERENCE $RUN_TYPE"
-# ./scripts/scheduler/schedule_run.sh "$INPUT_CSV" "$CODE_HASH" "$JOB_REFERENCE" "$RUN_TYPE" "$EXTRA_ENVS"
+echo "./scripts/scheduler/schedule_run.sh $INPUT_CSV $CODE_HASH $JOB_REFERENCE $RUN_TYPE"
+./scripts/scheduler/schedule_run.sh "$INPUT_CSV" "$CODE_HASH" "$JOB_REFERENCE" "$RUN_TYPE" "$EXTRA_ENVS"
 
-# echo "Runs created."
+echo "Runs created."
 
-# echo "========================================================="
-# echo "To get job status:"
-# echo "./scripts/manager/get_status.sh $JOB_REFERENCE"
-# echo
-# echo "To restart failed job:"
-# echo "./scripts/manager/reschedule_run.sh $JOB_REFERENCE"
-# echo "========================================================="
+echo "========================================================="
+echo "To get job status:"
+echo "./scripts/manager/get_status.sh $JOB_REFERENCE"
+echo
+echo "To restart failed job:"
+echo "./scripts/manager/reschedule_run.sh $JOB_REFERENCE"
+echo "========================================================="
