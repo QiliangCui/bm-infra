@@ -134,3 +134,6 @@ fi
 echo LOCAL_PATCH=1 ./scripts/scheduler/create_job.sh ./cases/hourly_disagg.csv "" $TAG HOURLY_DISAGG TPU_INFERENCE "PREFILL_SLICES=2;DECODE_SLICES=2;TPU_BACKEND_TYPE=jax"
 LOCAL_PATCH=1 ./scripts/scheduler/create_job.sh ./cases/hourly_disagg.csv "" $TAG HOURLY_DISAGG TPU_INFERENCE "PREFILL_SLICES=2;DECODE_SLICES=2;TPU_BACKEND_TYPE=jax"
 
+# Run TTV
+echo bash ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt.csv \"\" $TAG HOURLY_TT \"MODEL_IMPL_TYPE=vllm;FORCE_EAGER=true\"
+bash ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt.csv "" $TAG HOURLY_TT "MODEL_IMPL_TYPE=vllm;FORCE_EAGER=true"
