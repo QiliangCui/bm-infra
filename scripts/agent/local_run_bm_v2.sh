@@ -52,8 +52,8 @@ if [ ! -d "$ENV_PATH" ]; then
   uv pip install -p "$ENV_PATH/bin/python" "lm-eval[api,math]>=0.4.9.2"
 
   echo "Installing vllm and dependencies..."
-  echo VLLM_VERSION_OVERRIDE=0.0.0 VLLM_USE_PRECOMPILED=1 uv pip install -p "$ENV_PATH/bin/python" -e "$VLLM_FOLDER" --torch-backend=cu128
-  VLLM_VERSION_OVERRIDE=0.0.0 VLLM_USE_PRECOMPILED=1 uv pip install -p "$ENV_PATH/bin/python" -e "$VLLM_FOLDER" --torch-backend=cu128
+  echo VLLM_USE_PRECOMPILED=1 uv pip install -p "$ENV_PATH/bin/python" -e "$VLLM_FOLDER" --torch-backend=cu128
+  VLLM_USE_PRECOMPILED=1 uv pip install -p "$ENV_PATH/bin/python" -e "$VLLM_FOLDER" --torch-backend=cu128
 fi
 
 # Safety cleanup on exit
