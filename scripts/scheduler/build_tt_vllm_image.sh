@@ -21,7 +21,7 @@ if [ -z "$TORCH_TPU_VERSION" ]; then
 fi
 
 echo "torch_tpu version: $TORCH_TPU_VERSION"
-SAFE_TORCH_TPU_VERSION=$(echo "$TORCH_VERSION" | sed 's/+/--/g')
+SAFE_TORCH_TPU_VERSION=$(echo "$TORCH_TPU_VERSION" | sed 's/+/--/g')
 
 CODE_HASH="${VLLM_HASH}-${TT_VLLM_HASH}-${SAFE_TORCH_TPU_VERSION}"
 IMAGE_TAG="$GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/vllm-tpu-bm/vllm-tpu:$CODE_HASH"
