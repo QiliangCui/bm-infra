@@ -93,6 +93,11 @@ elif [[ "$MODEL" == "Qwen/Qwen2.5-VL-7B-Instruct" || "$MODEL" == "Qwen/Qwen2.5-V
   EXTRA_ARGS="--limit-mm-per-prompt {\"image\":1} --mm-processor-kwargs {\"max_pixels\":1024000}"
 fi
 
+# If FORCE_EAGER is set to true (case-insensitive), append flag
+if [[ "${FORCE_EAGER:-,,}" == "true" ]]; then
+  EXTRA_ARGS+=" --enforce-eager"
+fi
+
 VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR="$PROFILE_FOLDER" vllm serve $MODEL \
   --seed 42 \
   --disable-log-requests \
