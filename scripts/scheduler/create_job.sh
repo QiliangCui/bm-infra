@@ -19,7 +19,7 @@ set -euo pipefail
 #                       VLLM_TORCHAX_ENABLED=1;VLLM_XLA_USE_SPMD=1
 #
 #                     These variables can be parsed and exported within the script as needed.
-#
+# 7. Q_PURPOSE       - (Optional) The queue purpose. The default value is "bm".                      
 #  Others:
 #   REPO_MAP        - (Optional) An environment variable to map repository URLs to local
 #                     filesystem paths. This accelerates setup by using local mirrors
@@ -46,6 +46,7 @@ JOB_REFERENCE="${3:-}"
 RUN_TYPE="${4:-"MANUAL"}"
 REPO="${5:-"DEFAULT"}"
 EXTRA_ENVS="${6:-}"
+Q_PURPOSE="${7:-"bm"}"
 
 # ==============================================================================
 # PARSE THE REPO_MAP ENVIRONMENT VARIABLE (ONCE)
@@ -182,8 +183,8 @@ else
   echo "Skipping build image"
 fi
 
-echo "./scripts/scheduler/schedule_run.sh $INPUT_CSV $CODE_HASH $JOB_REFERENCE $RUN_TYPE"
-./scripts/scheduler/schedule_run.sh "$INPUT_CSV" "$CODE_HASH" "$JOB_REFERENCE" "$RUN_TYPE" "$EXTRA_ENVS"
+echo "./scripts/scheduler/schedule_run.sh $INPUT_CSV $CODE_HASH $JOB_REFERENCE $RUN_TYPE $EXTRA_ENVS $Q_PURPOSE"
+./scripts/scheduler/schedule_run.sh "$INPUT_CSV" "$CODE_HASH" "$JOB_REFERENCE" "$RUN_TYPE" "$EXTRA_ENVS" "$Q_PURPOSE"
 
 echo "Runs created."
 

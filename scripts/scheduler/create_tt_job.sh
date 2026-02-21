@@ -18,6 +18,7 @@ set -euo pipefail
 #                       VLLM_TORCHAX_ENABLED=1;VLLM_XLA_USE_SPMD=1
 #
 #                     These variables can be parsed and exported within the script as needed.
+# 6. Q_PURPOSE       - (Optional) The queue purpose. The default value is "bm".                      
 #
 #  Others:
 #   REPO_MAP        - (Optional) An environment variable to map repository URLs to local
@@ -44,6 +45,7 @@ CODE_HASH="${2:-}"  # optional
 JOB_REFERENCE="${3:-}"
 RUN_TYPE="${4:-"MANUAL"}"
 EXTRA_ENVS="${5:-}"
+Q_PURPOSE="${6:-"bm"}"
 
 # ==============================================================================
 # PARSE THE REPO_MAP ENVIRONMENT VARIABLE (ONCE)
@@ -129,8 +131,8 @@ CODE_HASH_FILE="artifacts/CODE_HASH"
 CODE_HASH="$(<"$CODE_HASH_FILE")"
 echo "CODE_HASH from image creation $CODE_HASH"
 
-echo "./scripts/scheduler/schedule_run.sh $INPUT_CSV $CODE_HASH $JOB_REFERENCE $RUN_TYPE $EXTRA_ENVS"
-./scripts/scheduler/schedule_run.sh "$INPUT_CSV" "$CODE_HASH" "$JOB_REFERENCE" "$RUN_TYPE" "$EXTRA_ENVS"
+echo "./scripts/scheduler/schedule_run.sh $INPUT_CSV $CODE_HASH $JOB_REFERENCE $RUN_TYPE $EXTRA_ENVS $Q_PURPOSE"
+./scripts/scheduler/schedule_run.sh "$INPUT_CSV" "$CODE_HASH" "$JOB_REFERENCE" "$RUN_TYPE" "$EXTRA_ENVS" "$Q_PURPOSE"
 
 echo "Runs created."
 

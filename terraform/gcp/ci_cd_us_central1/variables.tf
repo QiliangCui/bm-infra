@@ -10,6 +10,10 @@ variable "tpu_zone" {
     default = "us-central1-b"
 }
 
+variable "tpu7x_zone" {
+    default = "us-central1-c"
+}
+
 variable "purpose" {
   default = "bm"
 }
@@ -37,6 +41,15 @@ variable "v6e_4_count" {
 variable "v6e_8_count" {
   default     = 10
 }
+
+variable "v7x_2_tt_count" {
+  default     = 8
+}
+
+variable "v7x_8_tt_count" {
+  default     = 0
+}
+
 
 variable "instance_name_offset" {
   type        = number

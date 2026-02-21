@@ -28,6 +28,40 @@ module "v6e-8-queue" {
   accelerator_type     = "v6e-8"
 }
 
+# tpuv7 queue as "tt"
+# not using bm because queue 'bm' are now
+# used. 
+module "tpu7x-2-queue-tt" {
+  source = "../modules/queue"
+  providers = {
+    google = google
+  }
+
+  purpose              = "tt"
+  accelerator_type     = "tpu7x-2"
+}
+
+module "tpu7x-4-queue-tt" {
+  source = "../modules/queue"
+  providers = {
+    google = google
+  }
+
+  purpose              = "tt"
+  accelerator_type     = "tpu7x-4"
+}
+
+module "tpu7x-8-queue-tt" {
+  source = "../modules/queue"
+  providers = {
+    google = google
+  }
+
+  purpose              = "tt"
+  accelerator_type     = "tpu7x-8"
+}
+
+# tpu7x bm queue
 module "tpu7x-8-queue" {
   source = "../modules/queue"
   providers = {
