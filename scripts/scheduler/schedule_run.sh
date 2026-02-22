@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # === Usage ===
-if [ "$#" -ne 5 ]; then
-  echo "Usage: $0 <input.csv|gs://path/to/input.csv> CODEHASH JOB_REFERENCE RUN_TYPE EXTRA_ENVS"
+if [ "$#" -ne 6 ]; then
+  echo "Usage: $0 <input.csv|gs://path/to/input.csv> CODEHASH JOB_REFERENCE RUN_TYPE EXTRA_ENVS QUEUE_PURPOSE"
   exit 1
 fi
 
@@ -11,6 +11,7 @@ CODEHASH="$2"
 JOB_REFERENCE="$3"
 RUN_TYPE="$4"
 EXTRA_ENVS="$5"
+QUEUE_PURPOSE="$6"
 
 if [[ "$CSV_FILE_ARG" == gs://* ]]; then
   echo "GCS path detected. Downloading from $CSV_FILE_ARG"
@@ -63,8 +64,17 @@ tail -n +2 "$CSV_FILE" | while read -r line || [ -n "${line}" ]; do
   RECORD_ID=$(uuidgen | tr 'A-Z' 'a-z')
 
   # calculate the queue name from the device
-  QUEUE_TOPIC="vllm-bm-queue-$DEVICE"
+  QUEUE_TOPIC="vllm-$QUEUE_PURPOSE-queue-$DEVICE"
 
+  # Validation for tpu7x and bm purpose
+  if [[ "$DEVICE" == tpu7x* ]] && [ "$QUEUE_PURPOSE" == "bm" ]; then
+    echo "========================================================" >&2
+    echo "Error: Posting tpu7x-bm is not supported yet." >&2
+    echo "The $QUEUE_TOPIC is used by other set of machines " >&2
+    echo "and posting work item to it may impact other features." >&2
+    echo "========================================================" >&2
+    exit 1
+  fi
   # Check if the topic exists
   if ! gcloud pubsub topics describe "$QUEUE_TOPIC" --project="$GCP_PROJECT_ID" &>/dev/null; then
     echo "Topic '$QUEUE_TOPIC' does not exist in $GCP_PROJECT_ID."
