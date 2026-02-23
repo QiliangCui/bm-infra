@@ -7,7 +7,7 @@ set -euo pipefail
 # RUN_TYPES: comma-separated (default: HOURLY,AUTOTUNE)
 # TRY_COUNT: integer (default: 2)
 
-RUN_TYPES="${1:-HOURLY,AUTOTUNE,HOURLY_TORCHAX,HOURLY_JAX}"
+RUN_TYPES="${1:-HOURLY,AUTOTUNE,HOURLY_TORCHAX,HOURLY_JAX, HOURLY_TT}"
 TRY_COUNT="${2:-2}"
 
 # Ensure these are exported:
