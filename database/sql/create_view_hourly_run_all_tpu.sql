@@ -21,20 +21,19 @@ SELECT
   IFNULL(RunRecord.OutputTokenThroughput, 0) AS OutputTokenThroughput,
   IFNULL(RunRecord.TotalTokenThroughput, 0) AS TotalTokenThroughput,
   CASE
-    WHEN RunRecord.RunType = 'HOURLY' THEN 'torchxla'
-    WHEN RunRecord.RunType = 'HOURLY_TORCHAX' THEN 'torchax'
     WHEN RunRecord.RunType = 'HOURLY_JAX' THEN 'jax'
     WHEN RunRecord.RunType = 'HOURLY_AX_JAX' THEN 'torchax-jax'
+    WHEN RunRecord.RunType = 'HOURLY_TT' THEN 'torchtpu'
     ELSE 'unknown'
   END AS Backend,
   PARSE_TIMESTAMP('%Y%m%d_%H%M%S', RunRecord.JobReference, 'America/Los_Angeles') AS JobReferenceTime
 FROM
   RunRecord
 WHERE
-  RunRecord.RunType in ('HOURLY', 'HOURLY_TORCHAX', 'HOURLY_JAX', 'HOURLY_AX_JAX') 
+  RunRecord.RunType in ('HOURLY_JAX', 'HOURLY_AX_JAX', 'HOURLY_TT') 
   AND RunRecord.Status IN ('COMPLETED',
     'FAILED')  
-  AND RunRecord.Device LIKE 'v6e-%'
+  AND (RunRecord.Device LIKE 'v6e-%' OR RunRecord.Device LIKE 'tpu7x-%')
   AND RunRecord.CreatedTime >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 15 DAY)
 ORDER BY
   RunRecord.JobReference;
