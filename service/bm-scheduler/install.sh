@@ -1,6 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
+set -a
+source /etc/environment
+set +a
+
+
 if ! id -u bm-scheduler >/dev/null 2>&1; then
     echo "sudo useradd -m -s /bin/bash bm-scheduler"
     sudo useradd -m -s /bin/bash bm-scheduler
@@ -25,7 +30,11 @@ login $GITHUB_USERNAME
 password $GITHUB_PERSONAL_ACCESS_TOKEN" | tee -a /home/bm-scheduler/.netrc
 
 echo "git clone https://github.com/QiliangCui/bm-infra.git"
-git clone https://github.com/QiliangCui/bm-infra.git
+if [[ -z "${BRANCH_NAME}" ]]; then
+  export BRANCH_NAME=main
+fi
+
+git clone --branch "${BRANCH_NAME}" https://github.com/QiliangCui/bm-infra.git
 
 EOF
 
