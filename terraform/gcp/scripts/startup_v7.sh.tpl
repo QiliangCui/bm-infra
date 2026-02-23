@@ -16,7 +16,8 @@ fi
 apt-get update
 apt-get install -y curl build-essential jq
 
-curl -o- https://get.docker.com/ | bash -
+# use the local docker
+# curl -o- https://get.docker.com/ | bash -
 
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 /root/.cargo/bin/cargo install minijinja-cli
