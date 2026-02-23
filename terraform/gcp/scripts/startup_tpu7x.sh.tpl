@@ -128,6 +128,9 @@ sudo -u ${USERNAME} -i bash << EOBM
 gcloud auth configure-docker ${region}-docker.pkg.dev --quiet
 rm -rf bm-infra
 git clone -b ${branch_name} https://github.com/QiliangCui/bm-infra.git
+pushd bm-infra
+git submodule update --init --recursive
+popd
 
 EOBM
 cp /home/${USERNAME}/bm-infra/service/bm-agent/bm-agent.service /etc/systemd/system/bm-agent.service
