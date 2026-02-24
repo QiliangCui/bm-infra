@@ -35,7 +35,11 @@ echo "Found $RECORD_COUNT matching records."
 echo "$RECORDS_JSON" | jq -c '.rows[]' | while read -r row; do
   RECORD_ID=$(echo "$row" | jq -r '.[0]')
   DEVICE=$(echo "$row" | jq -r '.[1]')
-  QUEUE_TOPIC="vllm-bm-queue-$DEVICE"
+  if [[ $DEVICE == tpu7x* ]]; then
+    QUEUE_TOPIC="vllm-tt-queue-$DEVICE"
+  else
+    QUEUE_TOPIC="vllm-bm-queue-$DEVICE"
+  fi
 
   # Check if Pub/Sub topic exists
   if ! gcloud pubsub topics describe "$QUEUE_TOPIC" --project="$GCP_PROJECT_ID" &>/dev/null; then
