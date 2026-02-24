@@ -36,8 +36,8 @@ echo "./scripts/scheduler/create_job.sh ./cases/daily_qwen_llama_tpu7x_2.csv \"\
 ./scripts/scheduler/create_job.sh ./cases/daily_qwen_llama_tpu7x_2.csv "" $TAG DAILY TPU_INFERENCE
 
 # Ironwood Deepseek
-echo "./scripts/scheduler/create_job.sh ./cases/daily_deepseek_tpu7x_8.csv \"\" $TAG DAILY TPU_INFERENCE \"HF_HOME=/mnt/disks/v7e8/hf_cache/;VLLM_MLA_DISABLE=1;TPU_BACKEND_TYPE=vllm\""
-./scripts/scheduler/create_job.sh ./cases/daily_deepseek_tpu7x_8.csv "" $TAG DAILY TPU_INFERENCE "HF_HOME=/mnt/disks/v7e8/hf_cache/;VLLM_MLA_DISABLE=1;TPU_BACKEND_TYPE=vllm"
+echo "./scripts/scheduler/create_job.sh ./cases/daily_deepseek_tpu7x_8.csv \"\" $TAG DAILY TPU_INFERENCE \"VLLM_MLA_DISABLE=1;TPU_BACKEND_TYPE=vllm\""
+./scripts/scheduler/create_job.sh ./cases/daily_deepseek_tpu7x_8.csv "" $TAG DAILY TPU_INFERENCE "VLLM_MLA_DISABLE=1;TPU_BACKEND_TYPE=vllm"
 
 # Ironwood Deepseek Accuracy
 echo "./scripts/scheduler/create_job.sh ./cases/accuracy_jax_v7x.csv \"\" $TAG JAX_ACCURACY TPU_INFERENCE \"VLLM_MLA_DISABLE=1;NEW_MODEL_DESIGN=True;TPU_BACKEND_TYPE=jax;\""
