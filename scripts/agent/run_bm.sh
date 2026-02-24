@@ -159,7 +159,6 @@ for i in {1..360}; do
         break
     else
         echo "wait for 10 seconds..."
-        tail -n 5 "$VLLM_LOG"
         sleep 10
     fi
 done
