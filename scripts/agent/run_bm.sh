@@ -108,7 +108,6 @@ elif [[ "$MODEL" == "Qwen/Qwen2.5-VL-7B-Instruct" || "$MODEL" == "Qwen/Qwen2.5-V
   EXTRA_ARGS+="--limit-mm-per-prompt {\"image\":1} --mm-processor-kwargs {\"max_pixels\":1024000}"
 elif [[ "$MODEL" == "deepseek-ai/DeepSeek-R1" ]]; then
   echo "deepseek-ai/DeepSeek-R1"
-  EXTRA_ARGS+=" --kv-cache-dtype=fp8 --enable-expert-parallel --gpu-memory-utilization 0.95"
 fi
 
 if [[ -n "${ADDITIONAL_CONFIG:-}" ]]; then
