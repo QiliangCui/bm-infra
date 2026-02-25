@@ -108,7 +108,6 @@ elif [[ "$MODEL" == "Qwen/Qwen2.5-VL-7B-Instruct" || "$MODEL" == "Qwen/Qwen2.5-V
   EXTRA_ARGS+="--limit-mm-per-prompt {\"image\":1} --mm-processor-kwargs {\"max_pixels\":1024000}"
 elif [[ "$MODEL" == "deepseek-ai/DeepSeek-R1" ]]; then
   echo "deepseek-ai/DeepSeek-R1"
-  EXTRA_ARGS+=" --hf-config=deepseek-ai/DeepSeek-R1 --hf_overrides '{\"architectures\": [\"DeepseekV3ForCausalLM\"]}' --gpu-memory-utilization 0.91"
 fi
 
 if [[ -n "${ADDITIONAL_CONFIG:-}" ]]; then
@@ -117,8 +116,14 @@ if [[ -n "${ADDITIONAL_CONFIG:-}" ]]; then
   EXTRA_ARGS+=" --additional_config=${quoted_config}"
 fi
 
+VLLM_ENVS="VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR=\"$PROFILE_FOLDER\""
+
+if [[ "$MODEL" == "deepseek-ai/DeepSeek-R1" ]]; then
+  VLLM_ENVS+=" VLLM_MLA_DISABLE=1 MODEL_IMPL_TYPE=vllm"
+fi
+
 echo "Printing the vllm serve command used to start the server:"
-echo "VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR=\"$PROFILE_FOLDER\" vllm serve $MODEL \
+echo "$VLLM_ENVS vllm serve $MODEL \
  --seed 42 \
  --disable-log-requests \
  --max-num-seqs $MAX_NUM_SEQS \
@@ -129,7 +134,7 @@ echo "VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR=\"$PROFILE_FOLDER\" vllm serve $MODE
  --max-model-len $MAX_MODEL_LEN $EXTRA_ARGS \
  --async-scheduling > \"$VLLM_LOG\" 2>&1 &"
 
-eval "VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR=\"$PROFILE_FOLDER\" vllm serve $MODEL \
+eval "$VLLM_ENVS vllm serve $MODEL \
  --seed 42 \
  --disable-log-requests \
  --max-num-seqs $MAX_NUM_SEQS \
@@ -141,9 +146,9 @@ eval "VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR=\"$PROFILE_FOLDER\" vllm serve $MODE
  --async-scheduling > \"$VLLM_LOG\" 2>&1 &"
 
 
-echo "wait for 20 minutes.."
+echo "wait for 40 minutes.."
 echo
-for i in {1..120}; do
+for i in {1..240}; do
     # TODO: detect other type of errors.
     if grep -Fq "raise RuntimeError" "$VLLM_LOG"; then
         echo "Detected RuntimeError, exiting."
