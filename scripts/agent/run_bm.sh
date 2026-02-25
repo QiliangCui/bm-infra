@@ -176,7 +176,7 @@ run_benchmark(){
   local command_to_run
   local ARGS=()
 
-  if [[ "$MODEL" == "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8" ]]; then
+  if [[ "$MODEL" == "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8" || "$MODEL" == "BCCard/Qwen3-Coder-480B-A35B-Instruct-FP8-Dynamic" ]]; then
     command_to_run=("python3" "scripts/agent/bench_serving/benchmark_serving.py")
   else
     command_to_run=("vllm" "bench" "serve")
@@ -201,6 +201,9 @@ run_benchmark(){
       ;;
     random)
       ARGS+=(--random-input-len "$INPUT_LEN" --random-output-len "$OUTPUT_LEN")
+      if [[ "$MODEL" == "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8" || "$MODEL" == "BCCard/Qwen3-Coder-480B-A35B-Instruct-FP8-Dynamic" ]]; then
+        ARGS+=(--random-range-ratio 0.8 --max-concurrency 64)
+      fi
       ;;
     mmlu)
       ARGS+=(--dataset-path "/workspace/dataset" --mmlu-num-shots 0 --mmlu-method "HELM")
