@@ -135,12 +135,12 @@ echo LOCAL_PATCH=1 ./scripts/scheduler/create_job.sh ./cases/hourly_disagg.csv "
 LOCAL_PATCH=1 ./scripts/scheduler/create_job.sh ./cases/hourly_disagg.csv "" $TAG HOURLY_DISAGG TPU_INFERENCE "PREFILL_SLICES=2;DECODE_SLICES=2;TPU_BACKEND_TYPE=jax"
 
 # Run TTV v6
-echo ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt.csv \"\" $TAG HOURLY_TT '\"MODEL_IMPL_TYPE=vllm;FORCE_EAGER=true\"'
-bash ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt.csv "" $TAG HOURLY_TT "MODEL_IMPL_TYPE=vllm;FORCE_EAGER=true"
+echo ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt.csv \"\" $TAG HOURLY_TT '\"MODEL_IMPL_TYPE=vllm\"'
+bash ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt.csv "" $TAG HOURLY_TT "MODEL_IMPL_TYPE=vllm"
 
 # Run TTV v7
-echo ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt_v7.csv \"\" $TAG HOURLY_TT '\"MODEL_IMPL_TYPE=vllm;FORCE_EAGER=true\"' tt
-bash ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt_v7.csv "" $TAG HOURLY_TT "MODEL_IMPL_TYPE=vllm;FORCE_EAGER=true" "tt"
+echo ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt_v7.csv \"\" $TAG HOURLY_TT '\"MODEL_IMPL_TYPE=vllm\"' tt
+bash ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt_v7.csv "" $TAG HOURLY_TT "MODEL_IMPL_TYPE=vllm" "tt"
 
 # torchax v7
 echo "./scripts/scheduler/create_job.sh ./cases/hourly_torchax_jax_v7.csv \"\" $TAG HOURLY_AX_JAX TPU_INFERENCE \"TPU_BACKEND_TYPE=jax;MODEL_IMPL_TYPE=vllm\" tt"
