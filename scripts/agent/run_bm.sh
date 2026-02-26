@@ -146,9 +146,9 @@ eval "$VLLM_ENVS vllm serve $MODEL \
  --async-scheduling > \"$VLLM_LOG\" 2>&1 &"
 
 
-echo "wait for 40 minutes.."
+echo "wait for 60 minutes.."
 echo
-for i in {1..240}; do
+for i in {1..360}; do
     # TODO: detect other type of errors.
     if grep -Fq "raise RuntimeError" "$VLLM_LOG"; then
         echo "Detected RuntimeError, exiting."
