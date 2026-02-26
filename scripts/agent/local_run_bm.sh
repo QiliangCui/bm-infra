@@ -193,13 +193,13 @@ if [[ "$RUN_TYPE" == *"ACCURACY"* ]]; then
 else
     # Performance run logic
     # Parse throughput
-    throughput=$(grep 'Request throughput (req/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
+    throughput=$(grep -i 'Request throughput (req/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
     echo "Throughput: $throughput"
     
     # Parse Token throughput (tok/s)
-    output_token_throughput=$(grep 'Output token throughput (tok/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
+    output_token_throughput=$(grep -i 'Output token throughput (tok/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
     echo "OutputTokenThroughput: $output_token_throughput"
-    total_token_throughput=$(grep 'Total token throughput (tok/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
+    total_token_throughput=$(grep -i 'Total token throughput (tok/s):' "$BM_LOG" | sed 's/[^0-9.]//g')
     echo "TotalTokenThroughput: $total_token_throughput"
 
     # Check throughput
