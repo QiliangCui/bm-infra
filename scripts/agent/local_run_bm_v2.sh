@@ -130,7 +130,7 @@ cp "$TMP_WORKSPACE/bm_log.txt" "$BM_LOG" || true
 gsutil cp "$LOG_ROOT"/* "$REMOTE_LOG_ROOT"
 
 # Parse throughput
-throughput=$(grep 'Request throughput (req/s):' "$BM_LOG" | sed 's/[^0-9.]//g') || true
+throughput=$(grep -i 'Request throughput (req/s):' "$BM_LOG" | sed 's/[^0-9.]//g') || true
 echo "Throughput: $throughput" || true
 
 # Check throughput
@@ -152,8 +152,8 @@ fi
 mkdir -p artifacts
 echo "Throughput=$throughput" > "artifacts/$RECORD_ID.result"
 
-output_token_throughput=$(grep "Output token throughput (tok/s):" "$BM_LOG" | sed 's/[^0-9.]//g')
-total_token_throughput=$(grep "Total Token throughput (tok/s):" "$BM_LOG" | sed 's/[^0-9.]//g')
+output_token_throughput=$(grep -i "Output token throughput (tok/s):" "$BM_LOG" | sed 's/[^0-9.]//g')
+total_token_throughput=$(grep -i "Total Token throughput (tok/s):" "$BM_LOG" | sed 's/[^0-9.]//g')
 
 extract_value() {
   local section="$1"
