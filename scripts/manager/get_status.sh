@@ -8,13 +8,13 @@ fi
 
 JOB_REFERENCE="$1"
 
-echo "Querying records for JobReference LIKE '$JOB_REFERENCE%'..."
+echo "Querying records for JobReference LIKE '$JOB_REFERENCE%...'"
 
-# Fetch records from Spanner, now including JobReference and RecordId
+# Fetch records from Spanner, now including Throughput
 RECORDS_JSON=$(gcloud spanner databases execute-sql "$GCP_DATABASE_ID" \
   --instance="$GCP_INSTANCE_ID" \
   --project="$GCP_PROJECT_ID" \
-  --sql="SELECT JobReference, Model, Status, Device, RecordId FROM RunRecord WHERE JobReference LIKE '$JOB_REFERENCE%';" \
+  --sql="SELECT JobReference, Model, Status, Device, Throughput, RecordId FROM RunRecord WHERE JobReference LIKE '$JOB_REFERENCE%';" \
   --format=json)
 
 # Check if any records were found
@@ -28,9 +28,9 @@ fi
 echo "Found $RECORD_COUNT matching records:"
 echo ""
 
-# Print header
-printf "%-25s %-30s %-15s %-15s %s\n" "JobReference" "Model" "Status" "Device" "VLLM Log"
-printf "%-25s %-30s %-15s %-15s %s\n" "-------------------------" "------------------------------" "---------------" "---------------" "------------------------------------------------------------------------------------------------"
+# Print header with Throughput column added
+printf "%-25s %-30s %-15s %-15s %-12s %s\n" "JobReference" "Model" "Status" "Device" "Throughput" "VLLM Log"
+printf "%-25s %-30s %-15s %-15s %-12s %s\n" "-------------------------" "------------------------------" "---------------" "---------------" "------------" "------------------------------------------------------------------------------------------------"
 
 # Parse JSON and print each row
 echo "$RECORDS_JSON" | jq -c '.rows[]' | while read -r row; do
@@ -38,9 +38,15 @@ echo "$RECORDS_JSON" | jq -c '.rows[]' | while read -r row; do
   MODEL=$(echo "$row" | jq -r '.[1]' | awk -F/ '{print $NF}')
   STATUS=$(echo "$row" | jq -r '.[2]')
   DEVICE=$(echo "$row" | jq -r '.[3]')
-  RECORD_ID=$(echo "$row" | jq -r '.[4]')
+  THROUGHPUT=$(echo "$row" | jq -r '.[4]')
+  RECORD_ID=$(echo "$row" | jq -r '.[5]')
 
-  VLLM_LOG_URL="https://storage.mtls.cloud.google.com/$GCS_BUCKET/job_logs/$RECORD_ID/static_vllm_log.txt"
+  # Handle null throughput values
+  if [ "$THROUGHPUT" == "null" ]; then
+    THROUGHPUT="N/A"
+  fi
 
-  printf "%-25s %-30s %-15s %-15s %s\n" "$JOB_REF" "$MODEL" "$STATUS" "$DEVICE" "$VLLM_LOG_URL"
+  VLLM_LOG_URL="go/bm-log/$RECORD_ID/static_vllm_log.txt"
+
+  printf "%-25s %-30s %-15s %-15s %-12s %s\n" "$JOB_REF" "$MODEL" "$STATUS" "$DEVICE" "$THROUGHPUT" "$VLLM_LOG_URL"
 done
