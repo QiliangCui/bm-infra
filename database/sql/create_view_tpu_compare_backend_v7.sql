@@ -7,7 +7,7 @@ Output: Model, ThroughputHourly, ThroughputHourlyTorchax, optionally Devices (bu
 In other words: for each model, find the latest JobReference where both RunTypes exist, then aggregate and compare.
 */
 
-CREATE OR REPLACE VIEW `TpuCompareBackend` SQL SECURITY INVOKER AS
+CREATE OR REPLACE VIEW `TpuCompareBackendV7` SQL SECURITY INVOKER AS
 SELECT
   j.Model,
   STRING_AGG(DISTINCT j.Device, ', ') AS Devices,
@@ -42,12 +42,12 @@ FROM (
       MAX(p.JobReference) AS LatestJobRef
     FROM HourlyRunAllTPU AS p
     WHERE p.RunType IN ('HOURLY_JAX', 'HOURLY_AX_JAX', 'HOURLY_TT')
-      AND P.Device like 'v6e-%'
-      AND p.CreatedTime <= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 59 MINUTE)
+      AND P.Device like 'tpu7x-%'
+      AND p.CreatedTime <= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 59 MINUTE)      
     GROUP BY p.Model
   ) AS latest
   ON f.Model = latest.Model AND f.JobReference = latest.LatestJobRef
-  WHERE f.RunType IN ('HOURLY_JAX','HOURLY_AX_JAX', 'HOURLY_TT') AND f.Device like 'v6e-%'
+  WHERE f.RunType IN ('HOURLY_JAX','HOURLY_AX_JAX', 'HOURLY_TT') AND f.Device like 'tpu7x-%'
 ) AS j
 GROUP BY
   j.Model
