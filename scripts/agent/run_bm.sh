@@ -100,7 +100,6 @@ fi
 
 VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR="$PROFILE_FOLDER" vllm serve $MODEL \
   --seed 42 \
-  --disable-log-requests \
   --max-num-seqs $MAX_NUM_SEQS \
   --max-num-batched-tokens $MAX_NUM_BATCHED_TOKENS \
   --tensor-parallel-size $TENSOR_PARALLEL_SIZE \
