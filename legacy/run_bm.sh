@@ -66,7 +66,6 @@ echo
 # --gpu-memory-utilization 0.98 \
 LIBTPU_INIT_ARGS=“--xla_tpu_force_1d_allreduce_at_chunk_count=1” VLLM_USE_V1=1 vllm serve $MODEL \
  --seed 42 \
- --disable-log-requests \
  --port 8004 \
  --max-num-seqs $MAX_NUM_SEQS \
  --max-num-batched-tokens $MAX_NUM_BATCHED_TOKENS \
