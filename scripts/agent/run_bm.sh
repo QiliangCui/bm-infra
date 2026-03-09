@@ -197,6 +197,7 @@ run_benchmark(){
     --num-prompts "$NUM_PROMPTS"
     --percentile-metrics "ttft,tpot,itl,e2el"
     --ignore-eos
+    --trust-remote-code
     $PROFILE_FLAG
   )
 
