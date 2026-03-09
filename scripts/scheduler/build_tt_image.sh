@@ -36,6 +36,7 @@ echo "Image tag: $IMAGE_VERSION_TAG"
 echo "Image tag: $IMAGE_LATEST_TAG"
 
 VLLM_TARGET_DEVICE=tpu DOCKER_BUILDKIT=1 docker build \
+--no-cache \
 --secret id=google_token,env=GOOGLE_ACCESS_TOKEN \
 --build-arg max_jobs=16 \
 --build-arg USE_SCCACHE=1 \
