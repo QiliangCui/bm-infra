@@ -40,6 +40,23 @@ RUN apt-get update && apt-get install -y \
     vim-common \
     && rm -rf /var/lib/apt/lists/*
 
+# The vllm's tag: v0.13.0
+ARG VLLM_COMMIT_HASH="72506c983"
+
+#
+# Build and install vLLM
+#
+WORKDIR /workspace/vllm
+ARG VLLM_REPO=https://github.com/vllm-project/vllm.git
+
+RUN git clone $VLLM_REPO . && \
+    if [ -n "$VLLM_COMMIT_HASH" ]; then \
+        git checkout $VLLM_COMMIT_HASH; \
+    fi
+
+RUN --mount=type=cache,target=/root/.cache/pip pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements/tpu.txt --retries 3
+RUN --mount=type=cache,target=/root/.cache/pip VLLM_TARGET_DEVICE="tpu" pip install -e .
+
 #
 # Install TORCH TPU
 #

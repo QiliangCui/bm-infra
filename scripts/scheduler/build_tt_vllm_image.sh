@@ -23,7 +23,9 @@ fi
 echo "torch_tpu version: $TORCH_TPU_VERSION"
 SAFE_TORCH_TPU_VERSION=$(echo "$TORCH_TPU_VERSION" | sed 's/+/--/g')
 
-CODE_HASH="${VLLM_HASH}-${TT_VLLM_HASH}-${SAFE_TORCH_TPU_VERSION}"
+# Note: for torchTPU, the vLLM is built inside the TorchTPUBase.
+# Attach ".vllm" in the end to indicate the base image has vllm in it.
+CODE_HASH="${VLLM_HASH}-${TT_VLLM_HASH}-${SAFE_TORCH_TPU_VERSION}.vllm"
 IMAGE_TAG="$GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/vllm-tpu-bm/vllm-tpu:$CODE_HASH"
 echo "Image tag: $IMAGE_TAG"
 
@@ -55,7 +57,6 @@ VLLM_TARGET_DEVICE=tpu DOCKER_BUILDKIT=1 docker build \
 --build-arg USE_SCCACHE=1 \
 --build-arg BASE_IMAGE=$BASE_IMAGE \
 --build-arg GIT_REPO_CHECK=0 \
---build-arg VLLM_COMMIT_HASH="$VLLM_HASH" \
 --tag $IMAGE_TAG \
 --progress plain \
 -f "$DOCKERFILE" .
