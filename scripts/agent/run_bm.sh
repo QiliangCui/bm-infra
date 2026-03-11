@@ -180,7 +180,7 @@ run_benchmark(){
   local command_to_run
   local ARGS=()
 
-  if [[ "$MODEL" == "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8" || "$MODEL" == "BCCard/Qwen3-Coder-480B-A35B-Instruct-FP8-Dynamic" ]]; then
+  if [[ "$MODEL" == "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8" || "$MODEL" == "BCCard/Qwen3-Coder-480B-A35B-Instruct-FP8-Dynamic" || "${USE_BENCHMARK_SERVING:-0}" == "1" ]]; then
     command_to_run=("python3" "scripts/agent/bench_serving/benchmark_serving.py")
   else
     command_to_run=("vllm" "bench" "serve")
