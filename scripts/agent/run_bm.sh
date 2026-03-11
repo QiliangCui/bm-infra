@@ -4,7 +4,7 @@ set -euo pipefail
 
 # Strip quotes from environment variables (important when passed via docker --env-file)
 # which doesn't strip quotes like bash 'source' does.
-for var in MODEL DATASET NUM_PROMPTS INPUT_LEN OUTPUT_LEN EXPECTED_ETEL TENSOR_PARALLEL_SIZE MAX_NUM_SEQS MAX_NUM_BATCHED_TOKENS MAX_MODEL_LEN PREFIX_LEN ADDITIONAL_CONFIG EXTRA_ARGS USE_BENCHMARK_SERVING BM_MAX_CONCURRENCY; do
+for var in MODEL DATASET NUM_PROMPTS INPUT_LEN OUTPUT_LEN EXPECTED_ETEL TENSOR_PARALLEL_SIZE MAX_NUM_SEQS MAX_NUM_BATCHED_TOKENS MAX_MODEL_LEN PREFIX_LEN ADDITIONAL_CONFIG EXTRA_ARGS; do
   if [ -n "${!var:-}" ]; then
     val="${!var}"
     val="${val#\'}"
@@ -204,8 +204,11 @@ run_benchmark(){
       ;;
     random)
       ARGS+=(--random-input-len "$INPUT_LEN" --random-output-len "$OUTPUT_LEN")
-      if [[ "$MODEL" == "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8" || "$MODEL" == "BCCard/Qwen3-Coder-480B-A35B-Instruct-FP8-Dynamic" || "${USE_BENCHMARK_SERVING:-0}" == "1" ]]; then
-        ARGS+=(--random-range-ratio 0.8 --max-concurrency "${BM_MAX_CONCURRENCY:-64}")
+      if [[ "$MODEL" == "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8" || "$MODEL" == "BCCard/Qwen3-Coder-480B-A35B-Instruct-FP8-Dynamic" ]]; then
+        ARGS+=(--random-range-ratio 0.8 --max-concurrency 64)
+      fi
+      if [[ "${USE_BENCHMARK_SERVING:-0}" == "1" ]]; then
+        ARGS+=(--random-range-ratio 0.8 )
       fi
       ;;
     mmlu)

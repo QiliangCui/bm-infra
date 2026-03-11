@@ -35,6 +35,10 @@ export SKIP_BUILD_IMAGE=1
 echo "./scripts/scheduler/create_job.sh ./cases/daily_qwen_llama_tpu7x_2.csv \"\" $TAG DAILY TPU_INFERENCE"
 ./scripts/scheduler/create_job.sh ./cases/daily_qwen_llama_tpu7x_2.csv "" $TAG DAILY TPU_INFERENCE
 
+# Qwen3-32B random benchmarks
+echo "./scripts/scheduler/create_job.sh ./cases/daily_qwen3_32B_random_tpu7x_2.csv \"\" $TAG DAILY TPU_INFERENCE \"USE_BENCHMARK_SERVING=1\""
+./scripts/scheduler/create_job.sh ./cases/daily_qwen3_32B_random_tpu7x_2.csv "" $TAG DAILY TPU_INFERENCE "USE_BENCHMARK_SERVING=1"
+
 # Ironwood Deepseek
 echo "./scripts/scheduler/create_job.sh ./cases/daily_deepseek_tpu7x_8.csv \"\" $TAG DAILY TPU_INFERENCE \"VLLM_MLA_DISABLE=1;TPU_BACKEND_TYPE=vllm\""
 ./scripts/scheduler/create_job.sh ./cases/daily_deepseek_tpu7x_8.csv "" $TAG DAILY TPU_INFERENCE "VLLM_MLA_DISABLE=1;TPU_BACKEND_TYPE=vllm"
