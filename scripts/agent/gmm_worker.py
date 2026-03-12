@@ -5,11 +5,11 @@ import jax
 import jax.numpy as jnp
 from absl import app, flags
 from google.cloud import spanner, pubsub_v1
-from tpu_inference.kernels.megablox.gmm import gmm
+from tpu_inference.kernels.megablox.gmm_v2 import gmm_v2, TileSizes
 
 _HOSTNAME = socket.gethostname()
 _PROJECT_ID = flags.DEFINE_string('project_id', "cloud-tpu-inference-test", 'GCP Project ID')
-_SUBSCRIPTION_ID = flags.DEFINE_string('subscription_id', "gmm-tasks-sub", 'Pub/Sub Subscription ID')
+_SUBSCRIPTION_ID = flags.DEFINE_string('subscription_id', "vllm-tune-queue-tpu7x-2", 'Pub/Sub Subscription ID')
 _INSTANCE_ID = flags.DEFINE_string('instance_id', 'vllm-bm-inst', 'Spanner Instance ID')
 _DATABASE_ID = flags.DEFINE_string('database_id', 'tune-gmm', 'Spanner Database ID')
 _WORKER_ID = flags.DEFINE_string('worker_id', _HOSTNAME, 'The worker id')
@@ -27,7 +27,7 @@ def clear_tensor_cache():
 
 def process_on_tpu(config_row):
     global _LAST_STRUCTURAL_CONFIG
-    (cs_id, case_id, m, k, n, tg, cg, ldt, rdt, q_block, tm, tk, tn) = config_row
+    (cs_id, case_id, m, k, n, tg, cg, ldt, rdt, q_block, tm, tk, tn, maybe_quantize_lhs, zero_initialize) = config_row
     
     if _DEBUG.value:
         print(f"  [DEBUG] Processing Config Row: {config_row}")
@@ -56,13 +56,15 @@ def process_on_tpu(config_row):
 
     lhs, rhs, rhs_scale = _CACHED_TENSORS['lhs'], _CACHED_TENSORS['rhs'], _CACHED_TENSORS['rhs_scale']
     group_sizes, group_offset = _CACHED_TENSORS['group_sizes'], _CACHED_TENSORS['group_offset']
-    tiling = (tm, tk, tn)
+    tile_info = TileSizes(tile_m=tm, tile_k=tk, tile_n=tn)
     start_case = time.perf_counter()
     try:
         # Warm-up
         warmup_start = time.perf_counter()
-        gmm(lhs, rhs, group_sizes, preferred_element_type=lhs.dtype, 
-            rhs_scale=rhs_scale, tiling=tiling, group_offset=group_offset).block_until_ready()
+
+        gmm_v2(lhs, rhs, group_sizes, preferred_element_type=lhs.dtype, 
+            rhs_scale=rhs_scale, group_offset=group_offset,
+            tile_info=tile_info, maybe_quantize_lhs=maybe_quantize_lhs, zero_initialize=zero_initialize).block_until_ready()
         warmup_end = time.perf_counter()
         warmup_time_us = int((warmup_end - warmup_start) * 1_000_000)
 
@@ -70,8 +72,9 @@ def process_on_tpu(config_row):
         num_iters = 10
         iter_start = time.perf_counter()
         for _ in range(num_iters):
-            gmm(lhs, rhs, group_sizes, preferred_element_type=lhs.dtype, 
-                rhs_scale=rhs_scale, tiling=tiling, group_offset=group_offset).block_until_ready()
+            gmm_v2(lhs, rhs, group_sizes, preferred_element_type=lhs.dtype, 
+                rhs_scale=rhs_scale, group_offset=group_offset,
+                tile_info=tile_info, maybe_quantize_lhs=maybe_quantize_lhs, zero_initialize=zero_initialize).block_until_ready()
         iter_end = time.perf_counter()
         
         avg_latency = int(((iter_end - iter_start) / num_iters) * 1_000_000)
@@ -107,7 +110,7 @@ class SpannerManager:
             return {row[0] for row in snp.execute_sql(query, params={'id': cs_id, 'rid': r_id, 's': start, 'e': end})}
 
     def get_bucket_configs(self, cs_id, start, end):
-        query = "SELECT ID, CaseId, M, K, N, NumTotalGroups, NumCurrentGroups, LhsDType, RhsDType, QuantBlockSize, TM, TK, TN FROM Cases WHERE ID = @id AND CaseId BETWEEN @s AND @e ORDER BY CaseId ASC"
+        query = "SELECT ID, CaseId, M, K, N, NumTotalGroups, NumCurrentGroups, LhsDType, RhsDType, QuantBlockSize, TM, TK, TN, MaybeQuantizeLhs, ZeroInitialize FROM GmmV2Cases WHERE ID = @id AND CaseId BETWEEN @s AND @e ORDER BY CaseId ASC"
         with self.db.snapshot() as snp:
             return {row[1]: row for row in snp.execute_sql(query, params={'id': cs_id, 's': start, 'e': end})}
 
@@ -131,6 +134,12 @@ def get_callback(spanner_mgr):
             all_configs = spanner_mgr.get_bucket_configs(cs_id, start, end)
             results = []
             
+            if _DEBUG.value:
+                print(f"[{_WORKER_ID.value}] Bucket {b_id} has {len(all_configs)} cases.")
+                for cid, cfg in all_configs.items():
+                    print(f"  [DEBUG] CaseId {cid}: Config {cfg}")
+                print(f"[{_WORKER_ID.value}] Already processed CaseIds in this bucket: {processed_ids}")
+
             for cid in range(start, end + 1):
                 if cid in processed_ids: continue
                 config = all_configs.get(cid)
@@ -145,7 +154,7 @@ def get_callback(spanner_mgr):
                     lat_str = "OOM" if latency == sys.maxsize else f"{latency:,}us"
                     print(f"  [DEBUG] Case {cid}: AvgLat={lat_str}, Warmup={warmup:,}us, Total={total:,}us")
 
-                if len(results) >= 10:
+                if len(results) >= 2:
                     spanner_mgr.save_results_batch(results)
                     results = []
             
@@ -165,7 +174,7 @@ def main(argv):
     spanner_mgr = SpannerManager()
     sub = pubsub_v1.SubscriberClient()
     streaming_pull_future = sub.subscribe(sub.subscription_path(_PROJECT_ID.value, _SUBSCRIPTION_ID.value), callback=get_callback(spanner_mgr), flow_control=pubsub_v1.types.FlowControl(max_messages=1, max_lease_duration=21600))
-    print(f"GMM Worker {_WORKER_ID.value} ready (DB={_DATABASE_ID.value}, DEBUG={_DEBUG.value})")
+    print(f"GMM_V2 Worker {_WORKER_ID.value} ready (DB={_DATABASE_ID.value}, DEBUG={_DEBUG.value})")
     with sub:
         try: streaming_pull_future.result()
         except KeyboardInterrupt: streaming_pull_future.cancel()

@@ -15,7 +15,7 @@ SUBSCRIPTION_ID="${GCP_QUEUE}-agent"
 
 # Nightly TPU image used for benchmarking
 # around 2/7/2026
-IMAGE_NAME="vllm/vllm-tpu:nightly-ironwood-20260207-c515c6a-48312e5"
+IMAGE_NAME="vllm/vllm-tpu:nightly-20260311-1acbeab-fa0d353"
 
 # Locate the GMM worker script relative to the infra path
 LOCAL_INFRA_PATH="/home/$USER/bm-infra"
