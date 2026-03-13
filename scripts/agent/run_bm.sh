@@ -209,6 +209,10 @@ run_benchmark(){
         ARGS+=(--random-range-ratio 0.8 --max-concurrency 64)
       fi
       if [[ "$MODEL" == "Qwen/Qwen3-32B" && "${USE_BENCHMARK_SERVING:-0}" == "1" ]]; then
+        if [[ -z "${MAX_CONCURRENCY:-}" ]]; then
+          echo "Error: MAX_CONCURRENCY must be set for Qwen/Qwen3-32B with USE_BENCHMARK_SERVING=1" >&2
+          exit 1
+        fi
         ARGS+=(--random-range-ratio 0.8 --max-concurrency "$MAX_CONCURRENCY")
       fi
       ;;
