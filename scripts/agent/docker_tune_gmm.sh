@@ -35,7 +35,7 @@ docker pull "$IMAGE_NAME"
 
 # 3. Launch GMM TPU Worker
 # Consistent with MoE pattern: privileged mode, host network, and volume mounts
-echo "Launching GMM TPU Worker Container..."
+echo "Launching GMM V2 TPU Worker Container..."
 docker run --rm \
     --name "tpu-tune-gmm" \
     -e PYTHONUNBUFFERED=1 \
