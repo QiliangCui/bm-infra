@@ -133,12 +133,6 @@ def get_callback(spanner_mgr):
             processed_ids = spanner_mgr.get_already_processed_ids(cs_id, r_id, start, end)
             all_configs = spanner_mgr.get_bucket_configs(cs_id, start, end)
             results = []
-            
-            if _DEBUG.value:
-                print(f"[{_WORKER_ID.value}] Bucket {b_id} has {len(all_configs)} cases.")
-                for cid, cfg in all_configs.items():
-                    print(f"  [DEBUG] CaseId {cid}: Config {cfg}")
-                print(f"[{_WORKER_ID.value}] Already processed CaseIds in this bucket: {processed_ids}")
 
             for cid in range(start, end + 1):
                 if cid in processed_ids: continue
@@ -154,7 +148,7 @@ def get_callback(spanner_mgr):
                     lat_str = "OOM" if latency == sys.maxsize else f"{latency:,}us"
                     print(f"  [DEBUG] Case {cid}: AvgLat={lat_str}, Warmup={warmup:,}us, Total={total:,}us")
 
-                if len(results) >= 2:
+                if len(results) >= 10:
                     spanner_mgr.save_results_batch(results)
                     results = []
             

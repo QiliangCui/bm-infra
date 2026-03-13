@@ -12,7 +12,7 @@ _CASE_SET_DESC = flags.DEFINE_string('case_set_desc', '', 'Manual description.')
 _DRY_RUN = flags.DEFINE_boolean('dry_run', False, 'Skip Spanner operations.')
 
 # --- Memory Limit Flag ---
-_PER_CHIP_MEM_LIMIT_GB = flags.DEFINE_integer('mem_limit_gb', 16, 'Memory limit per TPU chip in GB.')
+_PER_CHIP_MEM_LIMIT_GB = flags.DEFINE_integer('mem_limit_gb', 60, 'Memory limit per TPU chip in GB.')
 
 # --- Model Configuration Flags (Extracted from logs) ---
 _M_LIST = flags.DEFINE_list('m_list', ['128', '256', '512', '1024', '2048', '4096', '8192', '16384', '32768', '65536'], 'M tokens')
@@ -24,9 +24,12 @@ _LHS_DTYPE_LIST = flags.DEFINE_list('lhs_dtype_list', ['bfloat16'], 'LHS Dtypes'
 _RHS_DTYPE_LIST = flags.DEFINE_list('rhs_dtype_list', ['float8_e4m3fn'], 'RHS Dtypes')
 
 # --- Tiling Search Space Flags ---
-_TM_LST = flags.DEFINE_list('tm_lst', ['128', '256', '512', '1024'], 'tm')
-_TK_LST = flags.DEFINE_list('tk_lst', ['128', '256', '512', '1024', '2048'], 'tk')
+_TM_LST = flags.DEFINE_list('tm_lst', ['128', '256', '512', '1024', '2048', '4096', '8192', '16384', '32768', '65536'], 'tm')
+_TK_LST = flags.DEFINE_list('tk_lst', ['128','256','512','1024','2048'], 'tk')
 _TN_LST = flags.DEFINE_list('tn_lst', ['128', '256', '512', '1024', '1280', '2048'], 'tn')
+
+_MAYBE_QUANTIZE_LHS = flags.DEFINE_list('maybe_quantize_lhs', ['False', 'True'], 'Whether to quantized LHS.')
+_ZERO_INITIALIZE = flags.DEFINE_list('zero_initialize', ['False', 'True'], 'Whether to include zero-initialized cases.')
 
 # --- Spanner Config ---
 SPANNER_INSTANCE = 'vllm-bm-inst'
@@ -101,9 +104,9 @@ class SpannerManager:
     def flush(self):
         if not self.buffer or _DRY_RUN.value: return
         with self.database.batch() as b:
-            b.insert(table='Cases', columns=(
+            b.insert(table='GmmV2Cases', columns=(
                 'ID', 'CaseId', 'M', 'K', 'N', 'NumTotalGroups', 'NumCurrentGroups',
-                'LhsDType', 'RhsDType', 'QuantBlockSize', 'TM', 'TK', 'TN'
+                'LhsDType', 'RhsDType', 'QuantBlockSize', 'TM', 'TK', 'TN', 'MaybeQuantizeLHS', 'ZeroInitialize'
             ), values=self.buffer)
         self.buffer = []
 
@@ -122,7 +125,11 @@ def main(argv):
         [int(x) for x in _CURRENT_GROUPS.value], _LHS_DTYPE_LIST.value, _RHS_DTYPE_LIST.value
     ))
     tiling_space = list(itertools.product(
-        [int(x) for x in _TM_LST.value], [int(x) for x in _TK_LST.value], [int(x) for x in _TN_LST.value]
+        [int(x) for x in _TM_LST.value],
+        [int(x) for x in _TK_LST.value],
+        [int(x) for x in _TN_LST.value],
+        [x == 'True' for x in _MAYBE_QUANTIZE_LHS.value],
+        [x == 'True' for x in _ZERO_INITIALIZE.value]
     ))
     
     total_combinations = len(problem_space) * len(tiling_space)
@@ -134,9 +141,9 @@ def main(argv):
         m, k, n, tg, cg, ldt, rdt = p
         q_block = k # Per-channel quantization block size
         
-        for tm, tk, tn in tiling_space:
+        for tm, tk, tn, maybe_quantize_lhs, zero_initialize in tiling_space:
             if is_valid_gmm_config(m, k, n, tg, cg, ldt, rdt, q_block, tm, tk, tn, _PER_CHIP_MEM_LIMIT_GB.value):
-                mgr.add_row((_CASE_SET_ID.value, mgr.current_case_id, m, k, n, tg, cg, ldt, rdt, q_block, tm, tk, tn))
+                mgr.add_row((_CASE_SET_ID.value, mgr.current_case_id, m, k, n, tg, cg, ldt, rdt, q_block, tm, tk, tn, maybe_quantize_lhs, zero_initialize))
             else:
                 mgr.invalid_count += 1
 
