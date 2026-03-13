@@ -41,7 +41,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # The vllm's tag: v0.13.0
-ARG VLLM_COMMIT_HASH="72506c983"
+ARG VLLM_COMMIT_HASH="95c0f928c"
 
 #
 # Build and install vLLM
