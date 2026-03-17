@@ -162,6 +162,11 @@ run_benchmark(){
     $PROFILE_FLAG
   )
 
+  # Optional arguments
+  if [ -n "${TEMPERATURE:-}" ]; then
+    ARGS+=(--temperature "$TEMPERATURE")
+  fi
+
   # Dataset-specific arguments
   case "$DATASET" in
     sonnet)
