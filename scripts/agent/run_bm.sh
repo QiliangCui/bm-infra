@@ -91,6 +91,9 @@ if [[ "$MODEL" == "google/gemma-3-27b-it" ]]; then
 elif [[ "$MODEL" == "Qwen/Qwen2.5-VL-7B-Instruct" || "$MODEL" == "Qwen/Qwen2.5-VL-32B-Instruct" ]]; then
   echo "$MODEL"
   EXTRA_ARGS="--limit-mm-per-prompt {\"image\":1} --mm-processor-kwargs {\"max_pixels\":1024000}"
+elif [[ "$MODEL" == "Qwen/Qwen2.5-1.5B-Instruct-AWQ" || "$MODEL" == "Qwen/Qwen3-32B-AWQ" ]]; then
+  echo "$MODEL"
+  EXTRA_ARGS="--dtype=bfloat16"
 fi
 
 # If FORCE_EAGER is set to true (case-insensitive), append flag
