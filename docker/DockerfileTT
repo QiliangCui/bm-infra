@@ -62,11 +62,11 @@ RUN --mount=type=cache,target=/root/.cache/pip SETUPTOOLS_SCM_PRETEND_VERSION=0.
 # Install TORCH TPU
 #
 RUN --mount=type=secret,id=google_token \
---mount=type=cache,target=/root/.cache/pip \
-export GOOGLE_ACCESS_TOKEN=$(cat /run/secrets/google_token) && \
-pip install \
---pre \
---index-url "https://oauth2accesstoken:${GOOGLE_ACCESS_TOKEN}@us-python.pkg.dev/ml-oss-artifacts-transient/torch-tpu-virtual-registry/simple/" \
-torch_tpu
+    --mount=type=cache,target=/root/.cache/pip \
+    export GOOGLE_ACCESS_TOKEN=$(cat /run/secrets/google_token) && \
+    pip install \
+    --pre \
+    --index-url "https://oauth2accesstoken:${GOOGLE_ACCESS_TOKEN}@us-python.pkg.dev/ml-oss-artifacts-transient/torch-tpu-virtual-registry/simple/" \
+    torch_tpu
 
 CMD ["/bin/bash"]
