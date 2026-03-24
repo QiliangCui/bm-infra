@@ -122,6 +122,14 @@ VLLM_ENVS="VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR=\"$PROFILE_FOLDER\""
 
 if [[ "$MODEL" == "deepseek-ai/DeepSeek-R1" ]]; then
   VLLM_ENVS+=" NEW_MODEL_DESIGN=1  TPU_BACKEND_TYPE=jax MODEL_IMPL_TYPE=vllm VLLM_MLA_DISABLE=0 MOE_REQUANTIZE_BLOCK_SIZE=512 MOE_REQUANTIZE_WEIGHT_DTYPE=fp4"
+  if [[ "$RUN_TYPE" == *"PROFILE"* && -z "${PHASED_PROFILING_DIR:-}" ]]; then
+    INPUT_K=$((INPUT_LEN / 1024))k
+    OUTPUT_K=$((OUTPUT_LEN / 1024))k
+    PHASED_PROFILING_DIR="gs://tpu-commons-ci/xprof/deepseek-r1/torchax/single-host/${INPUT_K}-${OUTPUT_K}"
+  fi
+  if [[ -n "${PHASED_PROFILING_DIR:-}" ]]; then
+    VLLM_ENVS+=" PHASED_PROFILING_DIR=$PHASED_PROFILING_DIR"
+  fi
 fi
 
 echo "Printing the vllm serve command used to start the server:"

@@ -193,6 +193,9 @@ if [[ "$RUN_TYPE" == *"ACCURACY"* ]]; then
         echo "Error: Accuracy run but no AccuracyMetrics found."
         exit 1
     fi
+elif [[ "$RUN_TYPE" == *"PROFILE"* ]]; then
+    echo "Profiling run ($RUN_TYPE) detected. Skipping performance metric extraction."
+    echo "Status=SUCCESS" > "artifacts/$RECORD_ID.result"
 else
     # Performance run logic
     throughput=$(grep -i "Request throughput (req/s):" "$BM_LOG" | sed 's/[^0-9.]//g')
