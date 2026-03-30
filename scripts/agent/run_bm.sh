@@ -189,7 +189,9 @@ run_benchmark(){
   local command_to_run
   local ARGS=()
 
-  if [[ "$MODEL" == "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8" || "$MODEL" == "BCCard/Qwen3-Coder-480B-A35B-Instruct-FP8-Dynamic" || "${USE_BENCHMARK_SERVING:-0}" == "1" ]]; then
+  if [[ "${USE_VLLM_BENCH_SERVE:-0}" == "1" ]]; then
+    command_to_run=("vllm" "bench" "serve")
+  elif [[ "$MODEL" == "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8" || "$MODEL" == "BCCard/Qwen3-Coder-480B-A35B-Instruct-FP8-Dynamic" || "${USE_BENCHMARK_SERVING:-0}" == "1" ]]; then
     command_to_run=("python3" "scripts/agent/bench_serving/benchmark_serving.py")
   else
     command_to_run=("vllm" "bench" "serve")
@@ -207,6 +209,10 @@ run_benchmark(){
     $PROFILE_FLAG
   )
 
+  if [[ "${USE_VLLM_BENCH_SERVE:-0}" == "1" ]]; then
+    ARGS+=(--metric_percentiles "90,95")
+  fi
+
   # Dataset-specific arguments
   case "$DATASET" in
     sonnet)
@@ -214,7 +220,7 @@ run_benchmark(){
       ;;
     random)
       ARGS+=(--random-input-len "$INPUT_LEN" --random-output-len "$OUTPUT_LEN")
-      if [[ "$MODEL" == "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8" || "$MODEL" == "BCCard/Qwen3-Coder-480B-A35B-Instruct-FP8-Dynamic" ]]; then
+      if [[ ( "$MODEL" == "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8" || "$MODEL" == "BCCard/Qwen3-Coder-480B-A35B-Instruct-FP8-Dynamic" ) && "${USE_VLLM_BENCH_SERVE:-0}" != "1" ]]; then
         ARGS+=(--random-range-ratio 0.8 --max-concurrency 64)
       fi
       if [[ "$MODEL" == "Qwen/Qwen3-32B" && "${USE_BENCHMARK_SERVING:-0}" == "1" ]]; then
@@ -291,6 +297,20 @@ run_benchmark(){
   echo
   echo "$throughput $p99_e2el"
 }
+
+# Check for fixed request rates from environment
+TARGET_REQUEST_RATE=""
+if [[ "$OUTPUT_LEN" -eq 1 ]]; then
+  TARGET_REQUEST_RATE="${PREFILL_REQUEST_RATE:-}"
+elif [[ "$OUTPUT_LEN" -gt 1 ]]; then
+  TARGET_REQUEST_RATE="${DECODE_REQUEST_RATE:-}"
+fi
+
+if [[ -n "$TARGET_REQUEST_RATE" ]]; then
+  echo "Using fixed request rate from environment: $TARGET_REQUEST_RATE"
+  run_benchmark "$TARGET_REQUEST_RATE"
+  exit 0
+fi
 
 read throughput p99_e2el < <(run_benchmark "inf" | tail -n 1)
 

@@ -60,9 +60,10 @@ echo "./scripts/scheduler/create_job.sh ./cases/accuracy_jax_v7x.csv \"\" $TAG J
 # GPT OSS
 echo "./scripts/scheduler/create_job.sh ./cases/daily_gpt_oss_120b_tpu7x.csv \"\" $TAG DAILY TPU_INFERENCE \"USE_MOE_EP_KERNEL=0;MODEL_IMPL_TYPE=vllm\""
 ./scripts/scheduler/create_job.sh ./cases/daily_gpt_oss_120b_tpu7x.csv "" $TAG DAILY TPU_INFERENCE "USE_MOE_EP_KERNEL=0;MODEL_IMPL_TYPE=vllm"
-# Qwen 3-480B
-echo "./scripts/scheduler/create_job.sh ./cases/daily_qwen3_480B_FP8_tpu7x_8.csv \"\" $TAG DAILY TPU_INFERENCE"
-./scripts/scheduler/create_job.sh ./cases/daily_qwen3_480B_FP8_tpu7x_8.csv "" $TAG DAILY TPU_INFERENCE
+
+# Disagg test: Qwen 3-480B 8k/1k, 1k/8k, 1k/1k (using vllm bench serve)
+echo "./scripts/scheduler/create_job.sh ./cases/daily_disagg_qwen3_480B_FP8_tpu7x_8.csv \"\" $TAG DAILY TPU_INFERENCE \"USE_MOE_EP_KERNEL=0;MODEL_IMPL_TYPE=vllm;USE_VLLM_BENCH_SERVE=1;PREFILL_REQUEST_RATE=0.2;DECODE_REQUEST_RATE=10\""
+./scripts/scheduler/create_job.sh ./cases/daily_disagg_qwen3_480B_FP8_tpu7x_8.csv "" $TAG DAILY TPU_INFERENCE "USE_MOE_EP_KERNEL=0;MODEL_IMPL_TYPE=vllm;USE_VLLM_BENCH_SERVE=1;PREFILL_REQUEST_RATE=0.2;DECODE_REQUEST_RATE=10"
 
 echo "./scripts/cleanup_docker.sh"
 ./scripts/cleanup_docker.sh
