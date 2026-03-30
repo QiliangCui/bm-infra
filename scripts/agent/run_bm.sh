@@ -106,6 +106,9 @@ if [[ "$MODEL" == "google/gemma-3-27b-it" ]]; then
 elif [[ "$MODEL" == "Qwen/Qwen2.5-VL-7B-Instruct" || "$MODEL" == "Qwen/Qwen2.5-VL-32B-Instruct" ]]; then
   echo "$MODEL"
   EXTRA_ARGS+="--limit-mm-per-prompt {\"image\":1} --mm-processor-kwargs {\"max_pixels\":1024000}"
+elif [[ "$MODEL" == "Qwen/Qwen3.5-397B-A17B-FP8" ]]; then
+  echo "$MODEL"
+  EXTRA_ARGS+=" --limit-mm-per-prompt {\"image\":0,\"video\":0} --hf-overrides {\"text_config\":{\"rope_parameters\":null,\"rope_theta\":10000000,\"partial_rotary_factor\":0.25}}"
 elif [[ "$MODEL" == "deepseek-ai/DeepSeek-R1" ]]; then
   echo "deepseek-ai/DeepSeek-R1"
   gsutil -m cp -r gs://gpolovets-inference/deepseek/generation_configs "$WORKSPACE"
@@ -223,9 +226,9 @@ run_benchmark(){
       if [[ ( "$MODEL" == "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8" || "$MODEL" == "BCCard/Qwen3-Coder-480B-A35B-Instruct-FP8-Dynamic" ) && "${USE_VLLM_BENCH_SERVE:-0}" != "1" ]]; then
         ARGS+=(--random-range-ratio 0.8 --max-concurrency 64)
       fi
-      if [[ "$MODEL" == "Qwen/Qwen3-32B" && "${USE_BENCHMARK_SERVING:-0}" == "1" ]]; then
+      if [[ ("$MODEL" == "Qwen/Qwen3-32B" || "$MODEL" == "Qwen/Qwen3.5-397B-A17B-FP8") && "${USE_BENCHMARK_SERVING:-0}" == "1" ]]; then
         if [[ -z "${MAX_CONCURRENCY:-}" ]]; then
-          echo "Error: MAX_CONCURRENCY must be set for Qwen/Qwen3-32B with USE_BENCHMARK_SERVING=1" >&2
+          echo "Error: MAX_CONCURRENCY must be set for $MODEL with USE_BENCHMARK_SERVING=1" >&2
           exit 1
         fi
         ARGS+=(--random-range-ratio 0.8 --max-concurrency "$MAX_CONCURRENCY")
