@@ -11,15 +11,17 @@ export GOOGLE_ACCESS_TOKEN=$(gcloud auth print-access-token)
 
 # 2. Fetch the version of torch_tpu
 # This runs a tiny container to check the version from the registry
-echo "Determining torch_tpu version..."
-TORCH_VERSION=$(docker run --rm \
-    -e GOOGLE_ACCESS_TOKEN=$GOOGLE_ACCESS_TOKEN \
-    python:3.12-slim-bookworm /bin/bash -c "
-    pip install --quiet --no-deps \
-    --index-url https://oauth2accesstoken:\${GOOGLE_ACCESS_TOKEN}@us-python.pkg.dev/ml-oss-artifacts-transient/torch-tpu-virtual-registry/simple/ \
-    --pre torch_tpu > /dev/null 2>&1 && \
-    pip show torch_tpu | grep Version | awk '{print \$2}'
-")
+
+TORCH_VERSION="0.1.1.dev20260327092459"
+# echo "Determining torch_tpu version..."
+# TORCH_VERSION=$(docker run --rm \
+#     -e GOOGLE_ACCESS_TOKEN=$GOOGLE_ACCESS_TOKEN \
+#     python:3.12-slim-bookworm /bin/bash -c "
+#     pip install --quiet --no-deps \
+#     --index-url https://oauth2accesstoken:\${GOOGLE_ACCESS_TOKEN}@us-python.pkg.dev/ml-oss-artifacts-transient/torch-tpu-virtual-registry/simple/ \
+#     --pre torch_tpu > /dev/null 2>&1 && \
+#     pip show torch_tpu | grep Version | awk '{print \$2}'
+# ")
 
 if [ -z "$TORCH_VERSION" ]; then
     echo "Error: Could not determine torch_tpu version."
@@ -41,6 +43,7 @@ VLLM_TARGET_DEVICE=tpu DOCKER_BUILDKIT=1 docker build \
 --build-arg max_jobs=16 \
 --build-arg USE_SCCACHE=1 \
 --build-arg GIT_REPO_CHECK=0 \
+--build-arg TORCH_VERSION=$TORCH_VERSION \
 --tag $IMAGE_VERSION_TAG \
 --tag $IMAGE_LATEST_TAG \
 --progress plain \
