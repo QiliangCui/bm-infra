@@ -41,6 +41,10 @@ echo "./scripts/scheduler/create_job.sh ./cases/daily_qwen3_32B_random_tpu7x_2.c
 echo "./scripts/scheduler/create_job.sh ./cases/daily_qwen3_32B_random_tpu7x_2.csv \"\" $TAG DAILY TPU_INFERENCE \"USE_BENCHMARK_SERVING=1;MAX_CONCURRENCY=320;\""
 ./scripts/scheduler/create_job.sh ./cases/daily_qwen3_32B_random_tpu7x_2.csv "" $TAG DAILY TPU_INFERENCE "USE_BENCHMARK_SERVING=1;MAX_CONCURRENCY=320;"
 
+# Ironwood Qwen3.5 397B
+echo "./scripts/scheduler/create_job.sh ./cases/daily_qwen3_5_397b_fp8_tpu7x_8.csv \"\" $TAG DAILY TPU_INFERENCE \"USE_BENCHMARK_SERVING=1;MAX_CONCURRENCY=320;\""
+./scripts/scheduler/create_job.sh ./cases/daily_qwen3_5_397b_fp8_tpu7x_8.csv "" $TAG DAILY TPU_INFERENCE "USE_BENCHMARK_SERVING=1;MAX_CONCURRENCY=320;"
+
 # Ironwood Deepseek DP Attention
 echo "./scripts/scheduler/create_job.sh ./cases/daily_deepseek_dp_attention_tpu7x_8.csv \"\" $TAG DAILY TPU_INFERENCE \"VLLM_MLA_DISABLE=0;NEW_MODEL_DESIGN=1;MOE_REQUANTIZE_BLOCK_SIZE=512;MOE_REQUANTIZE_WEIGHT_DTYPE=fp4;TPU_BACKEND_TYPE=jax;MODEL_IMPL_TYPE=vllm;\""
 ./scripts/scheduler/create_job.sh ./cases/daily_deepseek_dp_attention_tpu7x_8.csv "" $TAG DAILY TPU_INFERENCE "VLLM_MLA_DISABLE=0;NEW_MODEL_DESIGN=1;MOE_REQUANTIZE_BLOCK_SIZE=512;MOE_REQUANTIZE_WEIGHT_DTYPE=fp4;TPU_BACKEND_TYPE=jax;MODEL_IMPL_TYPE=vllm;"
