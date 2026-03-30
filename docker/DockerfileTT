@@ -43,6 +43,8 @@ RUN apt-get update && apt-get install -y \
 # The vllm's tag: v0.17.1
 ARG VLLM_COMMIT_HASH="95c0f928c"
 
+ARG TORCH_VERSION="0.1.1.dev20260327092459"
+
 #
 # Build and install vLLM
 #
@@ -67,6 +69,6 @@ RUN --mount=type=secret,id=google_token \
     pip install \
     --pre \
     --index-url "https://oauth2accesstoken:${GOOGLE_ACCESS_TOKEN}@us-python.pkg.dev/ml-oss-artifacts-transient/torch-tpu-virtual-registry/simple/" \
-    torch_tpu
+    torch-tpu==$TORCH_VERSION
 
 CMD ["/bin/bash"]
