@@ -102,7 +102,7 @@ run_disagg_benchmark() {
         sleep 2
     done
 
-    kubectl cp "${proxy}:${filename}" "./${filename}.json"
+    kubectl cp "${proxy}:${filename}" "./${filename}"
 }
 
 
