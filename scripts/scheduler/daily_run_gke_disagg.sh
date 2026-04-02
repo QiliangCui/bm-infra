@@ -14,7 +14,7 @@ init_env() {
 
     # Ensure HF_TOKEN is set
     echo "kubectl create secret generic hf-token-secret --from-literal=token=$HF_TOKEN"
-    kubectl create secret generic hf-token-secret --from-literal=token=$HF_TOKEN
+    kubectl create secret generic hf-token-secret --from-literal=token=$HF_TOKEN --dry-run=client -o yaml | kubectl apply -f -
 
     # Create storage class
     echo "kubectl apply -f ./kubernetes/manifests/storageclass.yaml"
