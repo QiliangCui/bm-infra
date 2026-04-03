@@ -108,7 +108,7 @@ elif [[ "$MODEL" == "Qwen/Qwen2.5-VL-7B-Instruct" || "$MODEL" == "Qwen/Qwen2.5-V
   EXTRA_ARGS+="--limit-mm-per-prompt {\"image\":1} --mm-processor-kwargs {\"max_pixels\":1024000}"
 elif [[ "$MODEL" == "Qwen/Qwen3.5-397B-A17B-FP8" ]]; then
   echo "$MODEL"
-  EXTRA_ARGS+=" --limit-mm-per-prompt {\"image\":0,\"video\":0} --hf-overrides {\"text_config\":{\"rope_parameters\":null,\"rope_theta\":10000000,\"partial_rotary_factor\":0.25}}"
+  EXTRA_ARGS+=" --limit-mm-per-prompt '{\"image\":0,\"video\":0}'"
 elif [[ "$MODEL" == "deepseek-ai/DeepSeek-R1" ]]; then
   echo "deepseek-ai/DeepSeek-R1"
   gsutil -m cp -r gs://gpolovets-inference/deepseek/generation_configs "$WORKSPACE"
