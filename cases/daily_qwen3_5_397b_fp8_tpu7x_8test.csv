@@ -1,0 +1,2 @@
+Device,Model,MaxNumSeqs,MaxNumBatchedTokens,TensorParallelSize,MaxModelLen,Dataset,InputLen,OutputLen,ExpectedETEL,NumPrompts,ModelTag,PrefixLen,AdditionalConfig,ExtraArgs
+tpu7x-8,Qwen/Qwen3.5-397B-A17B-FP8,8,4096,8,2048,random,1024,1024,43200000,320,NEW,0,'{}','--kv-cache-dtype=fp8 --gpu-memory-utilization=0.9 --block-size=256'
