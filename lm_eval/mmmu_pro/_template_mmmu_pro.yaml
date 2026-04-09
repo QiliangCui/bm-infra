@@ -1,0 +1,23 @@
+# Template for MMMU-pro evaluation
+dataset_path: MMMU/MMMU_Pro
+dataset_name: vision
+output_type: generate_until
+process_docs: !function utils.process_docs_mmmu
+doc_to_image: !function utils.doc_to_visual_mmmu
+doc_to_text: !function utils.doc_to_text_mmmu
+process_results: !function utils.process_results_mmmu
+doc_to_target: Answer         
+generation_kwargs:
+  until:
+    - "\n"
+    - "Answer:"
+  do_sample: false
+  temperature: 0
+  max_gen_toks: 16
+metric_list:
+  - metric: mmmu_pro_acc
+    aggregation: mean
+    higher_is_better: true
+num_fewshot: 0
+metadata:
+  version: 1.0

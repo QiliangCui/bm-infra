@@ -1,0 +1,3 @@
+include: _template_mmmu_pro.yaml
+task: mmmu_pro
+test_split: test
