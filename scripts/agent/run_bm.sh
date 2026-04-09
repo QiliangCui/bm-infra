@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # Datasets using lm-evaluation-harness `lm_eval`.
-LM_EVAL_DATASETS=("math500" "mmlu" "mlperf")
+LM_EVAL_DATASETS=("math500" "mmlu" "mlperf" "mmmu_pro")
 
 # Datasets that use the internal python performance benchmark script `python benchmark_serving.py`.
 BM_INFRA_DATASETS=("custom-token" "bench-custom-token" "bench-custom-mm")
@@ -17,7 +17,15 @@ pip install datasets || true
 pip install evaluate==0.4.5 || true
 pip install rouge-score==0.1.2 || true
 # Install lm_eval with dependencies, version is same as https://github.com/vllm-project/vllm/blob/main/.buildkite/scripts/hardware_ci/run-tpu-v1-test.sh#L64
-pip install "lm-eval[api,math]>=0.4.9.2" || true
+# TODO: find a version of lm_eval that works for all datasets @jiries
+if [[ "$DATASET" == "mmmu_pro" ]]; then
+  echo "Detected MMMU-pro: Installing development version of lm-eval for multimodal support..."
+  pip install "lm_eval[vllm] @ git+https://github.com/EleutherAI/lm-evaluation-harness.git" || true
+else
+  echo "Installing standard version of lm-eval..."
+  # Original line for math500, mmlu, etc.
+  pip install "lm-eval[api,math]>=0.4.9.2" || true
+fi
 
 
 VLLM_LOG="$WORKSPACE/vllm_log.txt"
