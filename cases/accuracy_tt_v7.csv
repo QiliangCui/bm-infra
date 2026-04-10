@@ -1,0 +1,2 @@
+Device,Model,MaxNumSeqs,MaxNumBatchedTokens,TensorParallelSize,MaxModelLen,Dataset,InputLen,OutputLen,ExpectedETEL,NumPrompts
+tpu7x-8,Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8,512,4096,8,8192,mmlu_tpu,0,0,,,

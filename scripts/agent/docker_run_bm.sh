@@ -95,7 +95,7 @@ docker run \
 
 # =============== temp solution start ===============
 
-DATASETS=("custom-token" "mmlu" "mlperf" "bench-custom-token" "math500" "bench-custom-mm")
+DATASETS=("custom-token" "mmlu" "mmlu_tpu" "mlperf" "bench-custom-token" "math500" "bench-custom-mm")
 if [[ " ${DATASETS[*]} " == *" $DATASET "* ]]; then
   echo "Temp solution: Syncing dataset for $DATASET"
 
@@ -140,7 +140,7 @@ if [ "$DATASET" = "sharegpt" ]; then
   docker cp artifacts/dataset "$CONTAINER_NAME:/workspace/"
 fi
 
-if [[ "$DATASET" == "math500" || "$DATASET" == "mmlu" || "$DATASET" == "mlperf" ]]; then
+if [[ "$DATASET" == "math500" || "$DATASET" == "mmlu" || "$DATASET" == "mmlu_tpu" || "$DATASET" == "mlperf" ]]; then
   echo "Copying lm_eval directory to container..."
   docker cp lm_eval "$CONTAINER_NAME:/workspace/"
 fi
