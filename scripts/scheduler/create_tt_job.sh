@@ -117,7 +117,7 @@ clone_and_get_hash() {
 }
 
 # Clone and get hash
-TT_VLLM_HASH=$(clone_and_get_hash "https://github.com/google-ml-infra/torchtpu-vllm.git" "artifacts/torchtpu-vllm" "$TT_VLLM_HASH")
+TT_VLLM_HASH=$(clone_and_get_hash "https://github.com/google-pytorch/torchtpu-vllm.git" "artifacts/torchtpu-vllm" "$TT_VLLM_HASH")
 echo "resolved TT_VLLM_HASH: $TT_VLLM_HASH"
 
 echo "./scripts/scheduler/build_tt_vllm_image.sh $TT_VLLM_HASH"
