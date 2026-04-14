@@ -1,4 +1,4 @@
 Device,Model,MaxNumSeqs,MaxNumBatchedTokens,TensorParallelSize,MaxModelLen,Dataset,InputLen,OutputLen
-tpu7x-2,Qwen/Qwen3-Coder-30B-A3B-Instruct,128,10275,1,10275,sonnet,1024,1024
-tpu7x-2,Qwen/Qwen3-0.6B,128,10275,1,10275,sonnet,1024,1024
-tpu7x-2,openai/gpt-oss-20b,128,10275,1,10275,sonnet,1024,1024
+tpu7x-8,Qwen/Qwen3-Coder-30B-A3B-Instruct,8,10275,1,10275,sonnet,1024,1024
+tpu7x-8,Qwen/Qwen3-Coder-30B-A3B-Instruct,8,10275,1,10275,sonnet,1024,8096
+tpu7x-8,Qwen/Qwen3-Coder-30B-A3B-Instruct,8,10275,1,10275,sonnet,8096,1024
