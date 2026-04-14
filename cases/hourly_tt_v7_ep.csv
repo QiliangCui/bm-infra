@@ -1,0 +1,7 @@
+Device,Model,MaxNumSeqs,MaxNumBatchedTokens,TensorParallelSize,MaxModelLen,Dataset,InputLen,OutputLen
+tpu7x-8,Qwen/Qwen3-Coder-30B-A3B-Instruct,8,10275,8,10275,sonnet,1024,1024
+tpu7x-8,Qwen/Qwen3-Coder-30B-A3B-Instruct,8,10275,8,10275,sonnet,1024,8096
+tpu7x-8,Qwen/Qwen3-Coder-30B-A3B-Instruct,8,10275,8,10275,sonnet,8096,1024
+tpu7x-8,Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8,8,10275,8,10275,sonnet,1024,1024
+tpu7x-8,Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8,8,10275,8,10275,sonnet,1024,8096
+tpu7x-8,Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8,8,10275,8,10275,sonnet,8096,1024

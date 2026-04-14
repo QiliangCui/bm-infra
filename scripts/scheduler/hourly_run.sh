@@ -142,6 +142,10 @@ bash ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt.csv "" $TAG HOURLY_T
 echo ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt_v7.csv \"\" $TAG HOURLY_TT '\"MODEL_IMPL_TYPE=vllm;TEMPERATURE=0\"' tt
 bash ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt_v7.csv "" $TAG HOURLY_TT "MODEL_IMPL_TYPE=vllm;TEMPERATURE=0" "tt"
 
+# Run TTV v7 with EP
+echo "./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt_v7_ep.csv"
+bash ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt_v7_ep.csv "" $TAG HOURLY_TT "MODEL_IMPL_TYPE=vllm;TEMPERATURE=0;ENABLE_EXPERT_PARALLEL=true" "tt"
+
 # torchax v7
 echo "./scripts/scheduler/create_job.sh ./cases/hourly_torchax_jax_v7.csv \"\" $TAG HOURLY_AX_JAX TPU_INFERENCE \"TPU_BACKEND_TYPE=jax;MODEL_IMPL_TYPE=vllm\" tt"
 ./scripts/scheduler/create_job.sh ./cases/hourly_torchax_jax_v7.csv "" $TAG HOURLY_AX_JAX TPU_INFERENCE "TPU_BACKEND_TYPE=jax;MODEL_IMPL_TYPE=vllm" tt

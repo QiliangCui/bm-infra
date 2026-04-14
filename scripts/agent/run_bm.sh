@@ -101,6 +101,11 @@ if [[ "${FORCE_EAGER:-,,}" == "true" ]]; then
   EXTRA_ARGS+=" --enforce-eager"
 fi
 
+# If ENABLE_EXPERT_PARALLEL is set to true (case-insensitive), append flag
+if [[ "${ENABLE_EXPERT_PARALLEL:-,,}" == "true" ]]; then
+  EXTRA_ARGS+=" --enable-expert-parallel"
+fi
+
 VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR="$PROFILE_FOLDER" vllm serve $MODEL \
   --seed 42 \
   --max-num-seqs $MAX_NUM_SEQS \
