@@ -109,20 +109,21 @@ VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR="$PROFILE_FOLDER" vllm serve $MODEL \
   --no-enable-prefix-caching \
   --download_dir $DOWNLOAD_DIR \
   --max-model-len $MAX_MODEL_LEN $EXTRA_ARGS> "$VLLM_LOG" 2>&1 &
-
+VLLM_PID=$!
 
 echo "wait for 20 minutes.."
 echo
 for i in {1..120}; do
-    # TODO: detect other type of errors.
-    if grep -Fq "raise RuntimeError" "$VLLM_LOG"; then
-        echo "Detected RuntimeError, exiting."
+    # Check if vllm process has exited (crashed for any reason)
+    if ! kill -0 $VLLM_PID 2>/dev/null; then
+        echo "vllm process (PID=$VLLM_PID) has exited unexpectedly. Last 20 lines of vllm log:"
+        tail -20 "$VLLM_LOG"
         exit 1
     elif grep -Fq "Application startup complete" "$VLLM_LOG"; then
         echo "Application started"
         break
     else
-        echo "wait for 10 seconds..."
+        echo "wait for 10 seconds... (attempt $i/120)"
         sleep 10
     fi
 done
