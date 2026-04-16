@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # Datasets using lm-evaluation-harness `lm_eval`.
-LM_EVAL_DATASETS=("math500" "mmlu" "mmlu_tpu" "mlperf")
+LM_EVAL_DATASETS=("math500" "mmlu" "mlperf")
 
 # Datasets that use the internal python performance benchmark script `python benchmark_serving.py`.
 BM_INFRA_DATASETS=("custom-token" "bench-custom-token" "bench-custom-mm")

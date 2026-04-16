@@ -110,10 +110,6 @@ if [[ "$HOUR_NOW" == "01" || "$HOUR_NOW" == "13" ]]; then
   echo "./scripts/scheduler/create_job.sh ./cases/accuracy_jax.csv \"\" $TAG JAX_ACCURACY TPU_INFERENCE \"TPU_BACKEND_TYPE=jax;\""
   ./scripts/scheduler/create_job.sh ./cases/accuracy_jax.csv "" $TAG JAX_ACCURACY TPU_INFERENCE "TPU_BACKEND_TYPE=jax;"
 
-  # TT v7 accuracy (mmlu_tpu on tpu7x)
-  echo "./scripts/scheduler/create_tt_job.sh ./cases/accuracy_tt_v7.csv \"\" $TAG TT_ACCURACY \"MODEL_IMPL_TYPE=vllm;ENABLE_EXPERT_PARALLEL=True;VLLM_DISABLE_SHARED_EXPERTS_STREAM=1\" tt"
-  bash ./scripts/scheduler/create_tt_job.sh ./cases/accuracy_tt_v7.csv "" $TAG TT_ACCURACY "MODEL_IMPL_TYPE=vllm;ENABLE_EXPERT_PARALLEL=True;VLLM_DISABLE_SHARED_EXPERTS_STREAM=1" "tt"
-
 fi
 
 # Too many autotune that can't be scheduled in one hour, separating these runs from autotune above.
