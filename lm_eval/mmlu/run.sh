@@ -20,16 +20,30 @@ echo "Output will be timestamped in: $LOG_DIR"
 
 mkdir -p "$LOG_DIR"
 
+MODEL_ARGS="pretrained=$MODEL_NAME"
+MODEL_ARGS+=",tensor_parallel_size=${TP_SIZE:-${TENSOR_PARALLEL_SIZE:-8}}"
+MODEL_ARGS+=",dtype=auto"
+MODEL_ARGS+=",gpu_memory_utilization=${GPU_MEMORY_UTILIZATION:-0.98}"
+[[ -n "${MAX_NUM_SEQS:-}" ]] && MODEL_ARGS+=",max_num_seqs=$MAX_NUM_SEQS"
+[[ -n "${MAX_NUM_BATCHED_TOKENS:-}" ]] && MODEL_ARGS+=",max_num_batched_tokens=$MAX_NUM_BATCHED_TOKENS"
+[[ -n "${MAX_MODEL_LEN:-}" ]] && MODEL_ARGS+=",max_model_len=$MAX_MODEL_LEN"
+[[ -n "${DOWNLOAD_DIR:-}" ]] && MODEL_ARGS+=",download_dir=$DOWNLOAD_DIR"
+if [[ "${ENABLE_EXPERT_PARALLEL:-False}" == "True" ]]; then
+    MODEL_ARGS+=",enable_expert_parallel=True"
+fi
+
 CMD=(
     lm_eval
     --model vllm
-    --model_args "pretrained=$MODEL_NAME,tensor_parallel_size=${TP_SIZE:-8},dtype=auto,gpu_memory_utilization=0.98"
+    --model_args "$MODEL_ARGS"
     --tasks mmlu_llama
     --num_fewshot 0
     --apply_chat_template
     --batch_size auto
     --output_path "$OUTPUT_BASE_PATH"
 )
+
+[[ -n "${LIMIT:-}" ]] && CMD+=(--limit "$LIMIT")
 
 # Execute the command, allowing stderr for error visibility
 if ! SKIP_JAX_PRECOMPILE=1 "${CMD[@]}"; then
