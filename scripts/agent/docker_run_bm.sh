@@ -140,7 +140,7 @@ if [ "$DATASET" = "sharegpt" ]; then
   docker cp artifacts/dataset "$CONTAINER_NAME:/workspace/"
 fi
 
-if [[ "$DATASET" == "math500" || "$DATASET" == "mmlu" || "$DATASET" == "mlperf" ]]; then
+if [[ "$DATASET" == "math500" || "$DATASET" == "mmlu" || "$DATASET" == "mlperf" || "$DATASET" == "gsm8k_cot" ]]; then
   echo "Copying lm_eval directory to container..."
   docker cp lm_eval "$CONTAINER_NAME:/workspace/"
 fi
