@@ -142,8 +142,13 @@ bash ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt.csv "" $TAG HOURLY_T
 echo ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt_v7.csv \"\" $TAG HOURLY_TT '\"MODEL_IMPL_TYPE=vllm;TEMPERATURE=0\"' tt
 bash ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt_v7.csv "" $TAG HOURLY_TT "MODEL_IMPL_TYPE=vllm;TEMPERATURE=0" "tt"
 
-# TTV v7 accuracy (mmlu on tpu7x)
-# bash ./scripts/scheduler/create_tt_job.sh ./cases/accuracy_tt_v7.csv "" $TAG TT_ACCURACY "MODEL_IMPL_TYPE=vllm;ENABLE_EXPERT_PARALLEL=True;VLLM_DISABLE_SHARED_EXPERTS_STREAM=1;GPU_MEMORY_UTILIZATION=0.9" "tt"
+
+# TTV v7 accuracy (mmlu on tpu7x).
+# Will eventually run daily; for now we run more frequently (every 3 hours: 00,03,06,09,12,15,18,21).
+if (( 10#$HOUR_NOW % 3 == 0 )); then
+  echo ./scripts/scheduler/create_tt_job.sh ./cases/accuracy_tt_v7.csv \"\" $TAG DAILY_TT_ACCURACY '"MODEL_IMPL_TYPE=vllm;ENABLE_EXPERT_PARALLEL=True;VLLM_DISABLE_SHARED_EXPERTS_STREAM=1;GPU_MEMORY_UTILIZATION=0.9"' tt
+  bash ./scripts/scheduler/create_tt_job.sh ./cases/accuracy_tt_v7.csv "" $TAG DAILY_TT_ACCURACY "MODEL_IMPL_TYPE=vllm;ENABLE_EXPERT_PARALLEL=True;VLLM_DISABLE_SHARED_EXPERTS_STREAM=1;GPU_MEMORY_UTILIZATION=0.9" "tt"
+fi
 
 # torchax v7
 echo "./scripts/scheduler/create_job.sh ./cases/hourly_torchax_jax_v7.csv \"\" $TAG HOURLY_AX_JAX TPU_INFERENCE \"TPU_BACKEND_TYPE=jax;MODEL_IMPL_TYPE=vllm\" tt"
