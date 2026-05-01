@@ -23,6 +23,8 @@ v6e-8,RedHatAI/Meta-Llama-3.1-70B-Instruct-quantized.w8a8,128,1024,8,2048,sonnet
 v6e-8,RedHatAI/Meta-Llama-3.1-70B-Instruct-FP8,128,1024,8,2048,sonnet,1800,128
 v6e-8,RedHatAI/Meta-Llama-3.1-70B-Instruct-FP8-dynamic,128,1024,8,2048,sonnet,1800,128
 v6e-8,google/gemma-3-27b-it,512,2048,8,1280,sonnet,1000,100
+v6e-8,google/gemma-4-31B-it,512,4096,8,1280,sonnet,1000,100
+v6e-8,google/gemma-4-26B-A4B-it,512,4096,8,1280,sonnet,1000,100
 v6e-8,meta-llama/Llama-3.1-70B-Instruct,128,1024,8,2048,sonnet,1800,128
 v6e-8,meta-llama/Llama-3.3-70B-Instruct,128,1024,8,2048,sonnet,1800,128
 v6e-8,mistralai/Codestral-22B-v0.1,128,1024,8,2048,sonnet,1800,128

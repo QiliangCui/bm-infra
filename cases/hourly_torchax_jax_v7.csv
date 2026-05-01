@@ -2,3 +2,5 @@ Device,Model,MaxNumSeqs,MaxNumBatchedTokens,TensorParallelSize,MaxModelLen,Datas
 tpu7x-2,Qwen/Qwen3-Coder-30B-A3B-Instruct,128,10275,1,10275,sonnet,1024,1024
 tpu7x-2,Qwen/Qwen3-0.6B,128,10275,1,10275,sonnet,1024,1024
 tpu7x-2,openai/gpt-oss-20b,128,10275,1,10275,sonnet,1024,1024
+tpu7x-2,google/gemma-4-31B-it,512,4096,2,1280,sonnet,1000,100
+tpu7x-2,google/gemma-4-26B-A4B-it,512,4096,2,1280,sonnet,1000,100
