@@ -3,8 +3,8 @@ set -euo pipefail
 
 TT_VLLM_HASH=$1
 
-# hard code to v0.13.0 for nwo
-VLLM_HASH="95c0f928c"
+# hard code to v0.19.0
+VLLM_HASH="2a69949"
 echo "vllm hash $VLLM_HASH"
 
 BASE_IMAGE=southamerica-west1-docker.pkg.dev/cloud-tpu-inference-test/vllm-tpu-bm/tt:latest
