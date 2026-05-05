@@ -40,8 +40,8 @@ RUN apt-get update && apt-get install -y \
     vim-common \
     && rm -rf /var/lib/apt/lists/*
 
-# The vllm's tag: v0.17.1
-ARG VLLM_COMMIT_HASH="95c0f928c"
+# The vllm's tag: v0.19.0
+ARG VLLM_COMMIT_HASH="2a69949"
 
 ARG TORCH_VERSION="0.1.1.dev20260423092951"
 
@@ -58,7 +58,7 @@ RUN git clone $VLLM_REPO . && \
 
 RUN sed -i 's/tpu-inference==0.12.0/tpu-inference/' requirements/tpu.txt
 RUN --mount=type=cache,target=/root/.cache/pip pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements/tpu.txt --retries 3
-RUN --mount=type=cache,target=/root/.cache/pip SETUPTOOLS_SCM_PRETEND_VERSION=0.17.1 VLLM_TARGET_DEVICE="tpu" pip install -e .
+RUN --mount=type=cache,target=/root/.cache/pip SETUPTOOLS_SCM_PRETEND_VERSION=0.19.0 VLLM_TARGET_DEVICE="tpu" pip install -e .
 
 #
 # Install TORCH TPU

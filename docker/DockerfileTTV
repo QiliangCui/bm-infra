@@ -20,6 +20,7 @@ FROM $BASE_IMAGE
 WORKDIR /workspace/torchtpu_vllm
 COPY . .
 RUN sed -i '/^dependencies = \[/a \    "jax>=0.8.1",' pyproject.toml
+RUN --mount=type=cache,target=/root/.cache/pip pip install numba>=0.62.1
 RUN --mount=type=cache,target=/root/.cache/pip pip install --pre -e .
 RUN pip uninstall torchvision -y
 
