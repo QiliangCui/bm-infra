@@ -10,12 +10,34 @@ HOUR_NOW=$(TZ="$TIMEZONE" date +%H)
 echo "./scripts/cleanup_docker.sh"
 ./scripts/cleanup_docker.sh
 
+# Retry git clone to ride through transient GitHub HTTP 5xx errors. A failed
+# clone leaves repos/ incomplete and breaks every downstream job that depends
+# on the missing path, so any clone failure must be fatal after retries.
+clone_with_retry() {
+  local url="$1" dest="$2"
+  local max_attempts=4 attempt=1 sleep_s=5
+  while true; do
+    rm -rf "$dest"
+    if git clone "$url" "$dest"; then
+      return 0
+    fi
+    if (( attempt >= max_attempts )); then
+      echo "ERROR: Failed to clone $url after $max_attempts attempts" >&2
+      return 1
+    fi
+    echo "Clone attempt $attempt/$max_attempts failed for $url; retrying in ${sleep_s}s..." >&2
+    sleep "$sleep_s"
+    attempt=$(( attempt + 1 ))
+    sleep_s=$(( sleep_s * 2 ))
+  done
+}
+
 rm -rf repos/
 mkdir -p repos/
 
-git clone https://github.com/vllm-project/vllm.git repos/vllm
-git clone https://github.com/vllm-project/tpu-inference.git repos/tpu-inference
-git clone https://github.com/pytorch/xla.git repos/xla
+clone_with_retry https://github.com/vllm-project/vllm.git repos/vllm || exit 1
+clone_with_retry https://github.com/vllm-project/tpu-inference.git repos/tpu-inference || exit 1
+clone_with_retry https://github.com/pytorch/xla.git repos/xla || exit 1
 
 map_entries=(
   "https://github.com/vllm-project/vllm.git||repos/vllm"
