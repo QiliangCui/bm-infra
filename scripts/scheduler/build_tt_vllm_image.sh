@@ -52,6 +52,10 @@ echo "Building with $DOCKERFILE"
 
 pushd artifacts/torchtpu-vllm
 
+# Keep .git in the build context: tpu_inference uses setuptools_scm to derive
+# its version from git history, and torchtpu-vllm's .dockerignore excludes .git.
+sed -i '/^\.git$/d' .dockerignore
+
 VLLM_TARGET_DEVICE=tpu DOCKER_BUILDKIT=1 docker build \
 --build-arg max_jobs=16 \
 --build-arg USE_SCCACHE=1 \
