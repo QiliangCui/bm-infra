@@ -182,7 +182,7 @@ async def stream_chat(
                     continue
                 choice = choices[0]
                 delta = choice.get("delta") or {}
-                text = delta.get("content") or ""
+                text = delta.get("content") or delta.get("reasoning") or delta.get("reasoning_content") or ""
                 finish_reason = choice.get("finish_reason")
 
                 if text:
@@ -232,8 +232,8 @@ def random_prompt(n_tokens_approx: int, seed: int | None = None) -> str:
     most tokenizers; the harness should resample if it needs an exact count).
     """
     rng = random.Random(seed)
-    # Approx 1 token per 0.75 words for English BPE
-    n_words = max(1, int(n_tokens_approx / 0.75))
+    # Approx 1 token per 0.95 words for English BPE (gpt-oss tokenizer is very efficient)
+    n_words = max(1, int(n_tokens_approx / 0.95))
     return " ".join(rng.choice(_WORDS) for _ in range(n_words))
 
 
