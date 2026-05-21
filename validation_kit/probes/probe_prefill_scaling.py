@@ -33,7 +33,7 @@ async def run_prefill_step(
         start = time.perf_counter()
         r = await stream_chat(
             client, endpoint, prompt,
-            max_tokens=1,  # strictly 1 output token to isolate prefill compute
+            max_tokens=15,  # increased to 15 to allow reasoning models to emit initial tokens
             temperature=0.0,
             ignore_eos=True
         )
