@@ -55,44 +55,42 @@ async def run_decode_stream(
     endpoint: Endpoint,
     output_tokens: int,
     prefill_delay_s: float,
-    burst_task: asyncio.Task | None = None
+    burst_concurrency: int = 0,
+    burst_input: int = 0
 ) -> dict:
     """Runs a single-user decode stream and records chunk emission timestamps."""
     prompt = "Write a long story about a rocket ship."
     timestamps = []
+    prefill_burst_triggered = False
+    burst_task: asyncio.Task | None = None
     
-    # Custom SSE streaming parser to record timestamp at every chunk receipt
-    async def sse_stream():
-        url = f"{endpoint.base_url}/chat/completions"
-        headers = {"Authorization": f"Bearer {endpoint.api_key}"}
-        payload = {
-            "model": endpoint.model,
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": output_tokens,
-            "temperature": 0.0,
-            "stream": True,
-            "ignore_eos": True
-        }
+    async def chunk_callback(now: float, text: str) -> None:
+        nonlocal prefill_burst_triggered, burst_task
+        timestamps.append(now)
         
-        prefill_burst_triggered = False
-        
-        async with client.stream("POST", url, json=payload, headers=headers) as response:
-            start_time = time.perf_counter()
-            # httpx AsyncResponse uses aiter_lines() instead of iter_lines()
-            async for line in response.aiter_lines():
-                if not line.startswith("data: "):
-                    continue
-                chunk_time = time.perf_counter()
-                timestamps.append(chunk_time)
-                
-                # Trigger the background burst once if delay reached
-                if not prefill_burst_triggered and (chunk_time - start_time) >= prefill_delay_s:
-                    if burst_task:
-                        print(f"[disaggregation] Triggering prefill burst after {(chunk_time - start_time):.2f}s of decoding...")
-                        prefill_burst_triggered = True
-                        
-    await sse_stream()
+        # Trigger the background prefill burst worker dynamically on schedule
+        if not prefill_burst_triggered and now >= prefill_delay_s and burst_concurrency > 0:
+            print(f"[disaggregation] Triggering prefill burst after {now:.2f}s of active decoding...")
+            prefill_burst_triggered = True
+            worker = run_prefill_heavy_burst(client, endpoint, burst_concurrency, burst_input)
+            burst_task = asyncio.create_task(worker)
+            
+    from common import stream_chat
+    result = await stream_chat(
+        client, endpoint, prompt,
+        max_tokens=output_tokens,
+        temperature=0.0,
+        ignore_eos=True,
+        chunk_callback=chunk_callback
+    )
     
+    if result.error:
+        return {"error": result.error}
+        
+    # Wait for the concurrent background prefill worker to complete cleanly
+    if burst_task:
+        await burst_task
+        
     if len(timestamps) < 5:
         return {"error": "Insufficient tokens generated to calculate jitter"}
         
@@ -128,16 +126,12 @@ async def main_async(args: argparse.Namespace) -> None:
         await asyncio.sleep(5.0)
         
         # 2. Measure Contended Jitter (prefill noise)
-        # Setup async prefill burst
-        burst_worker = run_prefill_heavy_burst(client, endpoint, args.burst_concurrency, args.burst_input)
-        burst_task = asyncio.create_task(burst_worker)
-        
-        # Run the decode stream and trigger the burst 1 second after generation starts
         print("[disaggregation] Measuring contended decode jitter (triggering prefill noise)...")
-        contended = await run_decode_stream(client, endpoint, args.decode_output, 1.0, burst_task)
-        
-        # Wait for prefill burst to finish cleanly
-        await burst_task
+        contended = await run_decode_stream(
+            client, endpoint, args.decode_output, 1.0,
+            burst_concurrency=args.burst_concurrency,
+            burst_input=args.burst_input
+        )
         
         if "error" in contended:
             print(f"  ERROR: {contended['error']}")

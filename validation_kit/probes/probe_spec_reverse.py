@@ -19,41 +19,17 @@ async def get_chunk_text_bursts(
     max_tokens: int
 ) -> list[str]:
     """Streams low-entropy repetition prompt and captures text per chunk."""
+    from common import stream_chat
     prompt = repeat_phrase_prompt(target_output_tokens=max_tokens)
-    url = f"{endpoint.base_url}/chat/completions"
-    headers = {"Authorization": f"Bearer {endpoint.api_key}"}
-    payload = {
-        "model": endpoint.model,
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": max_tokens,
-        "temperature": 0.0,
-        "stream": True,
-        "ignore_eos": True
-    }
-    
-    chunk_texts = []
-    
-    async with client.stream("POST", url, json=payload, headers=headers) as response:
-        async for line in response.aiter_lines():
-            if not line.startswith("data: "):
-                continue
-            if line.endswith("[DONE]"):
-                continue
-            
-            # Parse text payload from SSE chunk
-            import json
-            try:
-                data = json.loads(line[6:])
-                choices = data.get("choices")
-                if choices:
-                    delta = choices[0].get("delta", {})
-                    text = delta.get("content") or delta.get("reasoning") or delta.get("reasoning_content") or ""
-                    if text:
-                        chunk_texts.append(text)
-            except Exception:
-                continue
-                
-    return chunk_texts
+    result = await stream_chat(
+        client, endpoint, prompt,
+        max_tokens=max_tokens,
+        temperature=0.0,
+        ignore_eos=True
+    )
+    if result.error:
+        return []
+    return [e.text for e in result.events]
 
 async def run_draft_reverse_step(
     client: httpx.AsyncClient,
@@ -69,7 +45,7 @@ async def run_draft_reverse_step(
         return {"error": "No tokens returned"}
         
     # Count actual tokens inside each text burst using the target tokenizer
-    tok = get_tokenizer()
+    tok = get_tokenizer(tokenizer_name)
     tokens_per_burst = []
     
     for text in burst_texts:

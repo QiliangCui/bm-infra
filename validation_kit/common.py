@@ -14,6 +14,7 @@ import statistics
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 import httpx
@@ -115,6 +116,7 @@ async def stream_chat(
     seed: int | None = None,
     ignore_eos: bool = True,
     extra_body: dict[str, Any] | None = None,
+    chunk_callback: Callable[[float, str], Awaitable[None] | None] | None = None,
 ) -> StreamResult:
     """
     Issue one streaming chat completion. Records per-chunk timestamps.
@@ -198,6 +200,10 @@ async def stream_chat(
                         )
                     )
                     result.full_text += text
+                    if chunk_callback:
+                        res = chunk_callback(now, text)
+                        if asyncio.iscoroutine(res):
+                            await res
     except (httpx.HTTPError, asyncio.TimeoutError) as e:
         result.error = f"{type(e).__name__}: {e}"
 
@@ -302,10 +308,10 @@ class _LazyTokenizer:
 _tokenizer_singleton: _LazyTokenizer | None = None
 
 
-def get_tokenizer() -> _LazyTokenizer:
+def get_tokenizer(name_or_path: str | None = None) -> _LazyTokenizer:
     global _tokenizer_singleton
-    if _tokenizer_singleton is None:
-        _tokenizer_singleton = _LazyTokenizer()
+    if _tokenizer_singleton is None or (name_or_path and _tokenizer_singleton._name != name_or_path):
+        _tokenizer_singleton = _LazyTokenizer(name_or_path)
     return _tokenizer_singleton
 
 
