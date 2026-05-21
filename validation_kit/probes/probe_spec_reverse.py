@@ -69,7 +69,7 @@ async def run_draft_reverse_step(
         return {"error": "No tokens returned"}
         
     # Count actual tokens inside each text burst using the target tokenizer
-    tok = get_tokenizer(tokenizer_name)
+    tok = get_tokenizer()
     tokens_per_burst = []
     
     for text in burst_texts:
