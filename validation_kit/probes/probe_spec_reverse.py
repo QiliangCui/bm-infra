@@ -34,7 +34,7 @@ async def get_chunk_text_bursts(
     chunk_texts = []
     
     async with client.stream("POST", url, json=payload, headers=headers) as response:
-        async for line in response.iter_lines():
+        async for line in response.aiter_lines():
             if not line.startswith("data: "):
                 continue
             if line.endswith("[DONE]"):
