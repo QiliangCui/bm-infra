@@ -16,7 +16,12 @@ validation_kit/
 │   ├── probe_cache.py              Response / prefix cache detection
 │   ├── probe_spec_decoding.py      SD / MTP / Eagle / Medusa / Lookahead detection
 │   ├── probe_roofline.py           HBM-bandwidth ceiling sanity check
-│   └── probe_precision_sleuth.py   Output divergence vs BF16 reference
+│   ├── probe_precision_sleuth.py   Output divergence vs BF16 reference
+│   ├── probe_kv_capacity.py        Advanced KV cache slots & concurrency limits
+│   ├── probe_prefill_scaling.py    Advanced prefill chunk size scaling
+│   ├── probe_scheduler_batching.py Advanced continuous batching verification
+│   ├── probe_disaggregation.py     Advanced prefill-decode workload disaggregation
+│   └── probe_spec_reverse.py       Advanced speculative drafting reverse-engineer
 ├── benchmarks/
 │   ├── bench_pareto.py             Throughput-latency frontier sweep
 │   ├── perturb_benchmarks.py       GSM-Symbolic-lite + MMLU answer permutations
@@ -72,6 +77,11 @@ typical workflow:
 | `probe_spec_decoding.py` | SD, MTP, Eagle, Medusa, Lookahead | ~5 min | No |
 | `probe_roofline.py` | Claims exceeding HBM-bandwidth ceiling | ~3 min | No |
 | `probe_precision_sleuth.py` | Quantization aggressiveness; checkpoint mismatch | ~3 min | **Yes** |
+| `probe_kv_capacity.py` | Advanced active KV cache slots & memory capacity limits | ~15 min | No |
+| `probe_prefill_scaling.py` | Advanced prefill compute TTFT scaling & chunk detection | ~10 min | No |
+| `probe_scheduler_batching.py` | Advanced iteration-level continuous batching check | ~5 min | No |
+| `probe_disaggregation.py` | Advanced prefill-decode workload decoupling disaggregation | ~8 min | No |
+| `probe_spec_reverse.py` | Advanced speculative drafting window reverse-engineer | ~8 min | No |
 | `bench_pareto.py` | Throughput-latency frontier vs SLA | ~15 min | No |
 | `accuracy_harness.py` | FP4 calibration overfit, surface-pattern matching | varies | No (uses just partner) |
 | `compare_bf16_fp4.py` | FP4 vs BF16 accuracy gap; per-prompt regressions | varies | **Yes** |
@@ -136,7 +146,27 @@ Reports:
 Strongest behavioral signal of actual quantization aggressiveness. Useful
 contradiction check against the partner's stated precision.
 
-### 5. Pareto sweep (bench_pareto.py)
+### 5. KV Cache Slots & Capacity Sweep (probe_kv_capacity.py)
+
+Fires concurrent streams with extremely large prompt sizes (e.g. 8k input / 256 output) scaling concurrency up to 128 to empirically map the serving framework's active HBM cache boundaries. Sudden, exponential degradation of decode speeds (`TPOT`) or request dropouts register active KV allocation limits or scheduling preemption bounds.
+
+### 6. Prefill Compute Scaling (probe_prefill_scaling.py)
+
+Measures Time-To-First-Token (`TTFT`) across sequential prompt sizes (128 up to 8k+) at single-user concurrency. Flat TTFT curves across large size increments capture active **Chunked Prefill** scheduling mechanisms, while stepwise linear latency climbs pinpoint the exact chunked prefill block bounds (e.g., 4,096 blocks).
+
+### 7. Continuous Batching Verification (probe_scheduler_batching.py)
+
+Launches a heavy, long-running background generation workload to fully occupy scheduling slots, then shoots high-priority short requests at millisecond intervals. Instantly returned short requests imply iteration-level continuous batching scheduler policies, whereas serialized waits confirm static batching configurations.
+
+### 8. Workload Disaggregation & Jitter Analysis (probe_disaggregation.py)
+
+Measures the standard deviation of active decode stream interval TPOT (jitter) during a quiet baseline compared to active periods featuring massive concurrent parallel prompt-prefill bursts. A jitter contention ratio approaching 1.00x confirms a Workload-Disaggregated architecture (physically separate prefill/decode node pools).
+
+### 9. Speculative Drafting Reverse-Engineering (probe_spec_reverse.py)
+
+Streams predictable, low-entropy sequences at `temperature=0.0` to evaluate multi-token SSE HTTP chunk bursts. Autoregressive streaming is strictly limited to 1 token per iteration. Observing single-chunk payloads containing multiple tokens reverse-engineers active speculative tree validation limits ($k = \text{max\_burst} - 1$).
+
+### 10. Pareto sweep (bench_pareto.py)
 
 Sweeps client-side concurrency over `{1, 4, 8, 16, 32, 64, 128}`, 90s per
 point. Reports p50/p95/p99 TTFT and TPOT, aggregate and per-user tok/s,
