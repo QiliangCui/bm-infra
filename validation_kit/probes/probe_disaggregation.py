@@ -78,7 +78,8 @@ async def run_decode_stream(
         
         async with client.stream("POST", url, json=payload, headers=headers) as response:
             start_time = time.perf_counter()
-            async for line in response.iter_lines():
+            # httpx AsyncResponse uses aiter_lines() instead of iter_lines()
+            async for line in response.aiter_lines():
                 if not line.startswith("data: "):
                     continue
                 chunk_time = time.perf_counter()
