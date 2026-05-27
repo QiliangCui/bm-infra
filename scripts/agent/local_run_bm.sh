@@ -91,6 +91,11 @@ if [ "$DATASET" = "sharegpt" ]; then
   mkdir -p ./artifacts/dataset/
   gsutil cp gs://$GCS_BUCKET/dataset/sharegpt/*.* ./artifacts/dataset/
   cp -r artifacts/dataset "$TMP_WORKSPACE/"
+elif [ "$DATASET" = "mmmu_pro" ]; then
+  echo "Copying dataset and lm_eval tasks..."
+  # MMMU_Pro uses the HuggingFace datasets library, so we don't necessarily need
+  # to download a local jsonl, but we MUST copy the lm_eval directory.
+  cp -r lm_eval "$TMP_WORKSPACE/"
 fi
 
 # Run benchmark
