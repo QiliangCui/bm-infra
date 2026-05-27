@@ -131,7 +131,7 @@ async def stream_chat(
         "stream": True,
         "stream_options": {"include_usage": True},
     }
-    if seed is not None:
+    if seed is not None and os.environ.get("VK_DROP_SEED", "0") != "1":
         body["seed"] = seed
     if ignore_eos:
         # vLLM / SGLang accept this; some servers ignore. Harmless if ignored.
