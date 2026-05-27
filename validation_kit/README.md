@@ -40,6 +40,10 @@ export PARTNER_TOKENIZER=openai/gpt-oss-120b   # for tokens-per-chunk
 export REFERENCE_BASE_URL=http://your-vllm:8000/v1
 export REFERENCE_MODEL=openai/gpt-oss-120b
 
+# Optional: drop the `seed` request param. Some servers (notably JAX-based
+# stacks) reject `seed` with a 400; set this to keep probes working.
+export VK_DROP_SEED=1
+
 ./run_all.sh --chip-count 8 --hardware ironwood --precision default
 ```
 
