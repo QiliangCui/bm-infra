@@ -48,13 +48,22 @@ async def run_entropy_pair(
     max_tokens: int,
     seed: int,
 ) -> tuple[StreamResult, StreamResult]:
-    """Run one low-entropy and one high-entropy request at fixed output length."""
+    """Run one low-entropy and one high-entropy request at fixed output length.
+
+    The low-entropy request uses temperature=0.01 (not 0.0) so it is classified
+    as RANDOM by vLLM/tpu-inference and goes through the same sampling kernel
+    as the high-entropy request. Otherwise stacks with a separate all-greedy
+    fast-path (do_sampling=False -> argmax only, skipping topk/topp/categorical)
+    produce a per-token-compute gap that's indistinguishable from a true
+    SD-acceptance gap. At T=0.01 the sample distribution is essentially a delta
+    at the argmax, so output remains functionally greedy.
+    """
     low = await stream_chat(
         client,
         endpoint,
         repeat_phrase_prompt(target_output_tokens=max_tokens),
         max_tokens=max_tokens,
-        temperature=0.0,
+        temperature=0.01,
         ignore_eos=True,
     )
     high = await stream_chat(
