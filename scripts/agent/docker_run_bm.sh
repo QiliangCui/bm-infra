@@ -117,6 +117,10 @@ if [[ " ${DATASETS[*]} " == *" $DATASET "* ]]; then
   elif [ "$DATASET" = "math500" ]; then
     # Download single jsonl file for math500
     gsutil -m cp -r gs://$GCS_BUCKET/dataset/math500/math500.jsonl "$DATASET_DOWNLOAD_DIR/"
+  elif [ "$DATASET" = "mmmu_pro" ]; then
+    # MMMU-Pro typically downloads via HF datasets library, but we add this block
+    # to support custom GCS paths if needed in the future, per uLLM standards.
+    echo "MMMU-pro uses HuggingFace datasets. Skipping GCS sync."
   fi
 
   echo "Copying dataset to container..."
