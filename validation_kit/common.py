@@ -237,6 +237,41 @@ def random_prompt(n_tokens_approx: int, seed: int | None = None) -> str:
     return " ".join(rng.choice(_WORDS) for _ in range(n_words))
 
 
+def random_prompt_in_tokens(
+    target_prompt_tokens: int,
+    seed: int | None = None,
+    tolerance: int = 4,
+    max_iter: int = 20,
+) -> str:
+    """Generate a random prompt that produces exactly `target_prompt_tokens`
+    (within `tolerance`) when wrapped as a single user message via the chat
+    template.
+
+    Use this when you need the server's `usage.prompt_tokens` to land on a
+    specific value -- e.g., to control where `prompt_tokens + max_tokens` sits
+    relative to a server's `max_model_len`. `random_prompt()` is content-token
+    accurate but does not account for chat-template overhead (~600+ tokens for
+    gpt-oss harmony), so the server-reported prompt_tokens is systematically
+    larger than the requested value.
+
+    Requires `transformers` installed and `PARTNER_TOKENIZER` (or default
+    `openai/gpt-oss-120b`) loadable. Assumes the server uses the same chat
+    template as the HF tokenizer.
+    """
+    tok = get_tokenizer()
+    n_words = max(1, target_prompt_tokens)
+    text = ""
+    for _ in range(max_iter):
+        rng = random.Random(seed)
+        text = " ".join(rng.choice(_WORDS) for _ in range(n_words))
+        actual = tok.chat_token_count(text)
+        diff = target_prompt_tokens - actual
+        if abs(diff) <= tolerance:
+            return text
+        n_words = max(1, n_words + diff)
+    return text
+
+
 def repeat_phrase_prompt(target_output_tokens: int = 256) -> str:
     """
     Low-entropy prompt: asks the model to repeat a phrase many times.
@@ -297,6 +332,24 @@ class _LazyTokenizer:
     def count(self, text: str) -> int:
         tok = self._load()
         return len(tok.encode(text, add_special_tokens=False))
+
+    def chat_token_count(self, prompt: str, role: str = "user") -> int:
+        """Token count after wrapping in a single-message chat template.
+
+        Matches what a server reports as `usage.prompt_tokens` (assuming the
+        server uses the same chat template as the HF tokenizer).
+
+        Note: we render with `tokenize=False` and then encode separately,
+        because some chat templates (notably gpt-oss harmony) return only the
+        2-token generation prompt when called with `tokenize=True`.
+        """
+        tok = self._load()
+        rendered = tok.apply_chat_template(
+            [{"role": role, "content": prompt}],
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+        return len(tok.encode(rendered, add_special_tokens=False))
 
 
 _tokenizer_singleton: _LazyTokenizer | None = None
