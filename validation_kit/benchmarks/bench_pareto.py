@@ -31,11 +31,30 @@ import httpx
 from common import (
     Endpoint,
     random_prompt,
+    random_prompt_in_tokens,
     stream_chat,
     summary_stats,
     warmup,
     write_json,
 )
+
+
+def _select_prompt_fn(input_tokens: int):
+    """Pick the most accurate prompt generator available.
+
+    `random_prompt_in_tokens` produces a prompt that lands on the requested
+    server-side prompt_tokens exactly (uses HF tokenizer + chat template).
+    Falls back to `random_prompt` (content-tokens only, ignores chat-template
+    overhead) if transformers/jinja2 aren't installed.
+    """
+    try:
+        random_prompt_in_tokens(input_tokens, seed=0)
+        return lambda seed: random_prompt_in_tokens(input_tokens, seed=seed), True
+    except Exception as e:
+        print(f"[pareto] WARNING: token-exact prompts unavailable ({type(e).__name__}: {e}). "
+              "Falling back to random_prompt; server prompt_tokens will exceed "
+              "--input-tokens by the chat-template overhead.")
+        return lambda seed: random_prompt(input_tokens, seed=seed), False
 
 
 async def _one_request(
@@ -70,6 +89,10 @@ async def run_at_concurrency(
     """Sustain `concurrency` in-flight requests for `duration_s` seconds."""
     print(f"  [pareto] c={concurrency}: sustaining for {duration_s:.0f}s")
 
+    gen_prompt, exact = _select_prompt_fn(input_tokens)
+    if concurrency == 1:
+        print(f"  [pareto] prompt mode: {'token-exact' if exact else 'word-count (approx)'}")
+
     results: list[dict] = []
     seed_counter = [6000]
     stop_at = time.perf_counter() + duration_s
@@ -79,7 +102,7 @@ async def run_at_concurrency(
         async with httpx.AsyncClient() as client:
             while time.perf_counter() < stop_at:
                 seed_counter[0] += 1
-                prompt = random_prompt(input_tokens, seed=seed_counter[0])
+                prompt = gen_prompt(seed_counter[0])
                 r = await _one_request(client, endpoint, prompt, max_tokens)
                 if r is not None:
                     results.append(r)
