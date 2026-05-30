@@ -69,5 +69,9 @@ echo "./scripts/scheduler/create_job.sh ./cases/daily_gpt_oss_120b_tpu7x.csv \"\
 echo "./scripts/scheduler/create_job.sh ./cases/daily_disagg_qwen3_480B_FP8_tpu7x_8.csv \"\" $TAG DAILY_DISAGG TPU_INFERENCE \"USE_MOE_EP_KERNEL=0;MODEL_IMPL_TYPE=vllm;USE_VLLM_BENCH_SERVE=1;PREFILL_REQUEST_RATE=0.2;DECODE_REQUEST_RATE=10\""
 ./scripts/scheduler/create_job.sh ./cases/daily_disagg_qwen3_480B_FP8_tpu7x_8.csv "" $TAG DAILY_DISAGG TPU_INFERENCE "USE_MOE_EP_KERNEL=0;MODEL_IMPL_TYPE=vllm;USE_VLLM_BENCH_SERVE=1;PREFILL_REQUEST_RATE=0.2;DECODE_REQUEST_RATE=10"
 
+# Qwen 3-480B
+echo "./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_qwen3_480B_FP8_tpu7x_8.csv \"\" $TAG DAILY TPU_INFERENCE"
+./scripts/scheduler/create_job.sh gs://amangu-multipods/ironwood/cases/daily_ironwood_qwen3_480B_FP8_tpu7x_8.csv "" $TAG DAILY TPU_INFERENCE
+
 echo "./scripts/cleanup_docker.sh"
 ./scripts/cleanup_docker.sh
