@@ -61,6 +61,10 @@ clean_up() {
    pkill -f vllm || true
    pkill -f VLLM || true
    ./scripts/agent/clean_old_vllm_envs_v2.sh || true
+   if [ -n "${LOG_ROOT:-}" ] && [ -d "$LOG_ROOT" ] && [ "$LOG_ROOT" != "/" ] && [ "$LOG_ROOT" != "/tmp" ]; then
+      echo "Cleaning up temporary log directory $LOG_ROOT..."
+      rm -rf "$LOG_ROOT" || true
+   fi
 }
 trap clean_up EXIT
 
