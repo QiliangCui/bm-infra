@@ -59,7 +59,21 @@ tail -n +2 "$CSV_FILE" | while read -r line || [ -n "${line}" ]; do
     EXPECTED_ETEL \
     NUM_PROMPTS \
     MODELTAG \
-    PREFIX_LEN <<< "$line"
+    PREFIX_LEN \
+    EXTRA_ENVS_CSV <<< "$line"
+
+  # Combine global EXTRA_ENVS with row-specific EXTRA_ENVS_CSV
+  COMBINED_EXTRA_ENVS=""
+  if [ -n "${EXTRA_ENVS:-}" ] && [ -n "${EXTRA_ENVS_CSV:-}" ]; then
+    COMBINED_EXTRA_ENVS="${EXTRA_ENVS};${EXTRA_ENVS_CSV}"
+  elif [ -n "${EXTRA_ENVS:-}" ]; then
+    COMBINED_EXTRA_ENVS="${EXTRA_ENVS}"
+  elif [ -n "${EXTRA_ENVS_CSV:-}" ]; then
+    COMBINED_EXTRA_ENVS="${EXTRA_ENVS_CSV}"
+  fi
+
+  # Escape single quotes for Spanner SQL safety to prevent syntax errors or injection
+  ESCAPED_EXTRA_ENVS="${COMBINED_EXTRA_ENVS//\'/\'\'}"
 
   RECORD_ID=$(uuidgen | tr 'A-Z' 'a-z')
 
@@ -106,7 +120,7 @@ tail -n +2 "$CSV_FILE" | while read -r line || [ -n "${line}" ]; do
       ${NUM_PROMPTS:-1000},
       '${MODELTAG:-PROD}',
       ${PREFIX_LEN:-0},
-      '$EXTRA_ENVS'
+      '$ESCAPED_EXTRA_ENVS'
     );"
   
   # If insert failed, just continue without publishing
