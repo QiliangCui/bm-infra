@@ -15,6 +15,10 @@ remove_docker_container() {
     docker rm -f tpu-test || true;
     docker rm -f vllm-tpu || true;
     docker rm -f $CONTAINER_NAME || true;
+    if [ -n "${LOG_ROOT:-}" ] && [ -d "$LOG_ROOT" ] && [ "$LOG_ROOT" != "/" ] && [ "$LOG_ROOT" != "/tmp" ]; then
+        echo "Cleaning up temporary log directory $LOG_ROOT..."
+        rm -rf "$LOG_ROOT" || true
+    fi
 }
 
 trap remove_docker_container EXIT

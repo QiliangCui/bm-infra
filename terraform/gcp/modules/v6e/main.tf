@@ -37,6 +37,7 @@ resource "google_tpu_v2_vm" "tpu_v6" {
   }
 
   metadata = {
+    "enable-oslogin" = "TRUE"
     "startup-script" = templatefile(var.startup_script_path, {
       purpose          = var.purpose
       project_id       = var.project_id
