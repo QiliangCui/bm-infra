@@ -101,6 +101,10 @@ if [[ "${FORCE_EAGER:-,,}" == "true" ]]; then
   EXTRA_ARGS+=" --enforce-eager"
 fi
 
+if [[ -n "${VLLM_ATTENTION_BACKEND:-}" ]]; then
+  EXTRA_ARGS+=" --attention-backend ${VLLM_ATTENTION_BACKEND}"
+fi
+
 VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR="$PROFILE_FOLDER" vllm serve $MODEL \
   --seed 42 \
   --max-num-seqs $MAX_NUM_SEQS \
