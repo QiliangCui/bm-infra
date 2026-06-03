@@ -137,7 +137,7 @@ module "v6e-1" {
   spanner_db           = var.spanner_db
   gcs_bucket           = var.gcs_bucket
   startup_script_path  = "${path.module}/../scripts/startup.sh.tpl"
-  branch_hash          = var.branch_hash
+  hash_file_path       = google_storage_bucket_object.bm_infra_hash.name
   reserved             = true
 }
 
@@ -156,7 +156,7 @@ module "v6e-4" {
   spanner_db           = var.spanner_db
   gcs_bucket           = var.gcs_bucket
   startup_script_path  = "${path.module}/../scripts/startup.sh.tpl"
-  branch_hash          = var.branch_hash
+  hash_file_path       = google_storage_bucket_object.bm_infra_hash.name
   reserved             = true
 }
 
@@ -176,6 +176,12 @@ module "v6e-8" {
   gcs_bucket           = var.gcs_bucket
   mnt_disk_gb          = 2048
   startup_script_path  = "${path.module}/../scripts/startup.sh.tpl"
-  branch_hash          = var.branch_hash
+  hash_file_path       = google_storage_bucket_object.bm_infra_hash.name
   reserved             = true
+}
+
+resource "google_storage_bucket_object" "bm_infra_hash" {
+  name    = "config/bm_infra_hash_project1.txt"
+  bucket  = var.gcs_bucket
+  content = var.branch_hash
 }

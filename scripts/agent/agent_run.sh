@@ -19,6 +19,26 @@ while true; do
     break
   fi
 
+  # Update bm-infra repo if target hash is provided in GCS
+  TARGET_HASH_FILE="gs://${GCS_BUCKET}/${HASH_FILE_PATH}"
+  echo "Checking for target hash in $TARGET_HASH_FILE..."
+  if gcloud storage ls "$TARGET_HASH_FILE" &> /dev/null; then
+    TARGET_HASH=$(gcloud storage cat "$TARGET_HASH_FILE" | tr -d '[:space:]')
+    if [ -n "$TARGET_HASH" ]; then
+      CURRENT_HASH=$(git rev-parse HEAD 2>/dev/null)
+      if [ "$CURRENT_HASH" != "$TARGET_HASH" ]; then
+        echo "Updating bm-infra from $CURRENT_HASH to $TARGET_HASH"
+        if git fetch origin && git reset --hard "$TARGET_HASH"; then
+          echo "Script updated. Re-executing to apply changes safely..."
+          exec "$0" "$@"
+        else
+          echo "ERROR: Failed to update repository to hash: $TARGET_HASH. Exiting." >&2
+          exit 1
+        fi
+      fi
+    fi
+  fi
+
   echo "Polling for message..."
 
   MESSAGE=$(gcloud pubsub subscriptions pull "$SUBSCRIPTION_NAME" \
