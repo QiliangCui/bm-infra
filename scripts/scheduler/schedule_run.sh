@@ -73,7 +73,7 @@ tail -n +2 "$CSV_FILE" | while read -r line || [ -n "${line}" ]; do
   fi
 
   # Escape single quotes for Spanner SQL safety to prevent syntax errors or injection
-  ESCAPED_EXTRA_ENVS="${COMBINED_EXTRA_ENVS//\'/\'\'}"
+  ESCAPED_EXTRA_ENVS="${COMBINED_EXTRA_ENVS//\'/''}"
 
   RECORD_ID=$(uuidgen | tr 'A-Z' 'a-z')
 
