@@ -14,7 +14,13 @@ module "tpu7x-8" {
   gcs_bucket           = var.gcs_bucket
   mnt_disk_gb          = 512
   startup_script_path  = "${path.module}/../scripts/startup_v7.sh.tpl"
-  branch_hash          = var.branch_hash
+  hash_file_path       = google_storage_bucket_object.bm_infra_hash.name
   instance_name_offset = var.instance_name_offset
   reserved             = true
+}
+
+resource "google_storage_bucket_object" "bm_infra_hash" {
+  name    = "config/bm_infra_hash_v7xdc1.txt"
+  bucket  = var.gcs_bucket
+  content = var.branch_hash
 }

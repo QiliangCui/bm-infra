@@ -13,7 +13,7 @@ module "v6e-1" {
   spanner_db           = var.spanner_db
   gcs_bucket           = var.gcs_bucket
   startup_script_path  = "${path.module}/../scripts/startup.sh.tpl"
-  branch_hash          = var.branch_hash
+  hash_file_path       = google_storage_bucket_object.bm_infra_hash.name
   instance_name_offset = var.instance_name_offset
   reserved             = true
 }
@@ -33,7 +33,7 @@ module "v6e-4" {
   spanner_db           = var.spanner_db
   gcs_bucket           = var.gcs_bucket
   startup_script_path  = "${path.module}/../scripts/startup.sh.tpl"
-  branch_hash          = var.branch_hash
+  hash_file_path       = google_storage_bucket_object.bm_infra_hash.name
   instance_name_offset = var.instance_name_offset
   reserved             = true
 }
@@ -54,7 +54,7 @@ module "v6e-8" {
   gcs_bucket           = var.gcs_bucket
   mnt_disk_gb          = 2048
   startup_script_path  = "${path.module}/../scripts/startup.sh.tpl"
-  branch_hash          = var.branch_hash
+  hash_file_path       = google_storage_bucket_object.bm_infra_hash.name
   instance_name_offset = var.instance_name_offset
   reserved             = true
 }
@@ -76,7 +76,7 @@ module "tpu7x-2-tt" {
   gcs_bucket           = var.gcs_bucket
   mnt_disk_gb          = 512
   startup_script_path  = "${path.module}/../scripts/startup_v7.sh.tpl"
-  branch_hash          = var.branch_hash
+  hash_file_path       = google_storage_bucket_object.bm_infra_hash.name
   instance_name_offset = var.instance_name_offset
   reserved             = true
 }
@@ -97,7 +97,13 @@ module "tpu7x-8-tt" {
   gcs_bucket           = var.gcs_bucket
   mnt_disk_gb          = 2048
   startup_script_path  = "${path.module}/../scripts/startup_v7.sh.tpl"
-  branch_hash          = var.branch_hash
+  hash_file_path       = google_storage_bucket_object.bm_infra_hash.name
   instance_name_offset = var.instance_name_offset
   reserved             = true
+}
+
+resource "google_storage_bucket_object" "bm_infra_hash" {
+  name    = "config/bm_infra_hash_ci_cd.txt"
+  bucket  = var.gcs_bucket
+  content = var.branch_hash
 }

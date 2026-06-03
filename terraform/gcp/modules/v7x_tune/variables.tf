@@ -56,9 +56,9 @@ variable "instance_name_offset" {
   description = "instance name offset so that we can distinguish machines from different project or region."
 }
 
-variable "branch_hash" {
+variable "hash_file_path" {
   type        = string
-  description = "commit hash of bm-infra branch."
+  description = "Path to the hash file in GCS."
 }
 
 variable "reserved" {

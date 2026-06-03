@@ -7,6 +7,7 @@ grep -q "^GCP_DATABASE_ID=" /etc/environment || echo "GCP_DATABASE_ID=${spanner_
 grep -q "^GCP_REGION=" /etc/environment || echo "GCP_REGION=${region}" | sudo tee -a /etc/environment
 grep -q "^GCP_INSTANCE_NAME=" /etc/environment || echo "GCP_INSTANCE_NAME=${instance_name}" | sudo tee -a /etc/environment
 grep -q "^GCS_BUCKET=" /etc/environment || echo "GCS_BUCKET=${gcs_bucket}" | sudo tee -a /etc/environment
+grep -q "^HASH_FILE_PATH=" /etc/environment || echo "HASH_FILE_PATH=${hash_file_path}" | sudo tee -a /etc/environment
 grep -q "^GCP_QUEUE=" /etc/environment || echo "GCP_QUEUE=vllm-${purpose}-queue-${accelerator_type}" | sudo tee -a /etc/environment
 if ! grep -q "^HF_TOKEN=" /etc/environment; then
   gcloud secrets versions access latest --secret=bm-agent-hf-token --project=${project_id} --quiet | \
@@ -38,7 +39,6 @@ git clone https://github.com/QiliangCui/bm-infra.git
 pushd bm-infra
 git checkout moe
 # git pull
-# git reset --hard ${branch_hash}
 popd
 EOBM
 cp /home/bm-agent/bm-infra/service/bm-tune-agent/bm-tune-agent.service /etc/systemd/system/bm-tune-agent.service
