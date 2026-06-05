@@ -145,9 +145,9 @@ VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR="$PROFILE_FOLDER" vllm serve $MODEL \
   --max-model-len $MAX_MODEL_LEN $EXTRA_ARGS> "$VLLM_LOG" 2>&1 &
 VLLM_PID=$!
 
-echo "wait for 50 minutes.."
+echo "wait for 120 minutes.."
 echo
-for i in {1..300}; do
+for i in {1..720}; do
     # Check if vllm process has exited (crashed for any reason)
     if ! kill -0 $VLLM_PID 2>/dev/null; then
         echo "vllm process (PID=$VLLM_PID) has exited unexpectedly. Last 20 lines of vllm log:"
@@ -157,13 +157,13 @@ for i in {1..300}; do
         echo "Application started"
         break
     else
-        echo "wait for 10 seconds... (attempt $i/300)"
+        echo "wait for 10 seconds... (attempt $i/720)"
         sleep 10
     fi
 done
 
 if ! grep -Fq "Application startup complete" "$VLLM_LOG"; then
-    echo "vllm startup timed out after 50 minutes."
+    echo "vllm startup timed out after 120 minutes."
     exit 1
 fi
 
