@@ -175,3 +175,14 @@ fi
 # torchax v7
 echo "./scripts/scheduler/create_job.sh ./cases/hourly_torchax_jax_v7.csv \"\" $TAG HOURLY_AX_JAX TPU_INFERENCE \"TPU_BACKEND_TYPE=jax;MODEL_IMPL_TYPE=vllm\" tt"
 ./scripts/scheduler/create_job.sh ./cases/hourly_torchax_jax_v7.csv "" $TAG HOURLY_AX_JAX TPU_INFERENCE "TPU_BACKEND_TYPE=jax;MODEL_IMPL_TYPE=vllm" tt
+
+# Run 480B benchmark cases three times daily (12am, 6am, 12pm PT) to avoid overloading queue
+if [[ "$HOUR_NOW" == "00" || "$HOUR_NOW" == "06" || "$HOUR_NOW" == "12" ]]; then
+  echo "Running three times daily 480B benchmarks..."
+  
+  echo ./scripts/scheduler/create_tt_job.sh ./cases/three_times_daily_tt_v7.csv \"\" $TAG DAILY_TT '\"MODEL_IMPL_TYPE=vllm;TEMPERATURE=0\"' tt
+  bash ./scripts/scheduler/create_tt_job.sh ./cases/three_times_daily_tt_v7.csv "" $TAG DAILY_TT "MODEL_IMPL_TYPE=vllm;TEMPERATURE=0" "tt"
+
+  echo "./scripts/scheduler/create_job.sh ./cases/three_times_daily_torchax_v7.csv \"\" $TAG DAILY_AX_JAX TPU_INFERENCE \"TPU_BACKEND_TYPE=jax;MODEL_IMPL_TYPE=vllm\" tt"
+  ./scripts/scheduler/create_job.sh ./cases/three_times_daily_torchax_v7.csv "" $TAG DAILY_AX_JAX TPU_INFERENCE "TPU_BACKEND_TYPE=jax;MODEL_IMPL_TYPE=vllm" tt
+fi
