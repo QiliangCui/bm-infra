@@ -105,6 +105,36 @@ if [[ -n "${VLLM_ATTENTION_BACKEND:-}" ]]; then
   EXTRA_ARGS+=" --attention-backend ${VLLM_ATTENTION_BACKEND}"
 fi
 
+if [[ -n "${VLLM_QUANTIZATION:-}" ]]; then
+  EXTRA_ARGS+=" --quantization ${VLLM_QUANTIZATION}"
+fi
+
+if [[ -n "${VLLM_GPU_MEMORY_UTILIZATION:-}" ]]; then
+  EXTRA_ARGS+=" --gpu-memory-utilization ${VLLM_GPU_MEMORY_UTILIZATION}"
+fi
+
+if [[ -n "${VLLM_KV_CACHE_DTYPE:-}" ]]; then
+  EXTRA_ARGS+=" --kv-cache-dtype ${VLLM_KV_CACHE_DTYPE}"
+fi
+
+if [[ "${VLLM_ENABLE_EXPERT_PARALLEL:-}" == "true" ]]; then
+  EXTRA_ARGS+=" --enable-expert-parallel"
+fi
+
+if [[ "${VLLM_ASYNC_SCHEDULING:-}" == "true" ]]; then
+  EXTRA_ARGS+=" --async-scheduling"
+fi
+
+if [[ -n "${VLLM_BLOCK_SIZE:-}" ]]; then
+  EXTRA_ARGS+=" --block-size ${VLLM_BLOCK_SIZE}"
+fi
+
+if [[ "${VLLM_LIBTPU_INIT_PRESET:-}" == "torchax_v7_optimized" ]]; then
+  echo "Applying torchax_v7_optimized LIBTPU_INIT_ARGS..."
+  PRESET_FLAGS="--xla_tpu_enable_sparse_core_collective_offload_all_reduce=false --xla_tpu_all_gather_collective_matmul_mode=post_spmd_conservative --xla_tpu_reduce_scatter_collective_matmul_mode=post_spmd_conservative --xla_jf_crs_combiner_threshold_in_bytes=0 --xla_tpu_scheduler_percent_shared_memory_limit=1000 --xla_jf_enable_producer_consumer_multi_output_fusion=false --xla_tpu_enable_domain_passes=true --xla_collective_optimize_constant_table=ENABLED --xla_jf_fusion_max_instruction_count_for_window_config=65536"
+  export LIBTPU_INIT_ARGS="${LIBTPU_INIT_ARGS:-} ${PRESET_FLAGS}"
+fi
+
 VLLM_USE_V1=1 VLLM_TORCH_PROFILER_DIR="$PROFILE_FOLDER" vllm serve $MODEL \
   --seed 42 \
   --max-num-seqs $MAX_NUM_SEQS \
