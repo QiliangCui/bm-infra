@@ -12,7 +12,7 @@ export GOOGLE_ACCESS_TOKEN=$(gcloud auth print-access-token)
 # 2. Fetch the version of torch_tpu
 # This runs a tiny container to check the version from the registry
 
-TORCH_VERSION="0.1.1.dev20260515095303"
+TORCH_VERSION="0.1.1.dev20260605101937"
 # echo "Determining torch_tpu version..."
 # TORCH_VERSION=$(docker run --rm \
 #     -e GOOGLE_ACCESS_TOKEN=$GOOGLE_ACCESS_TOKEN \
