@@ -38,13 +38,37 @@ fi
 
 # Add to /etc/fstab using UUID
 disk_uuid=$(blkid -s UUID -o value /dev/nvme0n2)
-if ! grep -q "/mnt/disks/persist" /etc/fstab; then
+if [ -n "$disk_uuid" ] && ! grep -q "/mnt/disks/persist" /etc/fstab; then
   echo "UUID=$disk_uuid /mnt/disks/persist ext4 defaults,discard 0 2" | sudo tee -a /etc/fstab
 fi
 
 # Only mount if not already mounted (first boot or recovery)
 if ! mountpoint -q /mnt/disks/persist; then
   sudo mount /mnt/disks/persist  
+fi
+
+# Set up Swap space to safeguard JAX compilation memory spikes
+if [ ! -s /mnt/disks/persist/swapfile ]; then
+  echo "Creating 128G swapfile at /mnt/disks/persist/swapfile..."
+  sudo rm -f /mnt/disks/persist/swapfile
+  if sudo fallocate -l 128G /mnt/disks/persist/swapfile.tmp && \
+     sudo chmod 600 /mnt/disks/persist/swapfile.tmp && \
+     sudo mkswap /mnt/disks/persist/swapfile.tmp && \
+     sudo mv /mnt/disks/persist/swapfile.tmp /mnt/disks/persist/swapfile; then
+    echo "Swapfile created successfully."
+  else
+    echo "Failed to create swapfile."
+    sudo rm -f /mnt/disks/persist/swapfile.tmp
+  fi
+fi
+
+if ! swapon --show | grep -q "/mnt/disks/persist/swapfile"; then
+  echo "Activating swapfile..."
+  sudo swapon /mnt/disks/persist/swapfile
+fi
+
+if ! grep -q "/mnt/disks/persist/swapfile" /etc/fstab; then
+  echo "/mnt/disks/persist/swapfile none swap sw 0 0" | sudo tee -a /etc/fstab
 fi
 
 jq ". + {\"data-root\": \"/mnt/disks/persist\"}" /etc/docker/daemon.json > /tmp/daemon.json.tmp && mv /tmp/daemon.json.tmp /etc/docker/daemon.json
