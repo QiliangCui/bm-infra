@@ -148,6 +148,9 @@ else
       echo "No EXPECTED_THROUGHPUT set, skipping threshold check."
     fi
 
+    output_token_throughput=$(grep -i "Output token throughput (tok/s):" "$BM_LOG" | sed 's/[^0-9.]//g')
+    total_token_throughput=$(grep -i "Total token throughput (tok/s):" "$BM_LOG" | sed 's/[^0-9.]//g')
+
     # Write result file
     echo "Throughput=$throughput" > "artifacts/$RECORD_ID.result"
 
@@ -179,5 +182,7 @@ P99ITL=$P99ITL
 P99TPOT=$P99TPOT
 P99TTFT=$P99TTFT
 P99ETEL=$P99ETEL
+OutputTokenThroughput=$output_token_throughput
+TotalTokenThroughput=$total_token_throughput
 EOF
 fi
