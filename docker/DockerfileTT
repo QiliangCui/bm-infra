@@ -40,8 +40,8 @@ RUN apt-get update && apt-get install -y \
     vim-common \
     && rm -rf /var/lib/apt/lists/*
 
-# The vllm's tag: v0.19.0
-ARG VLLM_COMMIT_HASH="2a69949"
+# The vllm's tag: v0.21.1
+ARG VLLM_COMMIT_HASH="0decac0d9"
 
 ARG TORCH_VERSION="0.1.1.dev20260423092951"
 
