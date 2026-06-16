@@ -39,7 +39,7 @@ variable "v6e_4_count" {
 }
 
 variable "v6e_8_count" {
-  default     = 10
+  default     = 2
 }
 
 variable "v7x_2_tt_count" {
