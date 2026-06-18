@@ -7,7 +7,7 @@ echo "Building with $DOCKERFILE"
 pushd artifacts/torchtpu-vllm
 
 # 1. Get the Access Token
-export GOOGLE_ACCESS_TOKEN=$(gcloud auth print-access-token)
+export GOOGLE_ACCESS_TOKEN=$(gcloud auth application-default print-access-token)
 
 # 2. Fetch the version of torch_tpu
 # This runs a tiny container to check the version from the registry
