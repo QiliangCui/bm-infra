@@ -17,7 +17,7 @@ ARG BASE_IMAGE="us-docker.pkg.dev/ml-oss-artifacts-transient/torch-tpu-docker-co
 FROM $BASE_IMAGE
 
 # Install benchmark system utilities
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     rclone \
     netcat-openbsd \
     bc \
@@ -33,10 +33,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Clone upstream vllm repository to have benchmark files (without compiling it)
 # This also provides the correct git history for validation checks in agent scripts
-WORKDIR /workspace/vllm
 ARG VLLM_REPO=https://github.com/vllm-project/vllm.git
 ARG VLLM_VERSION
-RUN git clone $VLLM_REPO . && \
-    if [ -n "$VLLM_VERSION" ]; then git checkout $VLLM_VERSION; fi
+RUN rm -rf /workspace/vllm && git clone $VLLM_REPO /workspace/vllm
+WORKDIR /workspace/vllm
+RUN if [ -n "$VLLM_VERSION" ]; then git checkout $VLLM_VERSION; fi
 
 CMD ["/bin/bash"]
