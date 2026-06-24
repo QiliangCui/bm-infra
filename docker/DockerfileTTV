@@ -12,22 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG BASE_IMAGE="southamerica-west1-docker.pkg.dev/cloud-tpu-inference-test/vllm-tpu-bm/tt:latest"
+ARG BASE_IMAGE="us-docker.pkg.dev/ml-oss-artifacts-transient/torch-tpu-docker-container/torchtpu-vllm-ci:latest"
 
 FROM $BASE_IMAGE
 
-# Install TorchTPU vllm
-WORKDIR /workspace/torchtpu_vllm
+# Install benchmark system utilities
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    rclone \
+    netcat-openbsd \
+    bc \
+    vim-common \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install TorchTPU vllm from local source (identical to dev target in official Dockerfile)
+WORKDIR /root/torchtpu-vllm
 COPY . .
-RUN sed -i '/^dependencies = \[/a \    "jax>=0.8.1",' pyproject.toml
-RUN --mount=type=cache,target=/root/.cache/pip pip install numba>=0.62.1
-RUN --mount=type=cache,target=/root/.cache/pip pip install --pre -e .
-RUN pip uninstall torchvision -y
+RUN --mount=type=cache,target=/root/.cache/uv \
+    SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 \
+    uv pip install --system --no-config --override /tmp/overrides.txt --index-url https://pypi.org/simple -e ".[test,benchmarking]"
 
-# force jax 0.9.1
-RUN --mount=type=cache,target=/root/.cache/pip pip install jax==0.9.2
-
-# go back to vllm folder
+# Clone upstream vllm repository to have benchmark files (without compiling it)
+# This also provides the correct git history for validation checks in agent scripts
+ARG VLLM_REPO=https://github.com/vllm-project/vllm.git
+ARG VLLM_VERSION
+RUN rm -rf /workspace/vllm && git clone $VLLM_REPO /workspace/vllm
 WORKDIR /workspace/vllm
+RUN if [ -n "$VLLM_VERSION" ]; then git checkout $VLLM_VERSION; fi
 
 CMD ["/bin/bash"]
