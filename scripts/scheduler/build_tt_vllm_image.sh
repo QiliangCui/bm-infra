@@ -4,10 +4,10 @@ set -euo pipefail
 TT_VLLM_HASH=$1
 
 # hard code to v0.22.1
-VLLM_HASH="0decac0d9"
-echo "vllm hash $VLLM_HASH"
+VLLM_VERSION="v0.22.1"
+echo "vllm version $VLLM_VERSION"
 
-BASE_IMAGE=southamerica-west1-docker.pkg.dev/cloud-tpu-inference-test/vllm-tpu-bm/tt:latest
+BASE_IMAGE="us-docker.pkg.dev/ml-oss-artifacts-transient/torch-tpu-docker-container/torchtpu-vllm-ci:latest"
 
 # Extract torch_tpu version
 
@@ -25,7 +25,7 @@ SAFE_TORCH_TPU_VERSION=$(echo "$TORCH_TPU_VERSION" | sed 's/+/--/g')
 
 # Note: for torchTPU, the vLLM is built inside the TorchTPUBase.
 # Attach ".vllm" in the end to indicate the base image has vllm in it.
-CODE_HASH="${VLLM_HASH}-${TT_VLLM_HASH}-${SAFE_TORCH_TPU_VERSION}.vllm"
+CODE_HASH="${VLLM_VERSION}-${TT_VLLM_HASH}-${SAFE_TORCH_TPU_VERSION}.vllm"
 IMAGE_TAG="$GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/vllm-tpu-bm/vllm-tpu:$CODE_HASH"
 echo "Image tag: $IMAGE_TAG"
 
@@ -61,6 +61,7 @@ VLLM_TARGET_DEVICE=tpu DOCKER_BUILDKIT=1 docker build \
 --build-arg USE_SCCACHE=1 \
 --build-arg BASE_IMAGE=$BASE_IMAGE \
 --build-arg GIT_REPO_CHECK=0 \
+--build-arg VLLM_VERSION=$VLLM_VERSION \
 --tag $IMAGE_TAG \
 --progress plain \
 -f "$DOCKERFILE" .
