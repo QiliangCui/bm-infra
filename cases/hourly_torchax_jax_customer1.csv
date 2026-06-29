@@ -1,2 +1,2 @@
-Device,Model,MaxNumSeqs,MaxNumBatchedTokens,TensorParallelSize,MaxModelLen,Dataset,InputLen,OutputLen
-v6e-4,google/gemma-3-12b-it,512,2048,4,1280,sonnet,1000,100
+Device,Model,MaxNumSeqs,MaxNumBatchedTokens,TensorParallelSize,MaxModelLen,Dataset,InputLen,OutputLen,ExpectedETEL,NumPrompts,ModelTag,PrefixLen,ExtraEnvs
+v6e-4,google/gemma-3-12b-it,512,2048,4,1280,sonnet,1000,100,,,,,
