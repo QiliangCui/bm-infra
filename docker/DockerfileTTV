@@ -29,7 +29,7 @@ WORKDIR /root/torchtpu-vllm
 COPY . .
 RUN --mount=type=cache,target=/root/.cache/uv \
     SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 \
-    uv pip install --system --no-config --override /tmp/overrides.txt --index-url https://pypi.org/simple -e ".[test,benchmarking]"
+    uv pip install --system --no-config --index-url https://pypi.org/simple -e ".[test,benchmarking]"
 
 # Clone upstream vllm repository to have benchmark files (without compiling it)
 # This also provides the correct git history for validation checks in agent scripts
