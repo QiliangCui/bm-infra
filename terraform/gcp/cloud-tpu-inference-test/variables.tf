@@ -7,11 +7,7 @@ variable "region" {
 }
 
 variable "tpu_zone" {
-    default = "us-central1-b"
-}
-
-variable "tpu7x_zone" {
-    default = "us-central1-c"
+    default = "us-east5-a"
 }
 
 variable "purpose" {
@@ -31,25 +27,16 @@ variable "gcs_bucket" {
 }
 
 variable "v6e_1_count" {
-  default     = 0
+  default     = 10
 }
 
 variable "v6e_4_count" {
-  default     = 0
+  default     = 2
 }
 
 variable "v6e_8_count" {
-  default     = 0
+  default     = 10
 }
-
-variable "v7x_2_tt_count" {
-  default     = 4
-}
-
-variable "v7x_8_tt_count" {
-  default     = 1
-}
-
 
 variable "instance_name_offset" {
   type        = number
