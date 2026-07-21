@@ -156,22 +156,6 @@ fi
 echo LOCAL_PATCH=1 ./scripts/scheduler/create_job.sh ./cases/hourly_disagg.csv "" $TAG HOURLY_DISAGG TPU_INFERENCE "PREFILL_SLICES=2;DECODE_SLICES=2;TPU_BACKEND_TYPE=jax"
 LOCAL_PATCH=1 ./scripts/scheduler/create_job.sh ./cases/hourly_disagg.csv "" $TAG HOURLY_DISAGG TPU_INFERENCE "PREFILL_SLICES=2;DECODE_SLICES=2;TPU_BACKEND_TYPE=jax"
 
-# Run TTV v6
-echo ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt.csv \"\" $TAG HOURLY_TT '\"MODEL_IMPL_TYPE=vllm;TEMPERATURE=0\"'
-bash ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt.csv "" $TAG HOURLY_TT "MODEL_IMPL_TYPE=vllm;TEMPERATURE=0"
-
-# Run TTV v7
-echo ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt_v7.csv \"\" $TAG HOURLY_TT '\"MODEL_IMPL_TYPE=vllm;TEMPERATURE=0\"' tt
-bash ./scripts/scheduler/create_tt_job.sh ./cases/hourly_tt_v7.csv "" $TAG HOURLY_TT "MODEL_IMPL_TYPE=vllm;TEMPERATURE=0" "tt"
-
-
-# TTV v7 accuracy (mmlu on tpu7x).
-# Will eventually run daily; for now we run more frequently (every 3 hours: 00,03,06,09,12,15,18,21).
-if (( 10#$HOUR_NOW % 3 == 0 )); then
-  echo ./scripts/scheduler/create_tt_job.sh ./cases/accuracy_tt_v7.csv \"\" $TAG DAILY_TT_ACCURACY '"MODEL_IMPL_TYPE=vllm;ENABLE_EXPERT_PARALLEL=True;VLLM_DISABLE_SHARED_EXPERTS_STREAM=1;GPU_MEMORY_UTILIZATION=0.9"' tt
-  bash ./scripts/scheduler/create_tt_job.sh ./cases/accuracy_tt_v7.csv "" $TAG DAILY_TT_ACCURACY "MODEL_IMPL_TYPE=vllm;ENABLE_EXPERT_PARALLEL=True;VLLM_DISABLE_SHARED_EXPERTS_STREAM=1;GPU_MEMORY_UTILIZATION=0.9" "tt"
-fi
-
 # torchax v7
 echo "./scripts/scheduler/create_job.sh ./cases/hourly_torchax_jax_v7.csv \"\" $TAG HOURLY_AX_JAX TPU_INFERENCE \"TPU_BACKEND_TYPE=jax;MODEL_IMPL_TYPE=vllm\" tt"
 ./scripts/scheduler/create_job.sh ./cases/hourly_torchax_jax_v7.csv "" $TAG HOURLY_AX_JAX TPU_INFERENCE "TPU_BACKEND_TYPE=jax;MODEL_IMPL_TYPE=vllm" tt
@@ -179,9 +163,6 @@ echo "./scripts/scheduler/create_job.sh ./cases/hourly_torchax_jax_v7.csv \"\" $
 # Run 480B benchmark cases three times daily (12am, 6am, 12pm PT) to avoid overloading queue
 if [[ "$HOUR_NOW" == "00" || "$HOUR_NOW" == "06" || "$HOUR_NOW" == "12" ]]; then
   echo "Running three times daily 480B benchmarks..."
-  
-  echo ./scripts/scheduler/create_tt_job.sh ./cases/three_times_daily_tt_v7.csv \"\" $TAG DAILY_TT '\"MODEL_IMPL_TYPE=vllm;TEMPERATURE=0\"' tt
-  bash ./scripts/scheduler/create_tt_job.sh ./cases/three_times_daily_tt_v7.csv "" $TAG DAILY_TT "MODEL_IMPL_TYPE=vllm;TEMPERATURE=0" "tt"
 
   echo "./scripts/scheduler/create_job.sh ./cases/three_times_daily_torchax_v7.csv \"\" $TAG DAILY_AX_JAX TPU_INFERENCE \"TPU_BACKEND_TYPE=jax;MODEL_IMPL_TYPE=vllm\" tt"
   ./scripts/scheduler/create_job.sh ./cases/three_times_daily_torchax_v7.csv "" $TAG DAILY_AX_JAX TPU_INFERENCE "TPU_BACKEND_TYPE=jax;MODEL_IMPL_TYPE=vllm" tt
