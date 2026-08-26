@@ -1,4 +1,24 @@
 #!/bin/bash
+
+# Benchmark generation is paused. The v6e fleet that consumes these queues is
+# being migrated off the us-east5-a reservation, so publishing more work would
+# only fill Pub/Sub with records no agent will claim -- messages expire after
+# the subscriptions' 7 day retention and leave their Spanner rows stranded in
+# CREATED forever.
+#
+# The guard lives here rather than in hourly_run_wrapper.sh so the wrapper still
+# runs its `git pull`: that pull is the only thing that carries a change from
+# this repo onto the scheduler VM, and gating before it would strand the VM on
+# this commit with no way back short of touching the box.
+#
+# To resume, either flip the default below back to 1 and let the hourly pull
+# pick it up, or export BM_SCHEDULER_ENABLED=1 in /etc/environment on the
+# scheduler VM -- both units read it via EnvironmentFile.
+if [[ "${BM_SCHEDULER_ENABLED:-0}" != "1" ]]; then
+  echo "bm scheduler is paused (BM_SCHEDULER_ENABLED != 1). No jobs created."
+  exit 0
+fi
+
 TIMEZONE="America/Los_Angeles"
 TAG="$(TZ="$TIMEZONE" date +%Y%m%d_%H%M%S)"
 HOUR_NOW=$(TZ="$TIMEZONE" date +%H)

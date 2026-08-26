@@ -2,6 +2,21 @@
 
 set -euo pipefail
 
+# Paused alongside hourly_run.sh -- see the note there. This republishes FAILED
+# and stuck RUNNING records, so leaving it live would keep feeding the queues
+# after job creation stops.
+#
+# Note this guard is inert on the current scheduler VM: bm-monitor.service
+# execs this script directly, with no `git pull` ahead of it, so its checkout
+# stays pinned wherever it was deployed. It drains on its own regardless --
+# every query here is bounded to LastUpdate within the last 3 days and
+# TryCount < 2, so once hourly_run.sh stops creating records the retry loop has
+# nothing left to act on within ~3 days.
+if [[ "${BM_SCHEDULER_ENABLED:-0}" != "1" ]]; then
+  echo "bm scheduler is paused (BM_SCHEDULER_ENABLED != 1). Nothing republished."
+  exit 0
+fi
+
 # === Usage ===
 # ./script.sh [RUN_TYPES] [TRY_COUNT]
 # RUN_TYPES: comma-separated (default: HOURLY,AUTOTUNE)
