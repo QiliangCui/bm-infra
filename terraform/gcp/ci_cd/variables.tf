@@ -7,7 +7,7 @@ variable "region" {
 }
 
 variable "tpu_zone" {
-    default = "us-central1-b"
+    default = "us-east5-a"
 }
 
 variable "tpu7x_zone" {
@@ -31,15 +31,15 @@ variable "gcs_bucket" {
 }
 
 variable "v6e_1_count" {
-  default     = 0
+  default     = 10
 }
 
 variable "v6e_4_count" {
-  default     = 0
+  default     = 2
 }
 
 variable "v6e_8_count" {
-  default     = 0
+  default     = 2
 }
 
 variable "v7x_2_tt_count" {
@@ -53,7 +53,7 @@ variable "v7x_8_tt_count" {
 
 variable "instance_name_offset" {
   type        = number
-  default     = 400
+  default     = 600
   description = "instance name offset so that we can distinguish machines from different project or region."
 }
 
