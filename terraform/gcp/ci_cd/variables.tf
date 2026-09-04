@@ -31,15 +31,15 @@ variable "gcs_bucket" {
 }
 
 variable "v6e_1_count" {
-  default     = 10
+  default     = 0
 }
 
 variable "v6e_4_count" {
-  default     = 2
+  default     = 0
 }
 
 variable "v6e_8_count" {
-  default     = 1
+  default     = 0
 }
 
 variable "v7x_2_tt_count" {
